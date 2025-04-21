@@ -1,305 +1,121 @@
 /* styles.css */
 
-/* Fonts & Icons (aus CodePen + Font Awesome) */
+/* Fonts & Icons */
 @import 'https://fonts.googleapis.com/css?family=Lato:300';
 @import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
-/* Font Awesome schon in HTML per Link eingebunden */
+/* Font Awesome via HTML Link */
 
-/* Globale Variablen (unsere) */
+/* Globale Variablen (vereinfacht) */
 :root { /* Dark Mode */
-    --primary: #3b82f6; --secondary: #60a5fa; --background: #0f172a; /* Wird weniger genutzt, da Container jetzt steuert */
-    --card-bg-primary: #DAE3FD; /* Basisfarbe der Karte */
-    --card-bg-thunder: #9FA4AD;
-    --card-bg-rain: #D8D8D8;
-    --card-bg-sun: #ccccff;
-    --card-text: #888;
-    --card-text-thunder: #ddd;
-    --card-text-strong: #333;
-    --input-bg: rgba(255, 255, 255, 0.1); --text: white; --text-secondary: #e2e8f0; --detail-bg: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.2); --error-bg: rgba(239, 68, 68, 0.15); --error-text: #f87171; --shadow-color: rgba(0, 0, 0, 0.4);
-    --sun-color: #facc15; --cloud-color: #d1d5db; --rain-color: #a5b4fc; --snow-color: #e5e7eb; --bolt-color: #facc15;
-    --icon-color: var(--primary); --chart-line: var(--primary); --chart-dot: white;
-    --placeholder-color: rgba(226, 232, 240, 0.7);
-    --gradient-start: rgba(0, 0, 200, 0); /* Beispielgradient */
-    --gradient-end: rgba(0, 0, 200, 0.2);
+    --primary: #3b82f6; --secondary: #60a5fa;
+    /* Card Farben */
+    --card-bg-primary: #DAE3FD; --card-bg-thunder: #9FA4AD; --card-bg-rain: #D8D8D8; --card-bg-sun: #ccccff; --card-bg-snow: #E6E8ED; --card-bg-wind: #C5D8EA; --card-bg-fog: #d4d7dd; /* Farbe für Nebel */ --card-bg-cloud: #dfe3ee; /* Farbe für Wolken */
+    /* Text Farben (Karte) */
+    --card-text: #555; --card-text-thunder: #ddd; --card-text-strong: #111; --card-text-sun: #24335a;
+    /* Allgemeine UI Farben */
+    --ui-text: white; --ui-text-secondary: #e2e8f0; --ui-input-bg: rgba(255, 255, 255, 0.1); --ui-border: rgba(255, 255, 255, 0.2); --ui-shadow: rgba(0, 0, 0, 0.4); --ui-error-bg: rgba(239, 68, 68, 0.15); --ui-error-text: #f87171; --ui-placeholder: rgba(226, 232, 240, 0.7);
+    /* Body Gradient */
+    --gradient-start: rgba(0, 0, 100, 0); --gradient-end: rgba(0, 0, 200, 0.2);
 }
 .light-theme { /* Light Mode */
-    --primary: #2563eb; --secondary: #3b82f6; --background: #f1f5f9;
-    --card-bg-primary: #DAE3FD; /* Gleich wie Dark? Oder heller? */
-    --card-bg-thunder: #9FA4AD;
-    --card-bg-rain: #D8D8D8;
-    --card-bg-sun: #a7bcff; /* Etwas kräftiger */
-    --card-text: #475569;
-    --card-text-thunder: #1e293b;
-    --card-text-strong: #0f172a;
-    --input-bg: rgba(0, 0, 0, 0.05); --text: #1e293b; --text-secondary: #475569; --detail-bg: rgba(0, 0, 0, 0.05); --border: rgba(0, 0, 0, 0.1); --error-bg: rgba(239, 68, 68, 0.05); --error-text: #dc2626; --shadow-color: rgba(0, 0, 0, 0.15);
-    --sun-color: #f59e0b; --cloud-color: #9ca3af; --rain-color: #60a5fa; --snow-color: #d1d5db; --bolt-color: #f59e0b;
-    --icon-color: var(--primary); --chart-line: var(--primary); --chart-dot: var(--primary);
-    --placeholder-color: rgba(71, 85, 105, 0.7);
-    --gradient-start: rgba(0, 0, 100, 0);
-    --gradient-end: rgba(50, 150, 100, 0.2);
+    --primary: #2563eb; --secondary: #3b82f6;
+    /* Card Farben */
+    --card-bg-primary: #E8EEFF; --card-bg-thunder: #AEB2BD; --card-bg-rain: #E0E0E0; --card-bg-sun: #a7bcff; --card-bg-snow: #F0F2F5; --card-bg-wind: #D0E0ED; --card-bg-fog: #e0e3e7; --card-bg-cloud: #e8ebf0;
+    /* Text Farben (Karte) */
+    --card-text: #475569; --card-text-thunder: #1e293b; --card-text-strong: #0f172a; --card-text-sun: #1a2a53;
+    /* Allgemeine UI Farben */
+    --ui-text: #1e293b; --ui-text-secondary: #475569; --ui-input-bg: rgba(0, 0, 0, 0.05); --ui-border: rgba(0, 0, 0, 0.1); --ui-shadow: rgba(0, 0, 0, 0.15); --ui-error-bg: rgba(239, 68, 68, 0.05); --ui-error-text: #dc2626; --ui-placeholder: rgba(71, 85, 105, 0.7);
+    /* Body Gradient */
+    --gradient-start: rgba(50, 150, 100, 0); --gradient-end: rgba(50, 150, 100, 0.2);
 }
 
-/* --- Basis Layout (aus CodePen, angepasst) --- */
-html, body, .background
-{
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	padding: 0;
-	font-family: 'Lato', sans-serif;
+/* --- Basis Layout --- */
+html, body, .background { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Lato', sans-serif; }
+html { background: #eee; }
+body { background: linear-gradient(0deg, var(--gradient-end), var(--gradient-start)); transition: background 1s ease; color: var(--ui-text); /* Allgemeine Textfarbe */ }
+.background { /* Optionaler 2. Verlauf */ }
+
+.container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin: 0; padding: 0; min-height: 100%; width: 100%; overflow-x: hidden; position: relative; padding-top: max(1rem, env(safe-area-inset-top)); }
+
+/* --- Unsere Controls --- */
+.app-controls { width: 100%; max-width: 420px; margin-bottom: 1.5rem; z-index: 10; position: relative; }
+.app-header { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; color: var(--ui-text); transition: color 0.3s ease; margin-bottom: 1rem;}
+.header-title { display: flex; align-items: center; gap: 0.75rem; } .header-title .logo { font-size: 1.8rem; color: var(--primary); transition: color 0.3s ease; } .header-title h1 { font-size: 1.5rem; font-weight: 600; margin: 0; } .header-controls { display: flex; align-items: center; gap: 0.5rem; }
+#favorites-select { background: var(--ui-input-bg); color: var(--ui-text); border: 1px solid var(--ui-border); border-radius: 0.75rem; padding: 0.4rem 0.8rem; font-size: 0.9rem; max-width: 150px; cursor: pointer; } #favorites-select option { /* Needs explicit background/color */ background: var(--card-bg-primary); color: var(--ui-text); } .header-controls button { background: var(--ui-input-bg); color: var(--ui-text-secondary); border: 1px solid var(--ui-border); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; padding: 0; font-size: 1rem; } .header-controls button:hover { background: rgba(127,127,127,0.2); color: var(--ui-text); } .header-controls button .fa-spin { animation: fa-spin 1s infinite linear; }
+.search-box { display: flex; gap: 0.75rem; position: relative; } .autocomplete-container { position: relative; flex: 1; } input[type="text"] { width: 100%; padding: 0.9rem 1rem; border-radius: 0.8rem; border: 1px solid var(--ui-border); background: var(--ui-input-bg); color: var(--ui-text); font-size: 1rem; outline: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease; } input[type="text"]::placeholder { color: var(--ui-placeholder); opacity: 1; } input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: var(--primary); } .search-box button { flex-shrink: 0; padding: 0; width: 50px; height: 50px; border-radius: 0.8rem; border: none; background: var(--primary); color: white; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; } .search-box button i { font-size: 1.1rem; } .search-box button:hover { background: var(--secondary); transform: translateY(-2px); } .autocomplete-dropdown { position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg-primary); /* Use card bg */ backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--ui-border); border-top: none; border-radius: 0 0 0.8rem 0.8rem; top: calc(100% - 0.5rem); left: 0; box-shadow: 0 8px 16px var(--ui-shadow); display: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; } .autocomplete-item { padding: 0.85rem 1.25rem; cursor: pointer; transition: background 0.2s ease; color: var(--ui-text); border-bottom: 1px solid var(--ui-border); } .autocomplete-item:last-child { border-bottom: none; } .autocomplete-item:hover, .autocomplete-item.active { background: rgba(127,127,127,0.1); } .autocomplete-item b { color: var(--primary); font-weight: 600; }
+
+/* --- Card Styling (angepasst) --- */
+#card {
+    box-shadow: 9px 7px 40px -6px var(--ui-shadow);
+    overflow: hidden; width: 100%; max-width: 420px; padding: 0;
+    height: auto; min-height: 450px; margin: 0 20px 20px 20px;
+    border-radius: 5px; position: relative;
+    background-color: var(--card-bg-primary);
+    transition: background-color 1s ease;
+    display: flex; flex-direction: column;
 }
-html { background: #eee; /* Fallback */ }
-body { background: linear-gradient(0deg, var(--gradient-end), var(--gradient-start)); transition: background 1s ease; }
-.background { background: linear-gradient(120deg, rgba(50, 150, 100, 0.2), rgba(0, 0, 100, 0)); } /* Optionaler 2. Verlauf */
-
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start; /* Start oben */
-    margin: 0; padding: 0;
-    min-height: 100%; /* Mindesthöhe statt feste Höhe */
-    width: 100%;
-    overflow-x: hidden; /* Horizontal kein Scrollen */
-    position: relative; /* Für absolute Positionierung innen */
-    /* Hintergrundverlauf wird vom Body übernommen oder kann hier spezifischer sein */
-    padding-top: max(1rem, env(safe-area-inset-top)); /* Sicherstellen, dass Inhalt nicht unter Notch ist */
-}
-
-/* --- Unsere Controls (Header, Suche) --- */
-.app-controls {
-    width: 100%;
-    max-width: 420px; /* Gleiche Breite wie Karte */
-    margin-bottom: 1.5rem;
-    z-index: 10; /* Über den SVGs */
-    position: relative;
-}
-.app-header { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; color: var(--text); transition: color 0.3s ease; margin-bottom: 1rem;}
-.header-title { display: flex; align-items: center; gap: 0.75rem; }
-.header-title .logo { font-size: 1.8rem; color: var(--primary); transition: color 0.3s ease; }
-.header-title h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
-.header-controls { display: flex; align-items: center; gap: 0.5rem; }
-#favorites-select { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.4rem 0.8rem; font-size: 0.9rem; max-width: 150px; cursor: pointer; }
-#favorites-select option { background: var(--background); color: var(--text); }
-.header-controls button { background: var(--input-bg); color: var(--text-secondary); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; padding: 0; font-size: 1rem; }
-.header-controls button:hover { background: var(--detail-bg); color: var(--text); }
-.header-controls button .fa-spin { animation: fa-spin 1s infinite linear; }
-
-.search-box { display: flex; gap: 0.75rem; position: relative; }
-.autocomplete-container { position: relative; flex: 1; }
-input[type="text"] { width: 100%; padding: 0.9rem 1rem; border-radius: 0.8rem; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 1rem; outline: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease; }
-input[type="text"]::placeholder { color: var(--placeholder-color); opacity: 1; }
-input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: var(--primary); }
-.search-box button { flex-shrink: 0; padding: 0; width: 50px; height: 50px; border-radius: 0.8rem; border: none; background: var(--primary); color: white; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; }
-.search-box button i { font-size: 1.1rem; }
-.search-box button:hover { background: var(--secondary); transform: translateY(-2px); }
-.autocomplete-dropdown { position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg-primary); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-top: none; border-radius: 0 0 0.8rem 0.8rem; top: calc(100% - 0.5rem); left: 0; box-shadow: 0 8px 16px var(--shadow-color); display: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
-.autocomplete-item { padding: 0.85rem 1.25rem; cursor: pointer; transition: background 0.2s ease; color: var(--text); border-bottom: 1px solid var(--border); }
-.autocomplete-item:last-child { border-bottom: none; }
-.autocomplete-item:hover, .autocomplete-item.active { background: var(--detail-bg); }
-.autocomplete-item b { color: var(--primary); font-weight: 600; }
-
-
-/* --- Card Styling (aus CodePen, angepasst) --- */
-#card
-{
-    box-shadow: 9px 7px 40px -6px var(--shadow-color);
-    overflow: hidden;
-    width: 100%; /* Volle Breite innerhalb des max-width Containers */
-    max-width: 420px; /* Maximale Breite begrenzen */
-	padding: 0;
-    height: auto; /* Höhe automatisch an Inhalt anpassen */
-	min-height: 450px; /* Mindesthöhe für Layout */
-	margin: 0 20px 20px 20px; /* Abstand unten */
-	border-radius: 5px;
-	position: relative; /* Für absolute Positionierung von .details */
-    background-color: var(--card-bg-primary); /* Standard-Hintergrund */
-    transition: background-color 1s ease; /* Langsamere Transition */
-    display: flex; /* Flex Container für SVG + Details */
-    flex-direction: column;
-}
-/* Wetter-spezifische Kartenhintergründe */
+/* Wetter-spezifische Kartenhintergründe mit Variablen */
 .container.thunder #card { background-color: var(--card-bg-thunder); }
 .container.rain #card { background-color: var(--card-bg-rain); }
-.container.snow #card { background-color: #E6E8ED; } /* Heller für Schnee */
+.container.snow #card { background-color: var(--card-bg-snow); }
 .container.sun #card { background-color: var(--card-bg-sun); }
-.container.wind #card { background-color: #C5D8EA; } /* Eigener Hintergrund für Wind */
+.container.wind #card { background-color: var(--card-bg-wind); }
+.container.fog #card { background-color: var(--card-bg-fog); }
+.container.cloud #card { background-color: var(--card-bg-cloud); }
 
-
-/* Inner SVG (nimmt verfügbaren Platz ein) */
-#inner {
-    width: 100%;
-    flex-grow: 1; /* Nimmt den meisten Platz ein */
-    /* Hintergrundverlauf entfernt, da Karte eigene BG-Farbe hat */
-}
+/* Inner SVG */
+#inner { width: 100%; flex-grow: 1; }
 
 /* --- Details Section (angepasst) --- */
-#card .details {
-    position: absolute; /* Überlagert das SVG */
-    bottom: 0; /* Am unteren Rand */
-    left: 0; right: 0;
-    padding: 16px 20px;
-    color: var(--card-text);
-    background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(0,0,0,0) 80%); /* Dunkler Verlauf unten für Lesbarkeit */
-    transition: color 1s ease;
-    display: flex;
-    flex-direction: column; /* Details untereinander */
-}
-/* Textfarbe bei Gewitter */
+#card .details { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; color: var(--card-text); background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(0,0,0,0) 80%); transition: color 1s ease, background 1s ease; display: flex; flex-direction: column; }
+/* Textfarbe / Hintergrund Anpassungen */
 .container.thunder #card .details { color: var(--card-text-thunder); }
-.container.sun #card .details { color: #3e4c6d; background: linear-gradient(to top, rgba(255,255,255,0.3), rgba(255,255,255,0) 80%);}
+.container.sun #card .details { color: var(--card-text-sun); background: linear-gradient(to top, rgba(255,255,255,0.3), rgba(255,255,255,0) 80%); }
+
+#card .details .main-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+#card .details .temp { font-size: 50px; line-height: 50px; font-weight: 300; color: var(--card-text-strong); /* Stärkere Farbe für Temp */ }
+#card .details .temp span { font-size: 16px; line-height: 20px; vertical-align: top; margin-left: 3px; }
+#card .details .location-description { text-align: right; }
+#card .details #location { font-size: 18px; font-weight: 600; color: var(--card-text-strong); margin-bottom: 4px; }
+#card .details #description { font-size: 14px; text-transform: capitalize; }
+#details-placeholder { min-height: 50px; /* Platz für zukünftiges Grid */ }
+#card .details .meta-info { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; opacity: 0.8; }
 
 
-#card .details .main-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center; /* Vertikal zentrieren */
-    margin-bottom: 10px;
-}
-
-#card .details .temp {
-    font-size: 50px; /* Etwas kleiner */
-    line-height: 50px;
-    font-weight: 300;
-    color: var(--text); /* Haupt-Textfarbe */
-}
-.container.thunder #card .details .temp { color: #fff; }
-.container.sun #card .details .temp { color: #24335a; }
-
-
-#card .details .temp span {
-    font-size: 16px;
-    line-height: 20px;
-    vertical-align: top;
-    margin-left: 3px;
-}
-
-#card .details .location-description {
-    text-align: right;
-}
-
-#card .details #location {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text); /* Haupt-Textfarbe */
-    margin-bottom: 4px;
-}
-.container.thunder #card .details #location { color: #fff; }
-.container.sun #card .details #location { color: #24335a; }
-
-
-#card .details #description {
-    font-size: 14px;
-    text-transform: capitalize;
-}
-
-/* Platzhalter für unser Details Grid */
-#details-grid-placeholder {
-    margin: 10px 0;
-    /* Hier wird das Grid von JS eingefügt */
-}
-
-/* Unser Details Grid Styling (angepasst für Integration) */
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); /* Etwas schmaler */
-    gap: 0.6rem;
-    width: 100%;
-}
-.detail-item {
-    background: rgba(0,0,0,0.1); /* Leichter Hintergrund für Kontrast */
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.2rem;
-    text-align: center;
-    font-size: 0.7rem; /* Kleiner */
-    color: inherit; /* Nimmt Farbe von .details an */
-}
-.container.sun #card .detail-item { background: rgba(255,255,255,0.2); }
-
-.detail-item .label {
-    display: flex;
-    align-items: center;
-    gap: 0.3em;
-    opacity: 0.8;
-}
-.detail-item .value {
-    font-weight: 600; /* Etwas fetter */
-    font-size: 0.85rem; /* Kleiner */
-    color: var(--text); /* Hauptfarbe für Wert */
-    margin-top: 0.1rem;
-}
-.container.thunder #card .detail-item .value { color: #fff; }
-.container.sun #card .detail-item .value { color: #24335a; }
-
-.detail-item .value .unit { font-size: 0.8em; margin-left: 0.1em; opacity: 0.8;}
-.detail-item .label i { color: inherit; opacity: 0.7; font-size: 0.9em; } /* Iconfarbe erben */
-
-
-#card .details .meta-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-top: 10px;
-    opacity: 0.8;
-}
-
-
-/* --- SVG Styling (aus CodePen, angepasst) --- */
-.weather .cloud { transition: fill 1s ease; } /* Langsamere Transition für Wolkenfarbe */
-
-/* Wolkenfarben Standard */
-#cloud1 { fill: #efefef; }
-#cloud2 { fill: #E6E6E6; }
-#cloud3 { fill: #D5D5D5; }
-/* Wolkenfarben bei Gewitter */
-.container.thunder #cloud1 { fill: #9FA4AD; }
-.container.thunder #cloud2 { fill: #8B8E98; }
-.container.thunder #cloud3 { fill: #7B7988; }
-/* Wolkenfarben bei Schnee */
-.container.snow #cloud1 { fill: #f6f6f6; }
-.container.snow #cloud2 { fill: #f1f1f1; }
-.container.snow #cloud3 { fill: #ececec; }
-/* Wolkenfarben bei Wind */
-.container.wind #cloud1 { fill: #ddebf8; }
-.container.wind #cloud2 { fill: #d5e6f7; }
-.container.wind #cloud3 { fill: #cddff3; }
+/* --- SVG Styling --- */
+.weather .cloud { transition: fill 1s ease; }
+/* Standard Wolkenfarben */
+#cloud1 { fill: #efefef; } #cloud2 { fill: #E6E6E6; } #cloud3 { fill: #D5D5D5; }
+/* Spezifische Wolkenfarben */
+.container.thunder #cloud1 { fill: #9FA4AD; } .container.thunder #cloud2 { fill: #8B8E98; } .container.thunder #cloud3 { fill: #7B7988; }
+.container.snow #cloud1 { fill: #f6f6f6; } .container.snow #cloud2 { fill: #f1f1f1; } .container.snow #cloud3 { fill: #ececec; }
+.container.wind #cloud1 { fill: #ddebf8; } .container.wind #cloud2 { fill: #d5e6f7; } .container.wind #cloud3 { fill: #cddff3; }
+.container.fog #cloud1 { fill: #e8e8e8; } .container.fog #cloud2 { fill: #e0e0e0; } .container.fog #cloud3 { fill: #d8d8d8; }
+.container.cloud #cloud1 { fill: #f0f0f0; } .container.cloud #cloud2 { fill: #e8e8e8; } .container.cloud #cloud3 { fill: #e0e0e0; }
 
 /* Sonne */
-#sun { transition: transform 1s ease, opacity 1s ease; transform-origin: center center;} /* Transition für Sonne */
-
+#sun { transition: transform 1s ease, opacity 1s ease; transform-origin: center center;}
 /* Sunburst & äußeres SVG */
 #outer, #back { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-#sunburst { transform-origin: center center; /* Wird von JS positioniert */ }
+#sunburst { transform-origin: center center; }
 
+/* --- Theme Toggle --- */
+.theme-toggle { position: fixed; top: max(20px, env(safe-area-inset-top)); right: max(20px, env(safe-area-inset-right)); background: var(--primary); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--ui-shadow); transition: background 0.2s ease, transform 0.2s ease; z-index: 1001; padding: 0; } .theme-toggle:hover { background: var(--secondary); transform: translateY(-2px) scale(1.05); } .theme-toggle i { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 
-/* --- Theme Toggle (Unser Stil) --- */
-.theme-toggle { position: fixed; top: max(20px, env(safe-area-inset-top)); right: max(20px, env(safe-area-inset-right)); background: var(--primary); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--shadow-color); transition: background 0.2s ease, transform 0.2s ease; z-index: 1001; padding: 0; }
-.theme-toggle:hover { background: var(--secondary); transform: translateY(-2px) scale(1.05); }
-.theme-toggle i { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-
-/* --- Loading/Error States (Unser Stil, muss ggf. angepasst werden) --- */
-/* Diese müssen jetzt in #weather-result angezeigt werden, falls die Karte selbst leer ist */
+/* --- Loading/Error States --- */
+#overlay-container { position: absolute; top:0; left: 0; right: 0; bottom: 0; pointer-events: none; /* Lässt Klicks durch, wenn leer */ }
 .loading-state, .error-state, .initial-prompt {
-    position: absolute; /* Überlagert ggf. leere Karte */
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     padding: 2rem; text-align: center;
-    background: rgba(0,0,0,0.5); /* Halbtransparent */
-    border-radius: 5px;
-    color: white;
-    z-index: 20; /* Über SVG und Details */
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    border-radius: 5px; color: white; z-index: 20; pointer-events: auto; /* Macht Overlay klickbar */
 }
 .loading-state i, .error-state i, .initial-prompt i { font-size: 3rem; margin-bottom: 1.5rem; color: white; }
 .loading-state div, .error-state span, .initial-prompt div { font-size: 1.2rem; }
-.error-state { color: #f87171; background-color: rgba(239, 68, 68, 0.7); animation: shake 0.4s ease; } .error-state i { color: #f87171; }
+.error-state { color: #f87171; background-color: rgba(150, 50, 50, 0.7); animation: shake 0.4s ease; } .error-state i { color: #f87171; }
 .initial-prompt i { animation: none; opacity: 0.7; }
 
-/* Animationen (Unsere + GSAP/Snap) */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-/* iconFloat wird nicht mehr gebraucht */
-@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
+/* Animationen */
 @keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
