@@ -1,94 +1,103 @@
-/* styles.css - Clean Base */
+/* styles.css - Clean Base + Autocomplete + Top Layout */
 
 @import 'https://fonts.googleapis.com/css?family=Lato:300';
 @import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
 /* Font Awesome via HTML Link */
 
-/* --- Basis Layout (CodePen) --- */
+/* --- Basis Layout --- */
 html, body, .background { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Lato', sans-serif; }
 html { background: #eee; }
-body { background: #eee; /* Einfacher Hintergrund */ overflow-x: hidden; }
-.background { /* Optionaler Verlauf, falls gewünscht */ }
+body { background: #eee; overflow-x: hidden; }
+.background { /* Optional */ }
 
-.container {
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; /* Oben starten */
-    margin: 0; padding: 20px; /* Etwas Abstand */ min-height: 100%; width: 100%;
-    box-sizing: border-box; /* Padding einrechnen */ position: relative;
-}
+.container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin: 0; padding: 20px; min-height: 100%; width: 100%; box-sizing: border-box; position: relative; }
 
-/* --- Minimale Controls --- */
-.controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 400px; /* Breite an Karte anpassen */
-    z-index: 10;
-}
-.controls input[type="text"] {
-    flex-grow: 1;
-    padding: 10px 15px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-family: 'Lato', sans-serif;
-}
-.controls button {
-    flex-shrink: 0;
-    padding: 10px;
-    border: none;
-    background-color: #5B92E5; /* Beispiel Farbe */
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1; /* Für Icon Zentrierung */
-}
+/* --- Controls mit Autocomplete --- */
+.controls { display: flex; gap: 10px; margin-bottom: 20px; width: 100%; max-width: 400px; z-index: 10; }
+.autocomplete-container { position: relative; flex-grow: 1; } /* Nimmt Platz ein */
+.controls input[type="text"] { width: 100%; padding: 10px 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: 'Lato', sans-serif; box-sizing: border-box; }
+.controls button { flex-shrink: 0; padding: 10px; border: none; background-color: #5B92E5; color: white; border-radius: 4px; cursor: pointer; font-size: 1rem; line-height: 1; }
 .controls button:hover { background-color: #4a7ac2; }
 
-/* --- Card Styling (CodePen Basis) --- */
-#card {
-    box-shadow: 9px 7px 40px -6px rgba(0,0,0,0.25);
-    overflow: hidden; width: 100%; max-width: 400px; padding: 0;
-    height: 450px; /* Feste Höhe für Konsistenz der Animationen */
-    margin: 0; border-radius: 5px; position: relative;
-    background-color: #DAE3FD; /* Default */
-    transition: background-color 1s ease;
-    display: flex; flex-direction: column;
+/* Autocomplete Dropdown Styles */
+.autocomplete-dropdown {
+    position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow-y: auto;
+    background: #fff; border: 1px solid #ccc; border-top: none;
+    border-radius: 0 0 4px 4px; top: 100%; /* Direkt unter dem Input */
+    left: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;
 }
+.autocomplete-item {
+    padding: 0.75rem 1rem; cursor: pointer; transition: background 0.2s ease;
+    color: #333; border-bottom: 1px solid #eee;
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.active { background: #f0f0f0; }
+.autocomplete-item b { color: #5B92E5; font-weight: 600; }
+
+
+/* --- Card Styling --- */
+#card { box-shadow: 9px 7px 40px -6px rgba(0,0,0,0.25); overflow: hidden; width: 100%; max-width: 400px; padding: 0; height: 450px; margin: 0; border-radius: 5px; position: relative; background-color: #DAE3FD; transition: background-color 1s ease; display: flex; flex-direction: column; }
 /* Wetter-spezifische Hintergründe */
-.container.thunder #card { background-color: #9FA4AD; }
-.container.rain #card { background-color: #D8D8D8; }
-.container.snow #card { background-color: #E6E8ED; }
-.container.sun #card { background-color: #ccccff; }
-.container.wind #card { background-color: #C5D8EA; }
-.container.fog #card { background-color: #d4d7dd; }
-.container.cloud #card { background-color: #dfe3ee; }
+.container.thunder #card { background-color: #9FA4AD; } .container.rain #card { background-color: #D8D8D8; } .container.snow #card { background-color: #E6E8ED; } .container.sun #card { background-color: #ccccff; } .container.wind #card { background-color: #C5D8EA; } .container.fog #card { background-color: #d4d7dd; } .container.cloud #card { background-color: #dfe3ee; }
 
 /* Inner SVG */
 #inner { width: 100%; flex-grow: 1; }
 
-/* --- Details Section (CodePen Basis, leicht angepasst) --- */
+/* --- Details Section (LAYOUT OBEN) --- */
 #card .details {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    padding: 16px 20px; color: #555; /* Default Textfarbe */
-    background: linear-gradient(to top, rgba(0,0,0,0.2), rgba(0,0,0,0) 80%);
-    transition: color 1s ease, background 1s ease;
-    display: flex; flex-direction: column;
+    position: absolute;
+    top: 0; /* <<<<<< LAYOUT OBEN */
+    left: 0; right: 0;
+    padding: 16px 20px;
+    color: #555; /* Default Text */
+    /* Kein Hintergrundverlauf mehr nötig */
+    transition: color 1s ease;
+    display: flex; /* Temp links, Rest rechts */
+    justify-content: space-between; /* Verteilt auf die Breite */
+    align-items: flex-start; /* Oben ausrichten */
+    z-index: 5; /* Über SVG, unter Overlay */
 }
 /* Textfarbe Anpassungen */
 .container.thunder #card .details { color: #ddd; }
-.container.sun #card .details { color: #3e4c6d; background: linear-gradient(to top, rgba(255,255,255,0.2), rgba(255,255,255,0) 80%); }
+.container.sun #card .details { color: #3e4c6d; }
 
-#card .details .main-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-#card .details .temp { font-size: 50px; line-height: 50px; font-weight: 300; color: #111; /* Starker Kontrast für Temp */ }
-#card .details .temp span { font-size: 16px; line-height: 20px; vertical-align: top; margin-left: 3px; }
-#card .details .location-description { text-align: right; }
-#card .details #location { font-size: 18px; font-weight: 600; color: #111; margin-bottom: 4px; }
-#card .details #description { font-size: 14px; text-transform: capitalize; }
-#card .details .meta-info { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; opacity: 0.8; }
+/* Temperatur links */
+#card .details .temp {
+    font-size: 60px; /* Originalgröße */
+    line-height: 60px;
+    font-weight: 300;
+    color: #111; /* Default starke Farbe */
+    margin-right: 15px; /* Abstand nach rechts */
+}
+.container.thunder #card .details .temp { color: #fff; }
+.container.sun #card .details .temp { color: #24335a; }
+#card .details .temp span { font-size: 18px; line-height: 25px; vertical-align: top; margin-left: 5px; }
 
-/* --- SVG Styling (CodePen Basis) --- */
+/* Rechte Seite (Ort, Datum, Beschreibung) */
+#card .details .right {
+    text-align: right;
+}
+#card .details #location {
+    font-size: 18px; /* Etwas größer */
+    font-weight: 600;
+    color: #111; /* Default starke Farbe */
+    margin-bottom: 4px;
+}
+.container.thunder #card .details #location { color: #fff; }
+.container.sun #card .details #location { color: #24335a; }
+
+#card .details #date {
+    font-size: 12px; /* Klein */
+    margin-bottom: 4px;
+}
+#card .details #description {
+    font-size: 16px; /* Größer als Datum */
+    font-weight: 600; /* Fetter */
+    text-transform: capitalize;
+}
+
+
+/* --- SVG Styling --- */
 .weather .cloud { transition: fill 1s ease; }
 #cloud1 { fill: #efefef; } #cloud2 { fill: #E6E6E6; } #cloud3 { fill: #D5D5D5; }
 .container.thunder #cloud1 { fill: #9FA4AD; } .container.thunder #cloud2 { fill: #8B8E98; } .container.thunder #cloud3 { fill: #7B7988; }
@@ -102,12 +111,7 @@ body { background: #eee; /* Einfacher Hintergrund */ overflow-x: hidden; }
 
 /* --- Loading/Error States --- */
 #overlay-container { position: absolute; top:0; left: 0; right: 0; bottom: 0; pointer-events: none; }
-.loading-state, .error-state, .initial-prompt {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    padding: 2rem; text-align: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
-    border-radius: 5px; color: white; z-index: 20; pointer-events: auto;
-}
+.loading-state, .error-state, .initial-prompt { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; text-align: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); border-radius: 5px; color: white; z-index: 20; pointer-events: auto; }
 .loading-state i, .error-state i, .initial-prompt i { font-size: 3rem; margin-bottom: 1.5rem; color: white; }
 .loading-state div, .error-state span, .initial-prompt div { font-size: 1.2rem; }
 .error-state { color: #f87171; background-color: rgba(150, 50, 50, 0.7); animation: shake 0.4s ease; } .error-state i { color: #f87171; }
