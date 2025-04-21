@@ -1,6 +1,6 @@
 // scripts.js
 
-// DOM Elemente, Konstanten, etc.
+// DOM Elemente, Konstanten, etc. (wie vorher)
 const cityInput = document.getElementById('city');
 const weatherResultContainer = document.getElementById('weather-result');
 const themeToggle = document.getElementById('theme-toggle');
@@ -9,109 +9,79 @@ const searchButton = document.getElementById('search-button');
 const locationButton = document.getElementById('location-button');
 const favoritesSelect = document.getElementById('favorites-select');
 const refreshButton = document.getElementById('refresh-button');
-
 const GEOAPIFY_API_KEY = '6b73ef3534d24e6f9f9cbbd26bdf2e99';
 const FAVORITES_KEY = 'weatherAppFavorites';
-let autocompleteTimeout;
-let currentSuggestions = [];
-let manualOverrideActive = false;
-let currentCoords = null;
-let currentCityName = null;
-let currentParticleContainer = null;
-
+let autocompleteTimeout, currentSuggestions = [], manualOverrideActive = false, currentCoords = null, currentCityName = null, currentParticleContainer = null;
 const weatherConditions = { 0: { icon: 'sun', desc: 'Klarer Himmel' }, 1: { icon: 'cloud-sun', desc: 'Überwiegend klar' }, 2: { icon: 'cloud', desc: 'Teilweise bewölkt' }, 3: { icon: 'cloud', desc: 'Bedeckt' }, 45: { icon: 'smog', desc: 'Nebel' }, 48: { icon: 'smog', desc: 'Gefrierender Nebel' }, 51: { icon: 'cloud-rain', desc: 'Leichter Nieselregen' }, 53: { icon: 'cloud-rain', desc: 'Mäßiger Nieselregen' }, 55: { icon: 'cloud-showers-heavy', desc: 'Starker Nieselregen' }, 56: { icon: 'snowflake', desc: 'Leichter gefrierender Nieselregen' }, 57: { icon: 'snowflake', desc: 'Starker gefrierender Nieselregen' }, 61: { icon: 'cloud-rain', desc: 'Leichter Regen' }, 63: { icon: 'cloud-showers-heavy', desc: 'Mäßiger Regen' }, 65: { icon: 'cloud-showers-heavy', desc: 'Starker Regen' }, 66: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 67: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 71: { icon: 'snowflake', desc: 'Leichter Schneefall' }, 73: { icon: 'snowflake', desc: 'Mäßiger Schneefall' }, 75: { icon: 'snowflake', desc: 'Starker Schneefall' }, 77: { icon: 'icicles', desc: 'Schneekörner' }, 80: { icon: 'cloud-sun-rain', desc: 'Leichte Regenschauer' }, 81: { icon: 'cloud-showers-heavy', desc: 'Mäßige Regenschauer' }, 82: { icon: 'cloud-showers-heavy', desc: 'Heftige Regenschauer' }, 85: { icon: 'snowflake', desc: 'Leichte Schneeschauer' }, 86: { icon: 'snowflake', desc: 'Starke Schneeschauer' }, 95: { icon: 'cloud-bolt', desc: 'Gewitter' }, 96: { icon: 'cloud-bolt', desc: 'Gewitter mit leichtem Hagel' }, 99: { icon: 'cloud-bolt', desc: 'Gewitter mit starkem Hagel' } };
 function getWeatherCondition(code) { return weatherConditions[code] || { icon: 'question-circle', desc: `Unbekannt (${code})` }; }
 
-// --- tsParticles Konfigurationen (Regen aus CodePen adaptiert) ---
+// --- tsParticles Konfigurationen (Regen KORRIGIERT mit Stroke) ---
 const particleConfigs = {
     clear: {
         particles: { number: { value: 0 } }
     },
-    rain: { // <<--- NEUE Konfiguration basierend auf CodePen
+    rain: { // <<--- Basierend auf CodePen, mit Stroke!
         fullScreen: { enable: false },
         detectRetina: true,
-        interactivity: { enabled: false }, // Interaktivität aus für Performance
+        interactivity: { enabled: false },
         particles: {
-            color: { value: "#ffffff" }, // Partikel-"Füllung" (bei Linien weniger relevant)
-            // lineLinked entfernt, da enable: false
-            move: {
-                attract: { enable: false }, // Vereinfacht
-                bounce: false,
-                direction: "bottom",
-                enable: true,
-                outModes: { default: "out" }, // Korrekt für v2
-                random: true, // Lässt sie leicht versetzt starten/fallen
-                speed: 15, // Angepasste Geschwindigkeit (etwas langsamer als CodePen)
-                straight: true
-            },
             number: {
-                density: { enable: true, area: 800 }, // area statt value_area
-                limit: 0, // Kein Limit
-                value: 180 // Angepasste Anzahl
+                value: 150, // Angepasste Anzahl
+                density: { enable: true, area: 800 }
             },
-            opacity: {
-                animation: { enable: false }, // Vereinfacht
-                value: 0.6, // Angepasste Deckkraft
-                random: { enable: true, minimumValue: 0.3 } // Random Opacity
-            },
+            color: { value: "#ffffff" }, // Füllfarbe (weniger relevant für Stroke)
             shape: {
-                // character entfernt
-                image: [], // Leeres Array
-                // polygon entfernt
-                stroke: { // Wichtig für Linien!
-                    color: "#ffffff", // Weiß für Sichtbarkeit
+                type: "line",
+                stroke: { // <<<< WICHTIG: Definiert die Linie selbst
                     width: 1,
-                    opacity: 0.8 // Eigene Opacity für den Stroke
-                },
-                type: "line"
+                    color: "#ffffff", // Weiß für Sichtbarkeit
+                    opacity: 0.7 // Sichtbarkeit der Linie
+                }
             },
-            size: {
-                animation: { enable: false }, // Vereinfacht
-                value: 8, // Angepasste Linienlänge
-                random: { enable: true, minimumValue: 4 } // Random Länge
-            }
-            // rotate entfernt
+            opacity: { // Opacity des Partikel-Containers (kann Stroke beeinflussen)
+                value: 0.7,
+                random: { enable: true, minimumValue: 0.4 }
+            },
+            size: { // Länge der Linie
+                value: 10, // Kürzer als vorher
+                random: { enable: true, minimumValue: 5 }
+            },
+            move: {
+                enable: true,
+                speed: 10, // Mittlere Geschwindigkeit
+                direction: "bottom",
+                straight: true, // Gerade runter
+                outModes: { default: "out" },
+            },
         },
-        // polygon (config root level) entfernt
-        backgroundMode: { enable: true, zIndex: 0 } // Wichtig für Layering
+        backgroundMode: { enable: true, zIndex: 0 }
     },
-    snow: { // Bleibt wie im letzten Versuch
+    snow: { // (Unverändert zur letzten Version)
         fullScreen: { enable: false },
         particles: {
             number: { value: 100, density: { enable: true, area: 800 } },
-            color: { value: "#ffffff" },
-            shape: { type: "circle" },
+            color: { value: "#ffffff" }, shape: { type: "circle" },
             opacity: { value: 0.8, random: { enable: true, minimumValue: 0.5 } },
-            size: { value: 3, random: { enable: true, minimumValue: 1 } },
-            move: {
-                enable: true, speed: 0.9, direction: "bottom", random: true,
-                straight: false, outModes: { default: "out" }, bounce: false,
-            },
+            size: { value: 3.5, random: { enable: true, minimumValue: 1 } },
+            move: { enable: true, speed: 0.9, direction: "bottom", random: true, straight: false, outModes: { default: "out" }, bounce: false },
         },
-        interactivity: { enabled: false },
-        detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
+        interactivity: { enabled: false }, detectRetina: true, backgroundMode: { enable: true, zIndex: 0 }
     },
-    clouds: { // Bleibt wie im letzten Versuch
+    clouds: { // (Unverändert zur letzten Version)
         fullScreen: { enable: false },
         particles: {
             number: { value: 10, density: { enable: true, area: 800 } },
-            color: { value: "#ffffff" },
-            shape: { type: "circle" },
+            color: { value: "#ffffff" }, shape: { type: "circle" },
             opacity: { value: 0.12, random: { enable: true, minimumValue: 0.06 } },
             size: { value: 200, random: { enable: true, minimumValue: 100 } },
-            move: {
-                enable: true, speed: 0.4, direction: "none", random: true,
-                straight: false, outModes: { default: "destroy" }, decay: 0.004
-            },
+            move: { enable: true, speed: 0.4, direction: "none", random: true, straight: false, outModes: { default: "destroy" }, decay: 0.004 },
         },
-        interactivity: { enabled: false },
-        detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
+        interactivity: { enabled: false }, detectRetina: true, backgroundMode: { enable: true, zIndex: 0 }
     }
 };
 
-// --- Restliches JavaScript (Initialisierung, Event Listener, Theme, Favoriten, etc.) bleibt exakt gleich ---
+
+// --- Restliches JavaScript (Initialisierung bis Ende) bleibt exakt gleich ---
 document.addEventListener('DOMContentLoaded', () => { initializeTheme(); loadFavorites(); setupEventListeners(); autoDetectLocation(); });
 function setupEventListeners() { cityInput.addEventListener('input', handleAutocompleteInput); cityInput.addEventListener('keydown', handleInputKeydown); searchButton.addEventListener('click', getWeatherByCityName); locationButton.addEventListener('click', () => getLocationWeather(false)); themeToggle.addEventListener('click', toggleThemeManually); favoritesSelect.addEventListener('change', handleFavoriteSelection); refreshButton.addEventListener('click', handleRefresh); document.addEventListener('click', handleClickOutsideAutocomplete); document.addEventListener('keydown', handleEscapeKey); weatherResultContainer.addEventListener('click', handleCardClicks); }
 function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); } }); } }
@@ -142,7 +112,7 @@ function generateTemperatureChart(temps) { if (!temps || temps.length < 2) retur
 // --- Dynamischer Hintergrund & Partikel (ANGEPASST) ---
 function setDynamicBackground(weathercode, isDay) {
     let colorClass = '';
-    let particleConfigKey = 'clear'; // Standard: keine Partikel
+    let particleConfigKey = 'clear';
     const wc = Number(weathercode);
 
     const isClear = wc <= 1;
@@ -165,7 +135,6 @@ function setDynamicBackground(weathercode, isDay) {
         else if (isSnow) colorClass = 'weather-snow';
         else colorClass = 'weather-cloudy-day';
     }
-    // Alte Klassen entfernen, neue hinzufügen (nur Wetterklassen)
     document.body.className = document.body.className.replace(/weather-\S+/g, '').trim();
     if (colorClass) document.body.classList.add(colorClass);
 
@@ -183,14 +152,14 @@ function setDynamicBackground(weathercode, isDay) {
 
     // 4. tsParticles laden/aktualisieren
     if (typeof tsParticles !== 'undefined') {
+        // Hole Konfig als Kopie
         let configToLoad = JSON.parse(JSON.stringify(particleConfigs[particleConfigKey]));
 
         // Lade die Konfiguration.
         tsParticles.load("tsparticles", configToLoad)
           .then(container => {
-             // Alte Instanz wird automatisch zerstört/ersetzt, speichere neue Referenz
              currentParticleContainer = container;
-             // console.log(`Particles loaded/updated: ${particleConfigKey}`);
+             // console.log(`Particles loaded: ${particleConfigKey}`);
           })
           .catch(error => {
             console.error("tsParticles load error:", error);
@@ -205,28 +174,25 @@ function setDynamicBackground(weathercode, isDay) {
 function showLoading(message = "Lade...") {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`;
-    // Stoppe und entferne alte Partikel sicher
     if (typeof tsParticles !== 'undefined') {
-        // Lade leere Konfig, um Partikel zu entfernen
         tsParticles.load("tsparticles", particleConfigs.clear).catch(e => console.error("Error clearing particles", e));
-        currentParticleContainer = null; // Alte Referenz ist ungültig
+        currentParticleContainer = null;
     }
 }
 function showError(message) {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`;
     currentCoords = null; currentCityName = null;
-    setDynamicBackground(-1, 1); // Setzt auch Partikel auf 'clear'
+    setDynamicBackground(-1, 1);
 }
 function showInitialPrompt() {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`;
     currentCoords = null; currentCityName = null;
     updateFavoriteButtonState(false);
-    setDynamicBackground(-1, 1); // Setzt auch Partikel auf 'clear'
+    setDynamicBackground(-1, 1);
 }
 // --- Fehlerbehandlung, Standort-Automatik ---
 function handleGeolocationError(error) { let msg = 'Standort nicht ermittelt.'; if(error.code===1) msg='Zugriff verweigert.'; if(error.code===2) msg='Position nicht verfügbar.'; if(error.code===3) msg='Timeout.'; showError(msg); }
 function handleFetchError(error) { let msg = 'Unbekannter Fehler.'; if(error.message.includes('Stadt')&&error.message.includes('gefunden')) msg=error.message; else if(error.message.toLowerCase().includes('fetch')||error.message.toLowerCase().includes('network')) msg='Netzwerkfehler.'; else if(error.message.includes('API')||error.message.includes('Fehler')) msg='API Problem.'; else if(error.message.includes('Unvollständige')) msg='Daten unvollständig.'; else msg=`Fehler: ${error.message}`; console.error("Fetch Error Detail:", error); showError(msg); }
 async function autoDetectLocation() { if (!navigator.geolocation || !navigator.permissions) { showInitialPrompt(); return; } try { const perm = await navigator.permissions.query({ name: 'geolocation' }); if (perm.state === 'granted') { getLocationWeather(true); } else { showInitialPrompt(); } perm.onchange = () => { if (perm.state === 'granted' && weatherResultContainer.querySelector('.initial-prompt, .error-state')) { getLocationWeather(true); } else if (perm.state !== 'granted' && weatherResultContainer.querySelector('.loading-state')) { showInitialPrompt(); } }; } catch (error) { console.error('Permission query failed:', error); showInitialPrompt(); } }
-
