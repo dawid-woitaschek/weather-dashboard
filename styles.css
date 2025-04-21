@@ -3,13 +3,13 @@
 /* Globale Variablen & Grundstyles */
 :root { /* Dark Mode */
     --primary: #3b82f6; --secondary: #60a5fa; --background: #0f172a; --card-bg: rgba(15, 23, 42, 0.9); --input-bg: rgba(255, 255, 255, 0.1); --text: white; --text-secondary: #cbd5e1; --detail-bg: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.2); --error-bg: rgba(239, 68, 68, 0.15); --error-text: #f87171; --shadow-color: rgba(0, 0, 0, 0.4);
-    --sun-color: #facc15; --cloud-color: #d1d5db; --rain-color: #a5b4fc; /* Helleres Violett-Blau für Regen */ --snow-color: #e5e7eb; --bolt-color: #facc15;
+    --sun-color: #facc15; --cloud-color: #d1d5db; --rain-color: #a5b4fc; --snow-color: #e5e7eb; --bolt-color: #facc15;
     --icon-color: var(--primary); --chart-line: var(--primary); --chart-dot: white;
     --bg-gradient: linear-gradient(to bottom, #0f172a, #1e3a5f);
 }
 .light-theme { /* Light Mode */
     --primary: #2563eb; --secondary: #3b82f6; --background: #f1f5f9; --card-bg: rgba(255, 255, 255, 0.95); --input-bg: rgba(0, 0, 0, 0.05); --text: #1e293b; --text-secondary: #475569; --detail-bg: rgba(0, 0, 0, 0.05); --border: rgba(0, 0, 0, 0.1); --error-bg: rgba(239, 68, 68, 0.05); --error-text: #dc2626; --shadow-color: rgba(0, 0, 0, 0.15);
-    --sun-color: #f59e0b; --cloud-color: #9ca3af; --rain-color: #60a5fa; /* Helles Blau für Regen */ --snow-color: #d1d5db; --bolt-color: #f59e0b;
+    --sun-color: #f59e0b; --cloud-color: #9ca3af; --rain-color: #60a5fa; --snow-color: #d1d5db; --bolt-color: #f59e0b;
     --icon-color: var(--primary); --chart-line: var(--primary); --chart-dot: var(--primary);
     --bg-gradient: linear-gradient(to bottom, #e0f2fe, #bae6fd);
 }
@@ -40,28 +40,21 @@ body {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
 }
 
-/* --- Content Wrapper (NEU) --- */
+/* --- Content Wrapper --- */
 .content-wrapper {
     width: 100%;
-    max-width: 460px; /* Etwas breiter für Luft */
-    margin: 0 auto; /* Horizontal zentrieren */
-    padding: 1rem; /* Abstand zum Rand */
-    padding-top: max(2rem, env(safe-area-inset-top) + 1rem); /* Mehr Abstand oben */
-    padding-bottom: max(2rem, env(safe-area-inset-bottom) + 1rem); /* Abstand unten */
-    position: relative; /* Damit z-index wirkt */
-    z-index: 1; /* Über die Partikel legen */
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Inhalt innen zentrieren */
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 1rem;
+    padding-top: max(2rem, env(safe-area-inset-top) + 1rem);
+    padding-bottom: max(2rem, env(safe-area-inset-bottom) + 1rem);
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
 }
 
-/* --- Header, Container (liegen jetzt im Wrapper) --- */
-.app-header {
-    width: 100%;
-    max-width: 420px; /* Behält max-width für Inhalt */
-    /* ... Restliche Header-Styles wie vorher ... */
-    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; color: var(--text); transition: color 0.3s ease;
-}
+/* --- Header, Container, Theme Toggle, Search, Autocomplete, Flip, Card Faces, Contents etc. (Rest bleibt wie vorher) --- */
+/* Header */
+.app-header { width: 100%; max-width: 420px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; color: var(--text); transition: color 0.3s ease; }
 .header-title { display: flex; align-items: center; gap: 0.75rem; }
 .header-title .logo { font-size: 1.8rem; color: var(--primary); transition: color 0.3s ease; }
 .header-title h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
@@ -71,19 +64,13 @@ body {
 .header-controls button { background: var(--input-bg); color: var(--text-secondary); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; padding: 0; font-size: 1rem; }
 .header-controls button:hover { background: var(--detail-bg); color: var(--text); }
 .header-controls button .fa-spin { animation: fa-spin 1s infinite linear; }
-
-.container {
-    width: 100%;
-    max-width: 420px;
-    /* ... Restliche Container-Styles wie vorher ... */
-    background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 1.5rem; padding: clamp(1rem, 4vw, 1.5rem); box-shadow: 0 10px 40px var(--shadow-color); border: 1px solid var(--border); transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-    /* Kein margin: 0 auto nötig, da Wrapper zentriert */
-}
+/* Container */
+.container { width: 100%; max-width: 420px; background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 1.5rem; padding: clamp(1rem, 4vw, 1.5rem); box-shadow: 0 10px 40px var(--shadow-color); border: 1px solid var(--border); transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
+/* Theme Toggle */
 .theme-toggle { position: fixed; top: max(20px, env(safe-area-inset-top)); right: max(20px, env(safe-area-inset-right)); background: var(--primary); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--shadow-color); transition: background 0.2s ease, transform 0.2s ease; z-index: 1001; padding: 0; }
 .theme-toggle:hover { background: var(--secondary); transform: translateY(-2px) scale(1.05); }
 .theme-toggle i { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-
-/* --- Search, Autocomplete, Flip Container, Card Faces, Inhalte, etc. (Rest bleibt gleich) --- */
+/* Search */
 .search-box { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; position: relative; }
 .autocomplete-container { position: relative; flex: 1; }
 input[type="text"] { width: 100%; padding: 1rem 1.1rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: clamp(0.9rem, 2.5vw + 0.1rem, 1rem); outline: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease, font-size 0.2s ease; }
@@ -97,8 +84,8 @@ input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: v
 .autocomplete-item:last-child { border-bottom: none; }
 .autocomplete-item:hover, .autocomplete-item.active { background: var(--detail-bg); }
 .autocomplete-item b { color: var(--primary); font-weight: 600; }
-
-#weather-result { perspective: 1200px; position: relative; min-height: 480px; transition: min-height 0.3s ease; margin-top: 1rem; }
+/* Flip */
+#weather-result { perspective: 1200px; position: relative; min-height: 480px; transition: min-height 0.3s ease; margin-top: 1rem; width: 100%; /* Wichtig für korrekte Breite */ }
 .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; padding: 1.2rem 1rem; background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .card-front { z-index: 10; justify-content: space-between; }
 .card-back { transform: rotateY(180deg); z-index: 5; display: flex; flex-direction: column; justify-content: space-between; padding: 1.2rem 1rem; }
@@ -106,7 +93,7 @@ input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: v
 .forecast-content::-webkit-scrollbar { width: 6px; height: 6px; } .forecast-content::-webkit-scrollbar-track { background: transparent; } .forecast-content::-webkit-scrollbar-thumb { background-color: var(--detail-bg); border-radius: 10px; }
 #weather-result.is-flipped .card-front { transform: rotateY(-180deg); z-index: 5; }
 #weather-result.is-flipped .card-back { transform: rotateY(0deg); z-index: 10; }
-
+/* Card Front Content */
 .current-weather-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .location-info { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .location-name { font-size: 1.3rem; font-weight: 600; color: var(--text); }
@@ -128,11 +115,10 @@ input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: v
 .wind-dir-icon { display: inline-block; transition: transform 0.3s ease; color: var(--text-secondary); }
 .fa-temperature-high, .fa-temperature-low { color: var(--text-secondary); }
 .uv-desc { margin-left: 0.3em; }
-
+/* Card Back Content */
 .flip-button { background: var(--detail-bg); border: none; color: var(--text-secondary); padding: 0.6rem 1rem; border-radius: 0.75rem; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem; align-self: center; flex-shrink: 0;}
 .flip-button:hover { background: var(--input-bg); color: var(--text); }
 .card-back .flip-button { margin-top: 1rem; }
-
 .forecast-chart-container { margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 .forecast-chart-container svg { display: block; width: 100%; overflow: visible; }
 .chart-line { stroke: var(--chart-line); stroke-width: 2; fill: none; }
@@ -149,7 +135,7 @@ input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: v
 .forecast-item .precip-prob { font-size: 0.75rem; color: var(--rain-color); margin-top: 0.1rem; display: flex; align-items: center; gap: 0.2em; }
 .forecast-item .precip-prob i { font-size: 0.8em; }
 .forecast-item .temp-low { font-size: 0.8rem; color: var(--text-secondary); }
-
+/* Icon Colors */
 body.weather-clear-day .weather-icon-large, body.weather-clear-day .weather-icon-small.fa-sun { color: var(--sun-color); }
 body.weather-clear-night .weather-icon-large.fa-moon, body.weather-clear-night .weather-icon-small.fa-moon { color: var(--snow-color); }
 body.weather-cloudy-day .weather-icon-large, body.weather-cloudy-day .weather-icon-small,
@@ -161,12 +147,12 @@ body.weather-rain .weather-icon-large.fa-cloud-bolt, body.weather-rain .weather-
 body.weather-snow .weather-icon-large, body.weather-snow .weather-icon-small { color: var(--snow-color); }
 body.weather-snow .weather-icon-small.fa-icicles { color: var(--rain-color); }
 body[class*="cloudy"] .weather-icon-large.fa-smog, body[class*="cloudy"] .weather-icon-small.fa-smog { color: var(--cloud-color); }
-
+/* Loading/Error/Prompt */
 .loading-state, .error-state, .initial-prompt { padding: 3rem 1rem; text-align: center; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center;}
 .loading-state i, .error-state i, .initial-prompt i { font-size: 3rem; margin-bottom: 1.5rem; color: var(--primary); }
 .loading-state div, .error-state span, .initial-prompt div { color: var(--text-secondary); font-size: 1.2rem; }
 .error-state { color: var(--error-text); background-color: var(--error-bg); border-radius: 1rem; animation: shake 0.4s ease; } .error-state i { color: var(--error-text); } .initial-prompt i { animation: none; opacity: 0.7; }
-
+/* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes iconFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
