@@ -1,121 +1,118 @@
-/* styles.css */
+/* styles.css - Clean Base */
 
-/* Fonts & Icons */
 @import 'https://fonts.googleapis.com/css?family=Lato:300';
 @import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
 /* Font Awesome via HTML Link */
 
-/* Globale Variablen (vereinfacht) */
-:root { /* Dark Mode */
-    --primary: #3b82f6; --secondary: #60a5fa;
-    /* Card Farben */
-    --card-bg-primary: #DAE3FD; --card-bg-thunder: #9FA4AD; --card-bg-rain: #D8D8D8; --card-bg-sun: #ccccff; --card-bg-snow: #E6E8ED; --card-bg-wind: #C5D8EA; --card-bg-fog: #d4d7dd; /* Farbe für Nebel */ --card-bg-cloud: #dfe3ee; /* Farbe für Wolken */
-    /* Text Farben (Karte) */
-    --card-text: #555; --card-text-thunder: #ddd; --card-text-strong: #111; --card-text-sun: #24335a;
-    /* Allgemeine UI Farben */
-    --ui-text: white; --ui-text-secondary: #e2e8f0; --ui-input-bg: rgba(255, 255, 255, 0.1); --ui-border: rgba(255, 255, 255, 0.2); --ui-shadow: rgba(0, 0, 0, 0.4); --ui-error-bg: rgba(239, 68, 68, 0.15); --ui-error-text: #f87171; --ui-placeholder: rgba(226, 232, 240, 0.7);
-    /* Body Gradient */
-    --gradient-start: rgba(0, 0, 100, 0); --gradient-end: rgba(0, 0, 200, 0.2);
-}
-.light-theme { /* Light Mode */
-    --primary: #2563eb; --secondary: #3b82f6;
-    /* Card Farben */
-    --card-bg-primary: #E8EEFF; --card-bg-thunder: #AEB2BD; --card-bg-rain: #E0E0E0; --card-bg-sun: #a7bcff; --card-bg-snow: #F0F2F5; --card-bg-wind: #D0E0ED; --card-bg-fog: #e0e3e7; --card-bg-cloud: #e8ebf0;
-    /* Text Farben (Karte) */
-    --card-text: #475569; --card-text-thunder: #1e293b; --card-text-strong: #0f172a; --card-text-sun: #1a2a53;
-    /* Allgemeine UI Farben */
-    --ui-text: #1e293b; --ui-text-secondary: #475569; --ui-input-bg: rgba(0, 0, 0, 0.05); --ui-border: rgba(0, 0, 0, 0.1); --ui-shadow: rgba(0, 0, 0, 0.15); --ui-error-bg: rgba(239, 68, 68, 0.05); --ui-error-text: #dc2626; --ui-placeholder: rgba(71, 85, 105, 0.7);
-    /* Body Gradient */
-    --gradient-start: rgba(50, 150, 100, 0); --gradient-end: rgba(50, 150, 100, 0.2);
-}
-
-/* --- Basis Layout --- */
+/* --- Basis Layout (CodePen) --- */
 html, body, .background { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Lato', sans-serif; }
 html { background: #eee; }
-body { background: linear-gradient(0deg, var(--gradient-end), var(--gradient-start)); transition: background 1s ease; color: var(--ui-text); /* Allgemeine Textfarbe */ }
-.background { /* Optionaler 2. Verlauf */ }
+body { background: #eee; /* Einfacher Hintergrund */ overflow-x: hidden; }
+.background { /* Optionaler Verlauf, falls gewünscht */ }
 
-.container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; margin: 0; padding: 0; min-height: 100%; width: 100%; overflow-x: hidden; position: relative; padding-top: max(1rem, env(safe-area-inset-top)); }
+.container {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; /* Oben starten */
+    margin: 0; padding: 20px; /* Etwas Abstand */ min-height: 100%; width: 100%;
+    box-sizing: border-box; /* Padding einrechnen */ position: relative;
+}
 
-/* --- Unsere Controls --- */
-.app-controls { width: 100%; max-width: 420px; margin-bottom: 1.5rem; z-index: 10; position: relative; }
-.app-header { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; color: var(--ui-text); transition: color 0.3s ease; margin-bottom: 1rem;}
-.header-title { display: flex; align-items: center; gap: 0.75rem; } .header-title .logo { font-size: 1.8rem; color: var(--primary); transition: color 0.3s ease; } .header-title h1 { font-size: 1.5rem; font-weight: 600; margin: 0; } .header-controls { display: flex; align-items: center; gap: 0.5rem; }
-#favorites-select { background: var(--ui-input-bg); color: var(--ui-text); border: 1px solid var(--ui-border); border-radius: 0.75rem; padding: 0.4rem 0.8rem; font-size: 0.9rem; max-width: 150px; cursor: pointer; } #favorites-select option { /* Needs explicit background/color */ background: var(--card-bg-primary); color: var(--ui-text); } .header-controls button { background: var(--ui-input-bg); color: var(--ui-text-secondary); border: 1px solid var(--ui-border); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; padding: 0; font-size: 1rem; } .header-controls button:hover { background: rgba(127,127,127,0.2); color: var(--ui-text); } .header-controls button .fa-spin { animation: fa-spin 1s infinite linear; }
-.search-box { display: flex; gap: 0.75rem; position: relative; } .autocomplete-container { position: relative; flex: 1; } input[type="text"] { width: 100%; padding: 0.9rem 1rem; border-radius: 0.8rem; border: 1px solid var(--ui-border); background: var(--ui-input-bg); color: var(--ui-text); font-size: 1rem; outline: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease; } input[type="text"]::placeholder { color: var(--ui-placeholder); opacity: 1; } input[type="text"]:focus { box-shadow: 0 0 0 3px var(--primary); border-color: var(--primary); } .search-box button { flex-shrink: 0; padding: 0; width: 50px; height: 50px; border-radius: 0.8rem; border: none; background: var(--primary); color: white; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; } .search-box button i { font-size: 1.1rem; } .search-box button:hover { background: var(--secondary); transform: translateY(-2px); } .autocomplete-dropdown { position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg-primary); /* Use card bg */ backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--ui-border); border-top: none; border-radius: 0 0 0.8rem 0.8rem; top: calc(100% - 0.5rem); left: 0; box-shadow: 0 8px 16px var(--ui-shadow); display: none; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; } .autocomplete-item { padding: 0.85rem 1.25rem; cursor: pointer; transition: background 0.2s ease; color: var(--ui-text); border-bottom: 1px solid var(--ui-border); } .autocomplete-item:last-child { border-bottom: none; } .autocomplete-item:hover, .autocomplete-item.active { background: rgba(127,127,127,0.1); } .autocomplete-item b { color: var(--primary); font-weight: 600; }
+/* --- Minimale Controls --- */
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 400px; /* Breite an Karte anpassen */
+    z-index: 10;
+}
+.controls input[type="text"] {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: 'Lato', sans-serif;
+}
+.controls button {
+    flex-shrink: 0;
+    padding: 10px;
+    border: none;
+    background-color: #5B92E5; /* Beispiel Farbe */
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1; /* Für Icon Zentrierung */
+}
+.controls button:hover { background-color: #4a7ac2; }
 
-/* --- Card Styling (angepasst) --- */
+/* --- Card Styling (CodePen Basis) --- */
 #card {
-    box-shadow: 9px 7px 40px -6px var(--ui-shadow);
-    overflow: hidden; width: 100%; max-width: 420px; padding: 0;
-    height: auto; min-height: 450px; margin: 0 20px 20px 20px;
-    border-radius: 5px; position: relative;
-    background-color: var(--card-bg-primary);
+    box-shadow: 9px 7px 40px -6px rgba(0,0,0,0.25);
+    overflow: hidden; width: 100%; max-width: 400px; padding: 0;
+    height: 450px; /* Feste Höhe für Konsistenz der Animationen */
+    margin: 0; border-radius: 5px; position: relative;
+    background-color: #DAE3FD; /* Default */
     transition: background-color 1s ease;
     display: flex; flex-direction: column;
 }
-/* Wetter-spezifische Kartenhintergründe mit Variablen */
-.container.thunder #card { background-color: var(--card-bg-thunder); }
-.container.rain #card { background-color: var(--card-bg-rain); }
-.container.snow #card { background-color: var(--card-bg-snow); }
-.container.sun #card { background-color: var(--card-bg-sun); }
-.container.wind #card { background-color: var(--card-bg-wind); }
-.container.fog #card { background-color: var(--card-bg-fog); }
-.container.cloud #card { background-color: var(--card-bg-cloud); }
+/* Wetter-spezifische Hintergründe */
+.container.thunder #card { background-color: #9FA4AD; }
+.container.rain #card { background-color: #D8D8D8; }
+.container.snow #card { background-color: #E6E8ED; }
+.container.sun #card { background-color: #ccccff; }
+.container.wind #card { background-color: #C5D8EA; }
+.container.fog #card { background-color: #d4d7dd; }
+.container.cloud #card { background-color: #dfe3ee; }
 
 /* Inner SVG */
 #inner { width: 100%; flex-grow: 1; }
 
-/* --- Details Section (angepasst) --- */
-#card .details { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; color: var(--card-text); background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(0,0,0,0) 80%); transition: color 1s ease, background 1s ease; display: flex; flex-direction: column; }
-/* Textfarbe / Hintergrund Anpassungen */
-.container.thunder #card .details { color: var(--card-text-thunder); }
-.container.sun #card .details { color: var(--card-text-sun); background: linear-gradient(to top, rgba(255,255,255,0.3), rgba(255,255,255,0) 80%); }
+/* --- Details Section (CodePen Basis, leicht angepasst) --- */
+#card .details {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 16px 20px; color: #555; /* Default Textfarbe */
+    background: linear-gradient(to top, rgba(0,0,0,0.2), rgba(0,0,0,0) 80%);
+    transition: color 1s ease, background 1s ease;
+    display: flex; flex-direction: column;
+}
+/* Textfarbe Anpassungen */
+.container.thunder #card .details { color: #ddd; }
+.container.sun #card .details { color: #3e4c6d; background: linear-gradient(to top, rgba(255,255,255,0.2), rgba(255,255,255,0) 80%); }
 
 #card .details .main-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-#card .details .temp { font-size: 50px; line-height: 50px; font-weight: 300; color: var(--card-text-strong); /* Stärkere Farbe für Temp */ }
+#card .details .temp { font-size: 50px; line-height: 50px; font-weight: 300; color: #111; /* Starker Kontrast für Temp */ }
 #card .details .temp span { font-size: 16px; line-height: 20px; vertical-align: top; margin-left: 3px; }
 #card .details .location-description { text-align: right; }
-#card .details #location { font-size: 18px; font-weight: 600; color: var(--card-text-strong); margin-bottom: 4px; }
+#card .details #location { font-size: 18px; font-weight: 600; color: #111; margin-bottom: 4px; }
 #card .details #description { font-size: 14px; text-transform: capitalize; }
-#details-placeholder { min-height: 50px; /* Platz für zukünftiges Grid */ }
 #card .details .meta-info { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; opacity: 0.8; }
 
-
-/* --- SVG Styling --- */
+/* --- SVG Styling (CodePen Basis) --- */
 .weather .cloud { transition: fill 1s ease; }
-/* Standard Wolkenfarben */
 #cloud1 { fill: #efefef; } #cloud2 { fill: #E6E6E6; } #cloud3 { fill: #D5D5D5; }
-/* Spezifische Wolkenfarben */
 .container.thunder #cloud1 { fill: #9FA4AD; } .container.thunder #cloud2 { fill: #8B8E98; } .container.thunder #cloud3 { fill: #7B7988; }
 .container.snow #cloud1 { fill: #f6f6f6; } .container.snow #cloud2 { fill: #f1f1f1; } .container.snow #cloud3 { fill: #ececec; }
 .container.wind #cloud1 { fill: #ddebf8; } .container.wind #cloud2 { fill: #d5e6f7; } .container.wind #cloud3 { fill: #cddff3; }
 .container.fog #cloud1 { fill: #e8e8e8; } .container.fog #cloud2 { fill: #e0e0e0; } .container.fog #cloud3 { fill: #d8d8d8; }
 .container.cloud #cloud1 { fill: #f0f0f0; } .container.cloud #cloud2 { fill: #e8e8e8; } .container.cloud #cloud3 { fill: #e0e0e0; }
-
-/* Sonne */
 #sun { transition: transform 1s ease, opacity 1s ease; transform-origin: center center;}
-/* Sunburst & äußeres SVG */
 #outer, #back { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 #sunburst { transform-origin: center center; }
 
-/* --- Theme Toggle --- */
-.theme-toggle { position: fixed; top: max(20px, env(safe-area-inset-top)); right: max(20px, env(safe-area-inset-right)); background: var(--primary); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--ui-shadow); transition: background 0.2s ease, transform 0.2s ease; z-index: 1001; padding: 0; } .theme-toggle:hover { background: var(--secondary); transform: translateY(-2px) scale(1.05); } .theme-toggle i { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-
 /* --- Loading/Error States --- */
-#overlay-container { position: absolute; top:0; left: 0; right: 0; bottom: 0; pointer-events: none; /* Lässt Klicks durch, wenn leer */ }
+#overlay-container { position: absolute; top:0; left: 0; right: 0; bottom: 0; pointer-events: none; }
 .loading-state, .error-state, .initial-prompt {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
-    padding: 2rem; text-align: center;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-    border-radius: 5px; color: white; z-index: 20; pointer-events: auto; /* Macht Overlay klickbar */
+    padding: 2rem; text-align: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+    border-radius: 5px; color: white; z-index: 20; pointer-events: auto;
 }
 .loading-state i, .error-state i, .initial-prompt i { font-size: 3rem; margin-bottom: 1.5rem; color: white; }
 .loading-state div, .error-state span, .initial-prompt div { font-size: 1.2rem; }
 .error-state { color: #f87171; background-color: rgba(150, 50, 50, 0.7); animation: shake 0.4s ease; } .error-state i { color: #f87171; }
 .initial-prompt i { animation: none; opacity: 0.7; }
 
-/* Animationen */
+/* Minimal Animationen */
 @keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
