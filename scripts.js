@@ -17,11 +17,12 @@ let currentSuggestions = [];
 let manualOverrideActive = false;
 let currentCoords = null;
 let currentCityName = null;
+let currentParticleContainer = null; // Referenz auf die tsParticles Instanz
 
 const weatherConditions = { 0: { icon: 'sun', desc: 'Klarer Himmel' }, 1: { icon: 'cloud-sun', desc: 'Überwiegend klar' }, 2: { icon: 'cloud', desc: 'Teilweise bewölkt' }, 3: { icon: 'cloud', desc: 'Bedeckt' }, 45: { icon: 'smog', desc: 'Nebel' }, 48: { icon: 'smog', desc: 'Gefrierender Nebel' }, 51: { icon: 'cloud-rain', desc: 'Leichter Nieselregen' }, 53: { icon: 'cloud-rain', desc: 'Mäßiger Nieselregen' }, 55: { icon: 'cloud-showers-heavy', desc: 'Starker Nieselregen' }, 56: { icon: 'snowflake', desc: 'Leichter gefrierender Nieselregen' }, 57: { icon: 'snowflake', desc: 'Starker gefrierender Nieselregen' }, 61: { icon: 'cloud-rain', desc: 'Leichter Regen' }, 63: { icon: 'cloud-showers-heavy', desc: 'Mäßiger Regen' }, 65: { icon: 'cloud-showers-heavy', desc: 'Starker Regen' }, 66: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 67: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 71: { icon: 'snowflake', desc: 'Leichter Schneefall' }, 73: { icon: 'snowflake', desc: 'Mäßiger Schneefall' }, 75: { icon: 'snowflake', desc: 'Starker Schneefall' }, 77: { icon: 'icicles', desc: 'Schneekörner' }, 80: { icon: 'cloud-sun-rain', desc: 'Leichte Regenschauer' }, 81: { icon: 'cloud-showers-heavy', desc: 'Mäßige Regenschauer' }, 82: { icon: 'cloud-showers-heavy', desc: 'Heftige Regenschauer' }, 85: { icon: 'snowflake', desc: 'Leichte Schneeschauer' }, 86: { icon: 'snowflake', desc: 'Starke Schneeschauer' }, 95: { icon: 'cloud-bolt', desc: 'Gewitter' }, 96: { icon: 'cloud-bolt', desc: 'Gewitter mit leichtem Hagel' }, 99: { icon: 'cloud-bolt', desc: 'Gewitter mit starkem Hagel' } };
 function getWeatherCondition(code) { return weatherConditions[code] || { icon: 'question-circle', desc: `Unbekannt (${code})` }; }
 
-// --- tsParticles Konfigurationen (ANGEPASST für Sichtbarkeit) ---
+// --- tsParticles Konfigurationen (Angepasst für Sichtbarkeit) ---
 const particleConfigs = {
     clear: {
         particles: { number: { value: 0 } }
@@ -29,14 +30,14 @@ const particleConfigs = {
     rain: {
         fullScreen: { enable: false },
         particles: {
-            number: { value: 70, density: { enable: true, area: 800 } },
-            color: { value: "#ffffff" }, // Weiß für Sichtbarkeit
+            number: { value: 90, density: { enable: true, area: 800 } }, // Mehr Regen
+            color: { value: "#ffffff" }, // Weiß, wird durch opacity gesteuert
             shape: { type: "line" },
-            opacity: { value: 0.4, random: { enable: true, minimumValue: 0.2 } }, // Etwas weniger transparent
-            size: { value: 15, random: { enable: true, minimumValue: 5 } }, // Länge der Linien
+            opacity: { value: 0.6, random: { enable: true, minimumValue: 0.3 } }, // Sichtbarer
+            size: { value: 15, random: { enable: true, minimumValue: 6 } },
             move: {
                 enable: true,
-                speed: 7, // Angepasste Geschwindigkeit
+                speed: 6, // Langsamer Regen
                 direction: "bottom",
                 straight: true,
                 outModes: { default: "out" },
@@ -49,14 +50,14 @@ const particleConfigs = {
     snow: {
         fullScreen: { enable: false },
         particles: {
-            number: { value: 80, density: { enable: true, area: 800 } },
-            color: { value: "#ffffff" }, // Weiß
+            number: { value: 100, density: { enable: true, area: 800 } }, // Mehr Schnee
+            color: { value: "#ffffff" },
             shape: { type: "circle" },
-            opacity: { value: 0.8, random: { enable: true, minimumValue: 0.4 } }, // Sichtbarer
-            size: { value: 3, random: { enable: true, minimumValue: 1 } },
+            opacity: { value: 0.85, random: { enable: true, minimumValue: 0.5 } }, // Besser sichtbar
+            size: { value: 3.5, random: { enable: true, minimumValue: 1 } },
             move: {
                 enable: true,
-                speed: 1, // Langsam
+                speed: 0.8, // Sehr langsam, wie Schnee fällt
                 direction: "bottom",
                 random: true,
                 straight: false,
@@ -71,20 +72,19 @@ const particleConfigs = {
     clouds: { // Für Wolken & Nebel
         fullScreen: { enable: false },
         particles: {
-            number: { value: 12, density: { enable: true, area: 800 } }, // Wenige, große
-            color: { value: "#ffffff" }, // Weiß
+            number: { value: 10, density: { enable: true, area: 800 } }, // Wenige, große
+            color: { value: "#ffffff" },
             shape: { type: "circle" },
-            opacity: { value: 0.1, random: { enable: true, minimumValue: 0.05 } }, // Sehr dezent
-            size: { value: 180, random: { enable: true, minimumValue: 100 } }, // Groß
+            opacity: { value: 0.15, random: { enable: true, minimumValue: 0.08 } }, // Sehr dezent, leicht erhöht
+            size: { value: 200, random: { enable: true, minimumValue: 120 } }, // Sehr groß
             move: {
                 enable: true,
-                speed: 0.4, // Sehr langsam
-                direction: "none", // Keine feste Richtung, mehr "wabern"
+                speed: 0.5, // Sehr langsam
+                direction: "none",
                 random: true,
                 straight: false,
-                outModes: { default: "out" },
-                attract: { enable: false }, // Keine Anziehung
-                decay: 0.005 // Langsames Verschwinden
+                outModes: { default: "destroy" },
+                decay: 0.003
             },
         },
         interactivity: { enabled: false },
@@ -93,13 +93,12 @@ const particleConfigs = {
     }
 };
 
-
 // --- Initialisierung & Event Listener ---
 document.addEventListener('DOMContentLoaded', () => { initializeTheme(); loadFavorites(); setupEventListeners(); autoDetectLocation(); });
 function setupEventListeners() { cityInput.addEventListener('input', handleAutocompleteInput); cityInput.addEventListener('keydown', handleInputKeydown); searchButton.addEventListener('click', getWeatherByCityName); locationButton.addEventListener('click', () => getLocationWeather(false)); themeToggle.addEventListener('click', toggleThemeManually); favoritesSelect.addEventListener('change', handleFavoriteSelection); refreshButton.addEventListener('click', handleRefresh); document.addEventListener('click', handleClickOutsideAutocomplete); document.addEventListener('keydown', handleEscapeKey); weatherResultContainer.addEventListener('click', handleCardClicks); }
 // --- Theme Management ---
-function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); handleRefresh(); } }); } }
-function toggleThemeManually() { manualOverrideActive = true; const isLight = document.body.classList.contains('light-theme'); if (isLight) { applyDarkTheme(); } else { applyLightTheme(); } updateThemeToggleIcon(); handleRefresh(); }
+function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); /* Nur neu laden, wenn schon Wetter angezeigt wird */ } }); } }
+function toggleThemeManually() { manualOverrideActive = true; const isLight = document.body.classList.contains('light-theme'); if (isLight) { applyDarkTheme(); } else { applyLightTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); /* Nur neu laden, wenn schon Wetter angezeigt wird */ }
 function applyLightTheme() { document.body.classList.add('light-theme'); } function applyDarkTheme() { document.body.classList.remove('light-theme'); }
 function updateThemeToggleIcon() { if (document.body.classList.contains('light-theme')) { themeToggle.innerHTML = '<i class="fas fa-moon"></i>'; themeToggle.setAttribute('aria-label', 'Temporär in Dark Mode wechseln'); } else { themeToggle.innerHTML = '<i class="fas fa-sun"></i>'; themeToggle.setAttribute('aria-label', 'Temporär in Light Mode wechseln'); } }
 // --- Favoriten Management ---
@@ -133,7 +132,7 @@ function generateTemperatureChart(temps) { if (!temps || temps.length < 2) retur
 // --- Dynamischer Hintergrund & Partikel (ANGEPASST) ---
 function setDynamicBackground(weathercode, isDay) {
     let colorClass = '';
-    // Wichtig: Immer mit der 'clear' Konfig starten oder einer Kopie davon
+    // Kopie der Basis-Konfig nehmen, um sie nicht zu überschreiben
     let particleConfig = JSON.parse(JSON.stringify(particleConfigs.clear));
     const wc = Number(weathercode);
 
@@ -143,7 +142,7 @@ function setDynamicBackground(weathercode, isDay) {
     const isRain = (wc >= 51 && wc <= 67) || (wc >= 80 && wc <= 82) || wc === 95 || wc === 96 || wc === 99;
     const isSnow = (wc >= 71 && wc <= 77) || (wc >= 85 && wc <= 86);
 
-    // Farb-Klasse setzen
+    // 1. Farb-Klasse für Body-Gradient setzen
     if (isDay === 0) { // Nacht
         if (isClear) colorClass = 'weather-clear-night';
         else if (isCloudy || isFog) colorClass = 'weather-cloudy-night';
@@ -160,39 +159,67 @@ function setDynamicBackground(weathercode, isDay) {
     document.body.className = document.body.className.replace(/weather-\S+/g, '').trim();
     if (colorClass) document.body.classList.add(colorClass);
 
-    // Theme-Klasse wiederherstellen
+    // 2. Theme-Klasse (light/dark) sicherstellen
     const isLightTheme = document.body.classList.contains('light-theme');
     const shouldBeLight = manualOverrideActive ? isLightTheme : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
     if(shouldBeLight && !isLightTheme) document.body.classList.add('light-theme');
     else if (!shouldBeLight && isLightTheme) document.body.classList.remove('light-theme');
 
-    // Passende Partikel-Konfiguration auswählen
+    // 3. Passende Partikel-Konfiguration auswählen
     if (isRain) {
         particleConfig = JSON.parse(JSON.stringify(particleConfigs.rain));
-        // Regenfarbe basierend auf Theme anpassen (Überschreibt den Standard in der Konfig)
-        particleConfig.particles.color.value = isLightTheme ? "#60a5fa" : "#a5b4fc";
+        // Keine Farbänderung hier mehr nötig, da Konfig jetzt weiß ist
     } else if (isSnow) {
         particleConfig = JSON.parse(JSON.stringify(particleConfigs.snow));
-        particleConfig.particles.color.value = isLightTheme ? "#d1d5db" : "#ffffff"; // Schnee heller im Dark Mode
     } else if (isCloudy || isFog) {
         particleConfig = JSON.parse(JSON.stringify(particleConfigs.clouds));
-        particleConfig.particles.color.value = isLightTheme ? "#e5e7eb" : "#ffffff"; // Wolken/Nebel heller im Dark Mode
     }
-    // Bei 'clear' bleibt die oben initialisierte 'clear' Konfig
+    // Bei 'clear' bleibt die 'clear' Konfig
 
-    // tsParticles laden/aktualisieren
+    // 4. tsParticles laden/aktualisieren
     if (typeof tsParticles !== 'undefined') {
+        // Wichtig: Prüfen, ob schon eine Instanz existiert und diese ggf. neu laden oder Optionen updaten
+        // tsParticles.load lädt neu und sollte alte Instanz im gleichen Container ersetzen
         tsParticles.load("tsparticles", particleConfig)
-          .catch(error => console.error("tsParticles load error:", error));
+          .then(container => {
+             currentParticleContainer = container; // Store the container instance
+             // console.log("Particles loaded/updated", particleConfig.particles?.number?.value);
+          })
+          .catch(error => {
+            console.error("tsParticles load error:", error);
+          });
     } else {
         console.error("tsParticles library is not loaded.");
     }
 }
 
+
 // --- Loading, Error, Initial Prompt States ---
-function showLoading(message = "Lade...") { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`; if (typeof tsParticles !== 'undefined') tsParticles.load("tsparticles", particleConfigs.clear); }
-function showError(message) { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`; currentCoords = null; currentCityName = null; setDynamicBackground(-1, 1); }
-function showInitialPrompt() { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`; currentCoords = null; currentCityName = null; updateFavoriteButtonState(false); setDynamicBackground(-1, 1); }
+function showLoading(message = "Lade...") {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`;
+    // Partikel stoppen/leeren während des Ladens
+    if (typeof tsParticles !== 'undefined' && currentParticleContainer) {
+        // currentParticleContainer.destroy(); // Alternative: Nur zerstören
+        tsParticles.load("tsparticles", particleConfigs.clear); // Sicherer: Leere Konfig laden
+        currentParticleContainer = null;
+    } else if (typeof tsParticles !== 'undefined') {
+         tsParticles.load("tsparticles", particleConfigs.clear);
+    }
+}
+function showError(message) {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`;
+    currentCoords = null; currentCityName = null;
+    setDynamicBackground(-1, 1); // Setzt auch Partikel zurück
+}
+function showInitialPrompt() {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`;
+    currentCoords = null; currentCityName = null;
+    updateFavoriteButtonState(false);
+    setDynamicBackground(-1, 1); // Setzt auch Partikel zurück
+}
 // --- Fehlerbehandlung, Standort-Automatik ---
 function handleGeolocationError(error) { let msg = 'Standort nicht ermittelt.'; if(error.code===1) msg='Zugriff verweigert.'; if(error.code===2) msg='Position nicht verfügbar.'; if(error.code===3) msg='Timeout.'; showError(msg); }
 function handleFetchError(error) { let msg = 'Unbekannter Fehler.'; if(error.message.includes('Stadt')&&error.message.includes('gefunden')) msg=error.message; else if(error.message.toLowerCase().includes('fetch')||error.message.toLowerCase().includes('network')) msg='Netzwerkfehler.'; else if(error.message.includes('API')||error.message.includes('Fehler')) msg='API Problem.'; else if(error.message.includes('Unvollständige')) msg='Daten unvollständig.'; else msg=`Fehler: ${error.message}`; console.error("Fetch Error Detail:", error); showError(msg); }
