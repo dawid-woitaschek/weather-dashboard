@@ -20,43 +20,38 @@ const particleConfigs = {
     clear: {
         particles: { number: { value: 0 } }
     },
-    rain: { // <<--- Neuer Versuch, näher am CodePen + Variable Speed
+    rain: {
         fullScreen: { enable: false },
         detectRetina: true,
         interactivity: { enabled: false },
         particles: {
-            number: {
-                value: 150, // Anzahl okay
-                density: { enable: true, area: 800 }
-            },
-            color: { value: "#ffffff" }, // Füllfarbe (weniger wichtig für stroke)
-            shape: {
-                type: "line",
-                stroke: { // <<<< WICHTIG: Wie im CodePen, Farbe weiß
-                    width: 1,
-                    color: "#ffffff",
-                    // Keine separate Opacity hier, nutzen particles.opacity
-                }
-            },
-            opacity: {
-                value: 0.5, // Mittlere Sichtbarkeit
-                random: { enable: true, minimumValue: 0.2 }
-            },
-            size: { // Länge der Linie
-                value: 10, // Mittlere Länge
-                random: { enable: true, minimumValue: 4 }
-            },
-            move: {
-                enable: true,
-                speed: { min: 8, max: 15 }, // <<<< Variable Geschwindigkeit
-                direction: "bottom",
-                straight: true, // Regen fällt meist gerade
-                random: true,  // Lässt sie leicht versetzt fallen
-                outModes: { default: "out" },
-            },
+          number: { value: 150, density: { enable: true, area: 800 } },
+          color: { value: "#ffffff" },
+          shape: {
+            type: "line",
+            stroke: { width: 1, color: "#ffffff" }
+          },
+          size: { value: 10, random: { enable: true, minimumValue: 4 } },
+          opacity: { value: 0.5, random: { enable: true, minimumValue: 0.2 } },
+          /** DIESER BLOCK DREHT DIE LINIEN UM 90° **/
+          rotate: {
+            value: 90,        // Grad-Anzahl
+            random: false,    // keine zufällige Abweichung
+            animation: {
+              enable: false   // keine Rotation im Flug
+            }
+          },
+          move: {
+            enable: true,
+            speed: { min: 8, max: 15 },
+            direction: "bottom",
+            straight: true,
+            random: true,
+            outModes: { default: "out" }
+          }
         },
         backgroundMode: { enable: true, zIndex: 0 }
-    },
+      },
     snow: { // Unverändert
         fullScreen: { enable: false },
         particles: { number: { value: 100, density: { enable: true, area: 800 } }, color: { value: "#ffffff" }, shape: { type: "circle" }, opacity: { value: 0.8, random: { enable: true, minimumValue: 0.5 } }, size: { value: 3.5, random: { enable: true, minimumValue: 1 } }, move: { enable: true, speed: 0.9, direction: "bottom", random: true, straight: false, outModes: { default: "out" }, bounce: false, }, },
