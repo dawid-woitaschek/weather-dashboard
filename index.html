@@ -3,12 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Wetter Dashboard Pro - Noise Clouds</title>
+    <title>Wetter Dashboard Pro - CSS Fog</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Container für tsParticles -->
+    <!-- NEU: CSS Fog Layer -->
+    <div class="fogwrapper">
+        <div id="foglayer_01" class="fog">
+            <div class="image01"></div>
+            <div class="image02"></div>
+        </div>
+        <div id="foglayer_02" class="fog">
+            <div class="image01"></div>
+            <div class="image02"></div>
+        </div>
+        <div id="foglayer_03" class="fog">
+            <div class="image01"></div>
+            <div class="image02"></div>
+        </div>
+    </div>
+
+    <!-- Container für tsParticles (für Regen/Schnee) -->
     <div id="tsparticles"></div>
 
     <!-- Theme Toggle Button -->
@@ -20,23 +36,40 @@
     <main class="content-wrapper">
         <!-- App Header -->
         <div class="app-header">
-            <div class="header-title"> <i class="fas fa-cloud-sun logo"></i> <h1>Wetter Dashboard</h1> </div>
-            <div class="header-controls"> <select id="favorites-select" title="Favoriten auswählen"> <option value="">Favoriten...</option> </select> <button id="refresh-button" title="Aktualisieren"><i class="fas fa-sync-alt"></i></button> </div>
+            <div class="header-title">
+                <i class="fas fa-cloud-sun logo"></i>
+                <h1>Wetter Dashboard</h1>
+            </div>
+            <div class="header-controls">
+                <select id="favorites-select" title="Favoriten auswählen">
+                    <option value="">Favoriten...</option>
+                </select>
+                <button id="refresh-button" title="Aktualisieren"><i class="fas fa-sync-alt"></i></button>
+            </div>
         </div>
+
         <!-- Hauptcontainer -->
         <div class="container">
             <!-- Suchleiste -->
-            <div class="search-box"> <div class="autocomplete-container"> <input type="text" id="city" placeholder="Stadt suchen..." autocomplete="off"> <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div> </div> <button id="search-button" aria-label="Stadt suchen"> <i class="fas fa-search"></i> </button> <button id="location-button" aria-label="Aktuellen Standort verwenden"> <i class="fas fa-location-crosshairs"></i> </button> </div>
-            <!-- Wetter Ergebnis/Flip Container -->
-            <div id="weather-result" aria-live="polite"> <div class="initial-prompt"> <i class="fas fa-map-location-dot"></i> <div>Gib eine Stadt ein oder nutze deinen Standort.</div> </div> </div>
-        </div>
-    </main>
+            <div class="search-box">
+                <div class="autocomplete-container">
+                    <input type="text" id="city" placeholder="Stadt suchen..." autocomplete="off">
+                    <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                </div>
+                <button id="search-button" aria-label="Stadt suchen"> <i class="fas fa-search"></i> </button>
+                <button id="location-button" aria-label="Aktuellen Standort verwenden"> <i class="fas fa-location-crosshairs"></i> </button>
+            </div>
 
-    <!-- tsParticles Core & Angle Updater -->
+            <!-- Wetter Ergebnis/Flip Container -->
+            <div id="weather-result" aria-live="polite">
+                 <div class="initial-prompt"> <i class="fas fa-map-location-dot"></i> <div>Gib eine Stadt ein oder nutze deinen Standort.</div> </div>
+            </div>
+        </div>
+    </main> <!-- Ende content-wrapper -->
+
+    <!-- tsParticles Bibliotheken -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-updater-angle@2/tsparticles.updater.angle.min.js"></script>
-    <!-- NEU: tsParticles Noise Updater -->
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles-updater-noise@2/tsparticles.updater.noise.min.js"></script>
     <!-- Dein JavaScript -->
     <script src="scripts.js" defer></script>
 </body>

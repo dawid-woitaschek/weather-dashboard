@@ -15,12 +15,12 @@ let autocompleteTimeout, currentSuggestions = [], manualOverrideActive = false, 
 const weatherConditions = { 0: { icon: 'sun', desc: 'Klarer Himmel' }, 1: { icon: 'cloud-sun', desc: 'Überwiegend klar' }, 2: { icon: 'cloud', desc: 'Teilweise bewölkt' }, 3: { icon: 'cloud', desc: 'Bedeckt' }, 45: { icon: 'smog', desc: 'Nebel' }, 48: { icon: 'smog', desc: 'Gefrierender Nebel' }, 51: { icon: 'cloud-rain', desc: 'Leichter Nieselregen' }, 53: { icon: 'cloud-rain', desc: 'Mäßiger Nieselregen' }, 55: { icon: 'cloud-showers-heavy', desc: 'Starker Nieselregen' }, 56: { icon: 'snowflake', desc: 'Leichter gefrierender Nieselregen' }, 57: { icon: 'snowflake', desc: 'Starker gefrierender Nieselregen' }, 61: { icon: 'cloud-rain', desc: 'Leichter Regen' }, 63: { icon: 'cloud-showers-heavy', desc: 'Mäßiger Regen' }, 65: { icon: 'cloud-showers-heavy', desc: 'Starker Regen' }, 66: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 67: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 71: { icon: 'snowflake', desc: 'Leichter Schneefall' }, 73: { icon: 'snowflake', desc: 'Mäßiger Schneefall' }, 75: { icon: 'snowflake', desc: 'Starker Schneefall' }, 77: { icon: 'icicles', desc: 'Schneekörner' }, 80: { icon: 'cloud-sun-rain', desc: 'Leichte Regenschauer' }, 81: { icon: 'cloud-showers-heavy', desc: 'Mäßige Regenschauer' }, 82: { icon: 'cloud-showers-heavy', desc: 'Heftige Regenschauer' }, 85: { icon: 'snowflake', desc: 'Leichte Schneeschauer' }, 86: { icon: 'snowflake', desc: 'Starke Schneeschauer' }, 95: { icon: 'cloud-bolt', desc: 'Gewitter' }, 96: { icon: 'cloud-bolt', desc: 'Gewitter mit leichtem Hagel' }, 99: { icon: 'cloud-bolt', desc: 'Gewitter mit starkem Hagel' } };
 function getWeatherCondition(code) { return weatherConditions[code] || { icon: 'question-circle', desc: `Unbekannt (${code})` }; }
 
-// --- tsParticles Konfigurationen (Clouds mit Noise Updater) ---
+// --- tsParticles Konfigurationen (NUR Regen & Schnee bleiben Partikel) ---
 const particleConfigs = {
     clear: {
         particles: { number: { value: 0 } }
     },
-    rain: { // Mit Rotate & Stroke
+    rain: { // <<--- Regen bleibt tsParticles, wie zuletzt gefixt
         fullScreen: { enable: false }, detectRetina: true, interactivity: { enabled: false },
         particles: {
             number: { value: 150, density: { enable: true, area: 800 } },
@@ -28,56 +28,26 @@ const particleConfigs = {
             shape: { type: "line", stroke: { width: 1, color: "#ffffff" } },
             opacity: { value: 0.6, random: { enable: true, minimumValue: 0.3 } },
             size: { value: 10, random: { enable: true, minimumValue: 5 } },
-            rotate: { value: 90, random: false, animation: { enable: false } },
-            move: { enable: true, speed: { min: 8, max: 15 }, direction: "bottom", straight: true, random: true, outModes: { default: "out" }, },
+            rotate: { value: 90, random: false, direction: "clockwise", animation: { enable: false } },
+            move: { enable: true, speed: { min: 8, max: 15 }, direction: "bottom", straight: true, random: true, outModes: { default: "out" } },
         },
         backgroundMode: { enable: true, zIndex: 0 }
     },
-    snow: { // Unverändert
-        fullScreen: { enable: false }, particles: { number: { value: 100, density: { enable: true, area: 800 } }, color: { value: "#ffffff" }, shape: { type: "circle" }, opacity: { value: 0.8, random: { enable: true, minimumValue: 0.5 } }, size: { value: 3.5, random: { enable: true, minimumValue: 1 } }, move: { enable: true, speed: 0.9, direction: "bottom", random: true, straight: false, outModes: { default: "out" }, bounce: false, }, }, interactivity: { enabled: false }, detectRetina: true, backgroundMode: { enable: true, zIndex: 0 }
-    },
-    clouds: { // <<--- Mit Noise Updater Konfiguration
-        fullScreen: { enable: false },
+    snow: { // <<--- Schnee bleibt tsParticles
+        fullScreen: { enable: false }, detectRetina: true, interactivity: { enabled: false },
         particles: {
-            number: { value: 15, density: { enable: true, area: 800 } }, // Wenige, große
-            color: { value: "#ffffff" },
-            shape: { type: "circle" },
-            opacity: { value: 0.15, random: { enable: true, minimumValue: 0.08 } }, // Sichtbarer Nebel
-            size: { value: 220, random: { enable: true, minimumValue: 120 } }, // Größer
-            move: {
-                enable: true,
-                speed: 0.6, // Grundgeschwindigkeit
-                direction: "none", // Keine feste Richtung
-                random: true,
-                straight: false,
-                outModes: { default: "out" }, // Langsam raus statt destroy
-                noise: { // <<<< NEU: Noise Konfiguration
-                    enable: true,
-                    delay: { // Wie oft die Richtung durch Noise beeinflusst wird
-                        value: 0.5, // Geringer Wert für ständige, langsame Änderung
-                        random: {
-                            enable: true,
-                            minimumValue: 0.2
-                        }
-                    },
-                    strength: { // Wie stark die Richtungsänderung ist
-                        value: 5, // Mittlere Stärke für "Wabern"
-                        random: {
-                            enable: true,
-                            minimumValue: 2
-                        }
-                    }
-                }
-            },
+            number: { value: 100, density: { enable: true, area: 800 } },
+            color: { value: "#ffffff" }, shape: { type: "circle" },
+            opacity: { value: 0.8, random: { enable: true, minimumValue: 0.5 } },
+            size: { value: 3.5, random: { enable: true, minimumValue: 1 } },
+            move: { enable: true, speed: 0.9, direction: "bottom", random: true, straight: false, outModes: { default: "out" }, bounce: false, },
         },
-        interactivity: { enabled: false },
-        detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
+         backgroundMode: { enable: true, zIndex: 0 }
     }
+    // Keine "clouds"-Konfiguration mehr hier
 };
 
-
-// --- Restliches JavaScript (Initialisierung bis Ende) bleibt exakt gleich ---
+// --- Restliches JavaScript (Initialisierung bis setDynamicBackground) bleibt gleich ---
 document.addEventListener('DOMContentLoaded', () => { initializeTheme(); loadFavorites(); setupEventListeners(); autoDetectLocation(); });
 function setupEventListeners() { cityInput.addEventListener('input', handleAutocompleteInput); cityInput.addEventListener('keydown', handleInputKeydown); searchButton.addEventListener('click', getWeatherByCityName); locationButton.addEventListener('click', () => getLocationWeather(false)); themeToggle.addEventListener('click', toggleThemeManually); favoritesSelect.addEventListener('change', handleFavoriteSelection); refreshButton.addEventListener('click', handleRefresh); document.addEventListener('click', handleClickOutsideAutocomplete); document.addEventListener('keydown', handleEscapeKey); weatherResultContainer.addEventListener('click', handleCardClicks); }
 function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); } }); } }
@@ -105,49 +75,68 @@ async function getWeatherFromCoords(lat, lon, locationName) { currentCoords = { 
 function renderWeatherCards(location, weatherData) { const { current, hourly, daily } = weatherData; const currentCondition = getWeatherCondition(current.weathercode); const formatTime = (d) => new Date(d).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); const getDayName = (d, f = 'short') => new Date(d).toLocaleDateString('de-DE', { weekday: f }); const getUVDesc = (uv) => { if (uv===null || uv===undefined) return ''; const rUv=Math.round(uv); if (rUv <= 2) return 'Niedrig'; if (rUv <= 5) return 'Mittel'; if (rUv <= 7) return 'Hoch'; if (rUv <= 10) return 'Sehr hoch'; return 'Extrem'; }; let currentHourIndex = hourly.time.findIndex(t => new Date(t) >= new Date()); if (currentHourIndex > 0) currentHourIndex--; else if (currentHourIndex === -1) currentHourIndex = hourly.time.length - 1; const currentPrecip = (currentHourIndex !== -1 && hourly.precipitation[currentHourIndex] !== null) ? hourly.precipitation[currentHourIndex] : current.precipitation; const frontHTML = ` <div class="card-face card-front"> <div> <div class="current-weather-header"> <div class="location-info"> <span class="location-name">${location}</span> <button id="add-favorite-button" title="Zu Favoriten hinzufügen"> <i class="far fa-heart"></i> </button> </div> </div> <div class="current-weather-main"> <i class="fas fa-${currentCondition.icon} weather-icon-large"></i> <div class="temp-feels-desc"> <div class="temperature-now">${Math.round(current.temperature_2m)}°C</div> <div class="feels-like">Gefühlt ${Math.round(current.apparent_temperature)}°</div> <div class="weather-description">${currentCondition.desc}</div> </div> </div> <div class="details-grid"> <div class="detail-item"> <div class="label"><i class="fas fa-temperature-high"></i> Max</div> <div class="value">${Math.round(daily.temperature_2m_max[0] ?? '--')}°</div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-temperature-low"></i> Min</div> <div class="value">${Math.round(daily.temperature_2m_min[0] ?? '--')}°</div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-wind"></i> Wind</div> <div class="value"> ${Math.round(current.windspeed_10m)}<span class="unit">km/h</span> <i class="fas fa-location-arrow wind-dir-icon" style="transform: rotate(${current.winddirection_10m - 45}deg);" title="${current.winddirection_10m}°"></i> </div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-tint"></i> Feuchte</div> <div class="value">${current.relativehumidity_2m}<span class="unit">%</span></div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-cloud-showers-heavy"></i> Niederschl.</div> <div class="value">${currentPrecip}<span class="unit">mm</span></div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-tachometer-alt"></i> Druck</div> <div class="value">${Math.round(current.surface_pressure)}<span class="unit">hPa</span></div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-sun"></i> UV-Index</div> <div class="value">${Math.round(current.uv_index ?? 0)} <span class="unit uv-desc" style="font-size: 0.8em;">${getUVDesc(current.uv_index)}</span></div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-sunrise"></i> Aufgang</div> <div class="value">${formatTime(daily.sunrise[0])}</div> </div> <div class="detail-item"> <div class="label"><i class="fas fa-sunset"></i> Untergang</div> <div class="value">${formatTime(daily.sunset[0])}</div> </div> </div> </div> <button class="flip-button flip-button-to-back"> <i class="fas fa-calendar-alt"></i> Vorhersage ansehen </button> </div>`; const hTemps = hourly.temperature_2m.slice(currentHourIndex, currentHourIndex + 24); const chart = generateTemperatureChart(hTemps); let hHTML = ''; if (currentHourIndex !== -1) { for (let i = currentHourIndex; i < Math.min(currentHourIndex + 24, hourly.time.length); i++) { const tStr = formatTime(hourly.time[i]); const t = Math.round(hourly.temperature_2m[i]); const c = getWeatherCondition(hourly.weathercode[i]); const pP = hourly.precipitation_probability[i]; hHTML += `<div class="forecast-item"> <div class="time">${tStr}</div> <i class="fas fa-${c.icon} weather-icon-small"></i> <div class="temp">${t}°</div> ${pP !== null ? `<div class="precip-prob" title="Niederschlagsrisiko"><i class="fas fa-tint"></i> ${pP}%</div>` : ''} </div>`; } } let dHTML = ''; for (let i = 0; i < daily.time.length; i++) { const dN = (i === 0) ? 'Heute' : getDayName(daily.time[i]); const maxT = Math.round(daily.temperature_2m_max[i]); const minT = Math.round(daily.temperature_2m_min[i]); const c = getWeatherCondition(daily.weathercode[i]); const pP = daily.precipitation_probability_max[i]; dHTML += `<div class="forecast-item"> <div class="day">${dN}</div> <i class="fas fa-${c.icon} weather-icon-small"></i> <div class="temp">${maxT}°</div> <div class="temp-low">${minT}°</div> ${pP !== null ? `<div class="precip-prob" title="Max. Niederschlagsrisiko"><i class="fas fa-tint"></i> ${pP}%</div>` : ''} </div>`; } const backHTML = ` <div class="card-face card-back"> <div class="forecast-content"> <div class="forecast-chart-container">${chart}</div> <div class="forecast-section"> <h3>Stündlich (24h)</h3> <div class="forecast-list">${hHTML || 'N/A'}</div> </div> <div class="forecast-section"> <h3>Täglich (7 Tage)</h3> <div class="forecast-list">${dHTML || 'N/A'}</div> </div> </div> <button class="flip-button flip-button-to-front"> <i class="fas fa-arrow-left"></i> Zurück </button> </div>`; weatherResultContainer.innerHTML = frontHTML + backHTML; }
 function generateTemperatureChart(temps) { if (!temps || temps.length < 2) return '<div style="text-align:center;color:var(--text-secondary);font-size:0.9em;">Temperaturverlauf nicht verfügbar.</div>'; const width = 300; const height = 60; const padding = 5; const chartHeight = height - 2 * padding; const vTemps = temps.filter(t=>t !== null && t !== undefined); if (vTemps.length < 2) return '<div style="text-align:center;color:var(--text-secondary);font-size:0.9em;">Zu wenig Daten für Verlauf.</div>'; const minT = Math.min(...vTemps); const maxT = Math.max(...vTemps); const tRange = Math.max(maxT - minT, 1); const scaleX = (i) => (width / (temps.length - 1)) * i; const scaleY = (t) => chartHeight - ((t - minT) / tRange) * chartHeight + padding; let path = ''; let points = ''; let first = true; temps.forEach((t, i) => { if (t !== null && t !== undefined) { const x = scaleX(i).toFixed(2); const y = scaleY(t).toFixed(2); path += `${first ? 'M' : 'L'} ${x} ${y} `; points += `<circle cx="${x}" cy="${y}" r="2.5" class="chart-dot" />`; first = false; } }); if (!path) return '<div style="text-align:center;color:var(--text-secondary);font-size:0.9em;">Temperaturverlauf nicht verfügbar.</div>'; return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet"><path d="${path.trim()}" class="chart-line" />${points}</svg>`; }
 
-// --- Dynamischer Hintergrund & Partikel (Cloud mit Noise) ---
+// --- Dynamischer Hintergrund & Partikel (ANGEPASST mit CSS Fog Logik) ---
 function setDynamicBackground(weathercode, isDay) {
-    let colorClass = '';
-    let particleConfigKey = 'clear';
     const wc = Number(weathercode);
-
     const isClear = wc <= 1;
     const isCloudy = (wc >= 2 && wc <= 3);
     const isFog = wc === 45 || wc === 48;
     const isRain = (wc >= 51 && wc <= 67) || (wc >= 80 && wc <= 82) || wc === 95 || wc === 96 || wc === 99;
     const isSnow = (wc >= 71 && wc <= 77) || (wc >= 85 && wc <= 86);
 
-    // 1. Farb-Klasse für Body-Gradient setzen
+    let colorClass = '';
+    let showCssFog = false;
+    let particleConfigKey = 'clear'; // Standard: Keine tsParticles
+
+    // 1. Farb-Klasse und Effekt-Typ bestimmen
     if (isDay === 0) { // Nacht
         if (isClear) colorClass = 'weather-clear-night';
-        else if (isCloudy || isFog) colorClass = 'weather-cloudy-night';
-        else if (isRain) colorClass = 'weather-rain';
-        else if (isSnow) colorClass = 'weather-snow';
+        else if (isCloudy || isFog) { colorClass = 'weather-cloudy-night'; showCssFog = true; } // CSS Nebel bei Wolken/Nebel
+        else if (isRain) { colorClass = 'weather-rain'; particleConfigKey = 'rain'; } // tsParticles Regen
+        else if (isSnow) { colorClass = 'weather-snow'; particleConfigKey = 'snow'; } // tsParticles Schnee
         else colorClass = 'weather-cloudy-night';
     } else { // Tag
         if (isClear) colorClass = 'weather-clear-day';
-        else if (isCloudy || isFog) colorClass = 'weather-cloudy-day';
-        else if (isRain) colorClass = 'weather-rain';
-        else if (isSnow) colorClass = 'weather-snow';
+        else if (isCloudy || isFog) { colorClass = 'weather-cloudy-day'; showCssFog = true; } // CSS Nebel bei Wolken/Nebel
+        else if (isRain) { colorClass = 'weather-rain'; particleConfigKey = 'rain'; } // tsParticles Regen
+        else if (isSnow) { colorClass = 'weather-snow'; particleConfigKey = 'snow'; } // tsParticles Schnee
         else colorClass = 'weather-cloudy-day';
     }
-    document.body.className = document.body.className.replace(/weather-\S+/g, '').trim();
-    if (colorClass) document.body.classList.add(colorClass);
 
-    // 2. Theme-Klasse (light/dark) sicherstellen
-    const isLightTheme = document.body.classList.contains('light-theme');
+    // 2. Body-Klassen für Farbe und CSS-Nebel setzen/entfernen
+    const bodyClassList = document.body.classList;
+    // Alte Wetter-Farbklassen entfernen
+    bodyClassList.forEach(className => {
+        if (className.startsWith('weather-')) {
+            bodyClassList.remove(className);
+        }
+    });
+    // Neue Farbklasse hinzufügen
+    if (colorClass) bodyClassList.add(colorClass);
+    // CSS-Nebel Klasse (de)aktivieren
+    bodyClassList.toggle('show-fog', showCssFog);
+
+
+    // 3. Theme-Klasse (light/dark) sicherstellen
+    const isLightTheme = bodyClassList.contains('light-theme');
     const shouldBeLight = manualOverrideActive ? isLightTheme : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
-    if(shouldBeLight && !isLightTheme) document.body.classList.add('light-theme');
-    else if (!shouldBeLight && isLightTheme) document.body.classList.remove('light-theme');
+    if(shouldBeLight && !isLightTheme) bodyClassList.add('light-theme');
+    else if (!shouldBeLight && isLightTheme) bodyClassList.remove('light-theme');
 
-    // 3. Passende Partikel-Konfiguration auswählen
-    if (isRain) particleConfigKey = 'rain';
-    else if (isSnow) particleConfigKey = 'snow';
-    else if (isCloudy || isFog) particleConfigKey = 'clouds'; // Nutzt jetzt Noise
 
-    // 4. tsParticles laden/aktualisieren
+    // 4. tsParticles laden/aktualisieren (nur für Regen/Schnee oder Clear)
     if (typeof tsParticles !== 'undefined') {
         let configToLoad = JSON.parse(JSON.stringify(particleConfigs[particleConfigKey]));
+
+        // Wenn CSS-Nebel aktiv ist, *zusätzlich* sicherstellen, dass keine Partikel laufen
+        if (showCssFog) {
+            configToLoad = JSON.parse(JSON.stringify(particleConfigs['clear']));
+            particleConfigKey = 'clear'; // Sicherstellen, dass der Key auch stimmt
+        }
+
+        // Nur laden, wenn sich der Key geändert hat oder explizit 'clear' ist
+        // (Vermeidet unnötiges Neuladen, wenn z.B. Regen weiter regnet)
+        // OPTIONAL: Könnte man machen, aber load() sollte intelligent genug sein. Wir laden es immer.
 
         tsParticles.load("tsparticles", configToLoad)
           .then(container => {
@@ -164,9 +153,30 @@ function setDynamicBackground(weathercode, isDay) {
 }
 
 // --- Loading, Error, Initial Prompt States ---
-function showLoading(message = "Lade...") { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`; if (typeof tsParticles !== 'undefined') { tsParticles.load("tsparticles", particleConfigs.clear).catch(e => console.error("Error clearing particles", e)); currentParticleContainer = null; } }
-function showError(message) { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`; currentCoords = null; currentCityName = null; setDynamicBackground(-1, 1); }
-function showInitialPrompt() { weatherResultContainer.classList.remove('is-flipped'); weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`; currentCoords = null; currentCityName = null; updateFavoriteButtonState(false); setDynamicBackground(-1, 1); }
+function showLoading(message = "Lade...") {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`;
+    // CSS Nebel ausblenden
+    document.body.classList.remove('show-fog');
+    // tsParticles stoppen
+    if (typeof tsParticles !== 'undefined') {
+        tsParticles.load("tsparticles", particleConfigs.clear).catch(e => console.error("Error clearing particles", e));
+        currentParticleContainer = null;
+    }
+}
+function showError(message) {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`;
+    currentCoords = null; currentCityName = null;
+    setDynamicBackground(-1, 1); // Setzt auch Partikel/Nebel zurück
+}
+function showInitialPrompt() {
+    weatherResultContainer.classList.remove('is-flipped');
+    weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`;
+    currentCoords = null; currentCityName = null;
+    updateFavoriteButtonState(false);
+    setDynamicBackground(-1, 1); // Setzt auch Partikel/Nebel zurück
+}
 // --- Fehlerbehandlung, Standort-Automatik ---
 function handleGeolocationError(error) { let msg = 'Standort nicht ermittelt.'; if(error.code===1) msg='Zugriff verweigert.'; if(error.code===2) msg='Position nicht verfügbar.'; if(error.code===3) msg='Timeout.'; showError(msg); }
 function handleFetchError(error) { let msg = 'Unbekannter Fehler.'; if(error.message.includes('Stadt')&&error.message.includes('gefunden')) msg=error.message; else if(error.message.toLowerCase().includes('fetch')||error.message.toLowerCase().includes('network')) msg='Netzwerkfehler.'; else if(error.message.includes('API')||error.message.includes('Fehler')) msg='API Problem.'; else if(error.message.includes('Unvollständige')) msg='Daten unvollständig.'; else msg=`Fehler: ${error.message}`; console.error("Fetch Error Detail:", error); showError(msg); }
