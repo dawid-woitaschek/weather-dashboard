@@ -17,12 +17,12 @@ let currentSuggestions = [];
 let manualOverrideActive = false;
 let currentCoords = null;
 let currentCityName = null;
-let currentParticleContainer = null; // Referenz auf die tsParticles Instanz
+let currentParticleContainer = null;
 
 const weatherConditions = { 0: { icon: 'sun', desc: 'Klarer Himmel' }, 1: { icon: 'cloud-sun', desc: 'Überwiegend klar' }, 2: { icon: 'cloud', desc: 'Teilweise bewölkt' }, 3: { icon: 'cloud', desc: 'Bedeckt' }, 45: { icon: 'smog', desc: 'Nebel' }, 48: { icon: 'smog', desc: 'Gefrierender Nebel' }, 51: { icon: 'cloud-rain', desc: 'Leichter Nieselregen' }, 53: { icon: 'cloud-rain', desc: 'Mäßiger Nieselregen' }, 55: { icon: 'cloud-showers-heavy', desc: 'Starker Nieselregen' }, 56: { icon: 'snowflake', desc: 'Leichter gefrierender Nieselregen' }, 57: { icon: 'snowflake', desc: 'Starker gefrierender Nieselregen' }, 61: { icon: 'cloud-rain', desc: 'Leichter Regen' }, 63: { icon: 'cloud-showers-heavy', desc: 'Mäßiger Regen' }, 65: { icon: 'cloud-showers-heavy', desc: 'Starker Regen' }, 66: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 67: { icon: 'snowflake', desc: 'Gefrierender Regen' }, 71: { icon: 'snowflake', desc: 'Leichter Schneefall' }, 73: { icon: 'snowflake', desc: 'Mäßiger Schneefall' }, 75: { icon: 'snowflake', desc: 'Starker Schneefall' }, 77: { icon: 'icicles', desc: 'Schneekörner' }, 80: { icon: 'cloud-sun-rain', desc: 'Leichte Regenschauer' }, 81: { icon: 'cloud-showers-heavy', desc: 'Mäßige Regenschauer' }, 82: { icon: 'cloud-showers-heavy', desc: 'Heftige Regenschauer' }, 85: { icon: 'snowflake', desc: 'Leichte Schneeschauer' }, 86: { icon: 'snowflake', desc: 'Starke Schneeschauer' }, 95: { icon: 'cloud-bolt', desc: 'Gewitter' }, 96: { icon: 'cloud-bolt', desc: 'Gewitter mit leichtem Hagel' }, 99: { icon: 'cloud-bolt', desc: 'Gewitter mit starkem Hagel' } };
 function getWeatherCondition(code) { return weatherConditions[code] || { icon: 'question-circle', desc: `Unbekannt (${code})` }; }
 
-// --- tsParticles Konfigurationen (Angepasst für Sichtbarkeit) ---
+// --- tsParticles Konfigurationen (ANGEPASST für Sichtbarkeit) ---
 const particleConfigs = {
     clear: {
         particles: { number: { value: 0 } }
@@ -30,14 +30,14 @@ const particleConfigs = {
     rain: {
         fullScreen: { enable: false },
         particles: {
-            number: { value: 90, density: { enable: true, area: 800 } }, // Mehr Regen
-            color: { value: "#ffffff" }, // Weiß, wird durch opacity gesteuert
+            number: { value: 150, density: { enable: true, area: 800 } }, // Mehr Regen
+            color: { value: "#ffffff" }, // Weiß (damit es auf allen Hintergründen sichtbar ist)
             shape: { type: "line" },
-            opacity: { value: 0.6, random: { enable: true, minimumValue: 0.3 } }, // Sichtbarer
-            size: { value: 15, random: { enable: true, minimumValue: 6 } },
+            opacity: { value: 0.65, random: { enable: true, minimumValue: 0.3 } }, // Etwas besser sichtbar
+            size: { value: 12, random: { enable: true, minimumValue: 5 } }, // Angepasste Länge
             move: {
                 enable: true,
-                speed: 6, // Langsamer Regen
+                speed: 5, // Langsamer
                 direction: "bottom",
                 straight: true,
                 outModes: { default: "out" },
@@ -45,19 +45,19 @@ const particleConfigs = {
         },
         interactivity: { enabled: false },
         detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
+        // backgroundMode entfernt, z-index wird im CSS gesetzt
     },
     snow: {
         fullScreen: { enable: false },
         particles: {
-            number: { value: 100, density: { enable: true, area: 800 } }, // Mehr Schnee
-            color: { value: "#ffffff" },
+            number: { value: 100, density: { enable: true, area: 800 } },
+            color: { value: "#ffffff" }, // Weiß
             shape: { type: "circle" },
-            opacity: { value: 0.85, random: { enable: true, minimumValue: 0.5 } }, // Besser sichtbar
-            size: { value: 3.5, random: { enable: true, minimumValue: 1 } },
+            opacity: { value: 0.8, random: { enable: true, minimumValue: 0.5 } }, // Gut sichtbar
+            size: { value: 3, random: { enable: true, minimumValue: 1 } },
             move: {
                 enable: true,
-                speed: 0.8, // Sehr langsam, wie Schnee fällt
+                speed: 0.9, // Sehr langsam
                 direction: "bottom",
                 random: true,
                 straight: false,
@@ -67,38 +67,37 @@ const particleConfigs = {
         },
         interactivity: { enabled: false },
         detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
     },
     clouds: { // Für Wolken & Nebel
         fullScreen: { enable: false },
         particles: {
-            number: { value: 10, density: { enable: true, area: 800 } }, // Wenige, große
-            color: { value: "#ffffff" },
+            number: { value: 10, density: { enable: true, area: 800 } },
+            color: { value: "#ffffff" }, // Weiß
             shape: { type: "circle" },
-            opacity: { value: 0.15, random: { enable: true, minimumValue: 0.08 } }, // Sehr dezent, leicht erhöht
-            size: { value: 200, random: { enable: true, minimumValue: 120 } }, // Sehr groß
+            opacity: { value: 0.12, random: { enable: true, minimumValue: 0.06 } }, // Sehr dezent
+            size: { value: 200, random: { enable: true, minimumValue: 100 } },
             move: {
                 enable: true,
-                speed: 0.5, // Sehr langsam
+                speed: 0.4, // Sehr langsam
                 direction: "none",
                 random: true,
                 straight: false,
                 outModes: { default: "destroy" },
-                decay: 0.003
+                decay: 0.004
             },
         },
         interactivity: { enabled: false },
         detectRetina: true,
-        backgroundMode: { enable: true, zIndex: 0 }
     }
 };
+
 
 // --- Initialisierung & Event Listener ---
 document.addEventListener('DOMContentLoaded', () => { initializeTheme(); loadFavorites(); setupEventListeners(); autoDetectLocation(); });
 function setupEventListeners() { cityInput.addEventListener('input', handleAutocompleteInput); cityInput.addEventListener('keydown', handleInputKeydown); searchButton.addEventListener('click', getWeatherByCityName); locationButton.addEventListener('click', () => getLocationWeather(false)); themeToggle.addEventListener('click', toggleThemeManually); favoritesSelect.addEventListener('change', handleFavoriteSelection); refreshButton.addEventListener('click', handleRefresh); document.addEventListener('click', handleClickOutsideAutocomplete); document.addEventListener('keydown', handleEscapeKey); weatherResultContainer.addEventListener('click', handleCardClicks); }
 // --- Theme Management ---
-function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); /* Nur neu laden, wenn schon Wetter angezeigt wird */ } }); } }
-function toggleThemeManually() { manualOverrideActive = true; const isLight = document.body.classList.contains('light-theme'); if (isLight) { applyDarkTheme(); } else { applyLightTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); /* Nur neu laden, wenn schon Wetter angezeigt wird */ }
+function initializeTheme() { const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; if (prefersLight) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if (window.matchMedia) { const q = window.matchMedia('(prefers-color-scheme: light)'); q.addEventListener('change', (e) => { if (!manualOverrideActive) { if (e.matches) { applyLightTheme(); } else { applyDarkTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); } }); } }
+function toggleThemeManually() { manualOverrideActive = true; const isLight = document.body.classList.contains('light-theme'); if (isLight) { applyDarkTheme(); } else { applyLightTheme(); } updateThemeToggleIcon(); if(currentCoords) handleRefresh(); }
 function applyLightTheme() { document.body.classList.add('light-theme'); } function applyDarkTheme() { document.body.classList.remove('light-theme'); }
 function updateThemeToggleIcon() { if (document.body.classList.contains('light-theme')) { themeToggle.innerHTML = '<i class="fas fa-moon"></i>'; themeToggle.setAttribute('aria-label', 'Temporär in Dark Mode wechseln'); } else { themeToggle.innerHTML = '<i class="fas fa-sun"></i>'; themeToggle.setAttribute('aria-label', 'Temporär in Light Mode wechseln'); } }
 // --- Favoriten Management ---
@@ -132,8 +131,7 @@ function generateTemperatureChart(temps) { if (!temps || temps.length < 2) retur
 // --- Dynamischer Hintergrund & Partikel (ANGEPASST) ---
 function setDynamicBackground(weathercode, isDay) {
     let colorClass = '';
-    // Kopie der Basis-Konfig nehmen, um sie nicht zu überschreiben
-    let particleConfig = JSON.parse(JSON.stringify(particleConfigs.clear));
+    let particleConfigKey = 'clear'; // Standard: keine Partikel
     const wc = Number(weathercode);
 
     const isClear = wc <= 1;
@@ -166,27 +164,25 @@ function setDynamicBackground(weathercode, isDay) {
     else if (!shouldBeLight && isLightTheme) document.body.classList.remove('light-theme');
 
     // 3. Passende Partikel-Konfiguration auswählen
-    if (isRain) {
-        particleConfig = JSON.parse(JSON.stringify(particleConfigs.rain));
-        // Keine Farbänderung hier mehr nötig, da Konfig jetzt weiß ist
-    } else if (isSnow) {
-        particleConfig = JSON.parse(JSON.stringify(particleConfigs.snow));
-    } else if (isCloudy || isFog) {
-        particleConfig = JSON.parse(JSON.stringify(particleConfigs.clouds));
-    }
-    // Bei 'clear' bleibt die 'clear' Konfig
+    if (isRain) particleConfigKey = 'rain';
+    else if (isSnow) particleConfigKey = 'snow';
+    else if (isCloudy || isFog) particleConfigKey = 'clouds';
+    // Bei 'clear' bleibt der 'clear' Key
 
     // 4. tsParticles laden/aktualisieren
     if (typeof tsParticles !== 'undefined') {
-        // Wichtig: Prüfen, ob schon eine Instanz existiert und diese ggf. neu laden oder Optionen updaten
-        // tsParticles.load lädt neu und sollte alte Instanz im gleichen Container ersetzen
-        tsParticles.load("tsparticles", particleConfig)
+        // Hole die aktuelle Konfiguration (kopiere sie tief, um Original nicht zu ändern)
+        let configToLoad = JSON.parse(JSON.stringify(particleConfigs[particleConfigKey]));
+
+        // Lade die Konfiguration. tsParticles.load sollte die alte Instanz überschreiben.
+        tsParticles.load("tsparticles", configToLoad)
           .then(container => {
-             currentParticleContainer = container; // Store the container instance
-             // console.log("Particles loaded/updated", particleConfig.particles?.number?.value);
+             currentParticleContainer = container; // Speichere die Referenz auf die neue Instanz
+             // console.log(`Particles loaded: ${particleConfigKey}`);
           })
           .catch(error => {
             console.error("tsParticles load error:", error);
+            currentParticleContainer = null; // Bei Fehler Referenz löschen
           });
     } else {
         console.error("tsParticles library is not loaded.");
@@ -198,27 +194,27 @@ function setDynamicBackground(weathercode, isDay) {
 function showLoading(message = "Lade...") {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><div>${message}</div></div>`;
-    // Partikel stoppen/leeren während des Ladens
-    if (typeof tsParticles !== 'undefined' && currentParticleContainer) {
-        // currentParticleContainer.destroy(); // Alternative: Nur zerstören
-        tsParticles.load("tsparticles", particleConfigs.clear); // Sicherer: Leere Konfig laden
-        currentParticleContainer = null;
-    } else if (typeof tsParticles !== 'undefined') {
-         tsParticles.load("tsparticles", particleConfigs.clear);
+    // Stoppe und entferne alte Partikel sicher
+    if (typeof tsParticles !== 'undefined') {
+        const container = tsParticles.domItem(0); // Versuche, die Instanz zu bekommen
+        if(container){
+            container.destroy(); // Zerstöre die Instanz
+            currentParticleContainer = null;
+        }
     }
 }
 function showError(message) {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="error-state"><i class="fas fa-triangle-exclamation"></i><span>${message}</span></div>`;
     currentCoords = null; currentCityName = null;
-    setDynamicBackground(-1, 1); // Setzt auch Partikel zurück
+    setDynamicBackground(-1, 1); // Setzt auch Partikel auf 'clear'
 }
 function showInitialPrompt() {
     weatherResultContainer.classList.remove('is-flipped');
     weatherResultContainer.innerHTML = `<div class="initial-prompt"><i class="fas fa-map-location-dot"></i><div>Gib eine Stadt ein oder nutze deinen Standort.</div></div>`;
     currentCoords = null; currentCityName = null;
     updateFavoriteButtonState(false);
-    setDynamicBackground(-1, 1); // Setzt auch Partikel zurück
+    setDynamicBackground(-1, 1); // Setzt auch Partikel auf 'clear'
 }
 // --- Fehlerbehandlung, Standort-Automatik ---
 function handleGeolocationError(error) { let msg = 'Standort nicht ermittelt.'; if(error.code===1) msg='Zugriff verweigert.'; if(error.code===2) msg='Position nicht verfügbar.'; if(error.code===3) msg='Timeout.'; showError(msg); }
