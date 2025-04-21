@@ -1,1 +1,62 @@
-dummy
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wetter Dashboard Pro - Deluxe</title>
+    <!-- Font Awesome für Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Verlinkung zur CSS-Datei -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Theme wechseln">
+        <i class="fas fa-sun"></i> <!-- Icon wird von JS angepasst -->
+    </button>
+
+    <!-- App Header mit Titel und Controls -->
+    <div class="app-header">
+        <div class="header-title">
+            <i class="fas fa-cloud-sun logo"></i>
+            <h1>Wetter Dashboard</h1>
+        </div>
+        <div class="header-controls">
+            <select id="favorites-select" title="Favoriten auswählen">
+                <option value="">Favoriten...</option>
+                <!-- Favoriten werden hier von JS eingefügt -->
+            </select>
+            <button id="refresh-button" title="Aktualisieren"><i class="fas fa-sync-alt"></i></button>
+        </div>
+    </div>
+
+    <!-- Hauptcontainer -->
+    <div class="container">
+        <!-- Suchleiste -->
+        <div class="search-box">
+            <div class="autocomplete-container">
+                <input type="text" id="city" placeholder="Stadt suchen..." autocomplete="off">
+                <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+            </div>
+            <button id="search-button" aria-label="Stadt suchen">
+                <i class="fas fa-search"></i>
+            </button>
+            <button id="location-button" aria-label="Aktuellen Standort verwenden">
+                <i class="fas fa-location-crosshairs"></i>
+            </button>
+        </div>
+
+        <!-- Wetter Ergebnis/Flip Container -->
+        <div id="weather-result" aria-live="polite">
+            <!-- Initialer Inhalt / Wird von JS befüllt -->
+             <div class="initial-prompt">
+                 <i class="fas fa-map-location-dot"></i>
+                 <div>Gib eine Stadt ein oder nutze deinen Standort.</div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Verlinkung zur JavaScript-Datei (am Ende des Body) -->
+    <script src="script.js" defer></script>
+</body>
+</html>
