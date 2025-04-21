@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Wetter Dashboard Pro - Particles Fix v2</title>
+    <title>Wetter Dashboard Pro - Advanced Clouds</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Container für tsParticles -->
-    <div id="tsparticles"></div>
+    <!-- NEU: Zwei Container für Partikel-Layer -->
+    <div id="tsparticles-fog" class="particles-layer"></div>
+    <div id="tsparticles-clouds" class="particles-layer"></div>
 
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="theme-toggle" aria-label="Theme wechseln">
@@ -18,7 +19,7 @@
 
     <!-- Wrapper für den gesamten sichtbaren Inhalt -->
     <main class="content-wrapper">
-        <!-- App Header mit Titel und Controls -->
+        <!-- App Header -->
         <div class="app-header">
             <div class="header-title">
                 <i class="fas fa-cloud-sun logo"></i>
@@ -27,13 +28,12 @@
             <div class="header-controls">
                 <select id="favorites-select" title="Favoriten auswählen">
                     <option value="">Favoriten...</option>
-                    <!-- Optionen werden von JS geladen -->
                 </select>
                 <button id="refresh-button" title="Aktualisieren"><i class="fas fa-sync-alt"></i></button>
             </div>
         </div>
 
-        <!-- Hauptcontainer für Suche und Wetterkarte -->
+        <!-- Hauptcontainer -->
         <div class="container">
             <!-- Suchleiste -->
             <div class="search-box">
@@ -41,30 +41,24 @@
                     <input type="text" id="city" placeholder="Stadt suchen..." autocomplete="off">
                     <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
                 </div>
-                <button id="search-button" aria-label="Stadt suchen">
-                    <i class="fas fa-search"></i>
-                </button>
-                <button id="location-button" aria-label="Aktuellen Standort verwenden">
-                    <i class="fas fa-location-crosshairs"></i>
-                </button>
+                <button id="search-button" aria-label="Stadt suchen"> <i class="fas fa-search"></i> </button>
+                <button id="location-button" aria-label="Aktuellen Standort verwenden"> <i class="fas fa-location-crosshairs"></i> </button>
             </div>
 
             <!-- Wetter Ergebnis/Flip Container -->
             <div id="weather-result" aria-live="polite">
-                <!-- Initialer Inhalt -->
-                 <div class="initial-prompt">
-                     <i class="fas fa-map-location-dot"></i>
-                     <div>Gib eine Stadt ein oder nutze deinen Standort.</div>
-                 </div>
+                 <div class="initial-prompt"> <i class="fas fa-map-location-dot"></i> <div>Gib eine Stadt ein oder nutze deinen Standort.</div> </div>
             </div>
         </div>
     </main> <!-- Ende content-wrapper -->
 
-    <!-- tsParticles Bibliothek via CDN -->
+    <!-- tsParticles Bibliotheken via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
-    <!-- tsParticles Bibliothek via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles-updater-angle@2/tsparticles.updater.angle.min.js""></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-updater-angle@2/tsparticles.updater.angle.min.js"></script>
+    <!-- NEU: tsParticles Image Shape Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-shape-image@2/tsparticles.shape.image.min.js"></script>
     <!-- Dein JavaScript -->
     <script src="scripts.js" defer></script>
 </body>
 </html>
+
