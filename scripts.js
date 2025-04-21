@@ -1,72 +1,48 @@
-// scripts.js - Clean Base + Autocomplete + Top Layout
+// scripts.js - Clean Base + Autocomplete + Top Layout + Default City
 
 $(document).ready(function() {
 
     // --- Globale Variablen & Snap.svg Referenzen ---
-    var $container = $('.container');
-    var $card = $('#card');
-    var innerSVG = Snap('#inner');
-    var outerSVG = Snap('#outer');
-    var backSVG = Snap('#back');
-    var $description = $('#description');
-    var $date = $('#date');
-    var $location = $('#location');
-    var $temp = $('.temp');
-    var $overlayContainer = $('#overlay-container');
-
-    var weatherContainer1 = Snap.select('#layer1'), weatherContainer2 = Snap.select('#layer2'), weatherContainer3 = Snap.select('#layer3');
-    var innerRainHolder1 = weatherContainer1.group(), innerRainHolder2 = weatherContainer2.group(), innerRainHolder3 = weatherContainer3.group();
-    var innerLeafHolder = weatherContainer1.group(), innerSnowHolder = weatherContainer1.group(), innerLightningHolder = weatherContainer1.group();
-    var leafMask = outerSVG.rect(), leaf = Snap.select('#leaf'), sun = Snap.select('#sun'), sunburst = Snap.select('#sunburst');
-    var outerSplashHolder = outerSVG.group(), outerLeafHolder = outerSVG.group();
+    var $container = $('.container'); var $card = $('#card'); var innerSVG = Snap('#inner'); var outerSVG = Snap('#outer'); var backSVG = Snap('#back');
+    var $description = $('#description'); var $date = $('#date'); var $location = $('#location'); // Findet #location jetzt unten
+    var $temp = $('.temp'); var $overlayContainer = $('#overlay-container');
+    var weatherContainer1=Snap.select('#layer1'), weatherContainer2=Snap.select('#layer2'), weatherContainer3=Snap.select('#layer3');
+    var innerRainHolder1=weatherContainer1.group(), innerRainHolder2=weatherContainer2.group(), innerRainHolder3=weatherContainer3.group();
+    var innerLeafHolder=weatherContainer1.group(), innerSnowHolder=weatherContainer1.group(), innerLightningHolder=weatherContainer1.group();
+    var leafMask=outerSVG.rect(), leaf=Snap.select('#leaf'), sun=Snap.select('#sun'), sunburst=Snap.select('#sunburst');
+    var outerSplashHolder=outerSVG.group(), outerLeafHolder=outerSVG.group();
 
     // --- API & Zustand ---
     const GEOAPIFY_API_KEY = '6b73ef3534d24e6f9f9cbbd26bdf2e99';
-    let currentCoords = null;
-    let currentCityName = null;
-    let currentApiData = null;
+    let currentCoords=null, currentCityName=null, currentApiData=null;
 
     // --- Autocomplete Zustand ---
-    let autocompleteTimeout;
-    let currentSuggestions = [];
+    let autocompleteTimeout, currentSuggestions=[];
 
     // --- Animation & Mapping ---
-    var lightningTimeout;
-    var sizes = { container: {width: 0, height: 0}, card: {width: 0, height: 0}, cardOffset: {top: 0, left: 0}};
-    var clouds = [{group: Snap.select('#cloud1')}, {group: Snap.select('#cloud2')}, {group: Snap.select('#cloud3')}];
-    var weatherTypes = [ { type: 'snow', name: 'Schnee'}, { type: 'wind', name: 'Windig'}, { type: 'rain', name: 'Regen'}, { type: 'thunder', name: 'Gewitter'}, { type: 'fog', name: 'Nebel'}, { type: 'cloud', name: 'Bewölkt'}, { type: 'sun', name: 'Sonnig'} ];
-    var currentWeatherType = weatherTypes.find(w => w.type === 'sun');
-    var settings = { windSpeed: 2, rainCount: 0, leafCount: 0, snowCount: 0, cloudHeight: 100, cloudSpace: 30, cloudArch: 50, renewCheck: 10, splashBounce: 80 };
-    var tickCount = 0;
-    var rain = [], leafs = [], snow = [];
+    var lightningTimeout; var sizes={container:{width:0,height:0},card:{width:0,height:0},cardOffset:{top:0,left:0}};
+    var clouds=[{group:Snap.select('#cloud1')},{group:Snap.select('#cloud2')},{group:Snap.select('#cloud3')}];
+    var weatherTypes=[{type:'snow',name:'Schnee'},{type:'wind',name:'Windig'},{type:'rain',name:'Regen'},{type:'thunder',name:'Gewitter'},{type:'fog',name:'Nebel'},{type:'cloud',name:'Bewölkt'},{type:'sun',name:'Sonnig'}];
+    var currentWeatherType=weatherTypes.find(w=>w.type==='sun');
+    var settings={windSpeed:2,rainCount:0,leafCount:0,snowCount:0,cloudHeight:100,cloudSpace:30,cloudArch:50,renewCheck:10,splashBounce:80};
+    var tickCount=0; var rain=[],leafs=[],snow=[];
+    const weatherConditions={0:{desc:'Klarer Himmel'},1:{desc:'Überwiegend klar'},2:{desc:'Teilweise bewölkt'},3:{desc:'Bedeckt'},45:{desc:'Nebel'},48:{desc:'Gefrierender Nebel'},51:{desc:'Leichter Nieselregen'},53:{desc:'Mäßiger Nieselregen'},55:{desc:'Starker Nieselregen'},56:{desc:'Leichter gefrierender Nieselregen'},57:{desc:'Starker gefrierender Nieselregen'},61:{desc:'Leichter Regen'},63:{desc:'Mäßiger Regen'},65:{desc:'Starker Regen'},66:{desc:'Gefrierender Regen'},67:{desc:'Gefrierender Regen'},71:{desc:'Leichter Schneefall'},73:{desc:'Mäßiger Schneefall'},75:{desc:'Starker Schneefall'},77:{desc:'Schneekörner'},80:{desc:'Leichte Regenschauer'},81:{desc:'Mäßige Regenschauer'},82:{desc:'Heftige Regenschauer'},85:{desc:'Leichte Schneeschauer'},86:{desc:'Starke Schneeschauer'},95:{desc:'Gewitter'},96:{desc:'Gewitter mit leichtem Hagel'},99:{desc:'Gewitter mit starkem Hagel'}};
+    function getWeatherCondition(code){return weatherConditions[code]||{desc:`Wettercode ${code}`};}
 
-    const weatherConditions = { 0: { desc: 'Klarer Himmel' }, 1: { desc: 'Überwiegend klar' }, 2: { desc: 'Teilweise bewölkt' }, 3: { desc: 'Bedeckt' }, 45: { desc: 'Nebel' }, 48: { desc: 'Gefrierender Nebel' }, 51: { desc: 'Leichter Nieselregen' }, 53: { desc: 'Mäßiger Nieselregen' }, 55: { desc: 'Starker Nieselregen' }, 56: { desc: 'Leichter gefrierender Nieselregen' }, 57: { desc: 'Starker gefrierender Nieselregen' }, 61: { desc: 'Leichter Regen' }, 63: { desc: 'Mäßiger Regen' }, 65: { desc: 'Starker Regen' }, 66: { desc: 'Gefrierender Regen' }, 67: { desc: 'Gefrierender Regen' }, 71: { desc: 'Leichter Schneefall' }, 73: { desc: 'Mäßiger Schneefall' }, 75: { desc: 'Starker Schneefall' }, 77: { desc: 'Schneekörner' }, 80: { desc: 'Leichte Regenschauer' }, 81: { desc: 'Mäßige Regenschauer' }, 82: { desc: 'Heftige Regenschauer' }, 85: { desc: 'Leichte Schneeschauer' }, 86: { desc: 'Starke Schneeschauer' }, 95: { desc: 'Gewitter' }, 96: { desc: 'Gewitter mit leichtem Hagel' }, 99: { desc: 'Gewitter mit starkem Hagel' } };
-    function getWeatherCondition(code) { return weatherConditions[code] || { desc: `Wettercode ${code}` }; }
-
-
-    // --- Initialisierung ---
+    // --- Initialisierung (Mit Default-Stadt) ---
     function init() {
         onResize();
         for(var i=0;i<clouds.length;i++){clouds[i].offset=Math.random()*sizes.card.width;drawCloud(clouds[i],i);}
         TweenMax.set(sun.node,{x:sizes.card.width/2,y:-100}); TweenMax.set(sunburst.node,{opacity:0});
-        showInitialPrompt();
-        setupEventListeners(); // Jetzt mit Autocomplete
+        setupEventListeners();
         requestAnimationFrame(tick);
         $(window).resize(onResize);
+        // Lade Dortmund als Default statt Geolocation oder Prompt
+        getWeatherByCityName('Dortmund');
     }
 
     // --- Event Listener Setup (Mit Autocomplete) ---
-    function setupEventListeners() {
-        $('#search-btn').on('click', () => getWeatherByCityName($('#city-input').val()));
-        $('#location-btn').on('click', getLocationWeather);
-        // Autocomplete Listener
-        $('#city-input').on('input', handleAutocompleteInput);
-        $('#city-input').on('keydown', handleInputKeydown); // Für Enter
-        // Globale Listener für Autocomplete
-        $(document).on('click', handleClickOutsideAutocomplete);
-        $(document).on('keydown', handleEscapeKey);
-        // Kein Theme Toggle, keine Favoriten, kein Refresh (kommt später)
-    }
+    function setupEventListeners(){$('#search-btn').on('click',()=>{getWeatherByCityName($('#city-input').val());}); $('#location-btn').on('click',getLocationWeather); $('#city-input').on('input',handleAutocompleteInput); $('#city-input').on('keydown',handleInputKeydown); $(document).on('click',handleClickOutsideAutocomplete); $(document).on('keydown',handleEscapeKey);}
 
     // --- Resize Handler ---
     function onResize(){sizes.container.width=$container.width(); sizes.container.height=$container.height(); sizes.card.width=$card.width(); sizes.card.height=$card.height(); var cO=$card.offset(); sizes.cardOffset.top=cO?cO.top:0; sizes.cardOffset.left=cO?cO.left:0; innerSVG.attr({width:sizes.card.width,height:sizes.card.height}); outerSVG.attr({width:sizes.container.width,height:sizes.container.height}); backSVG.attr({width:sizes.container.width,height:sizes.container.height}); TweenMax.set(sunburst.node,{transformOrigin:"50% 50%",x:sizes.container.width/2,y:(sizes.card.height/2)+sizes.cardOffset.top}); if(!TweenMax.isTweening(sunburst.node))TweenMax.fromTo(sunburst.node,20,{rotation:0},{rotation:360,repeat:-1,ease:Power0.easeInOut}); leafMask.attr({x:sizes.cardOffset.left,y:0,width:sizes.container.width-sizes.cardOffset.left,height:sizes.container.height}); outerLeafHolder.attr({'clip-path':leafMask}); }
@@ -83,7 +59,7 @@ $(document).ready(function() {
     // --- Wetterwechsel Logik ---
     function mapWeatherCodeToType(code,windSpeed){const wc=Number(code),ws=Number(windSpeed); if(wc<=1)return'sun'; if(wc===95||wc===96||wc===99)return'thunder'; if((wc>=51&&wc<=67)||(wc>=80&&wc<=82))return'rain'; if((wc>=71&&wc<=77)||(wc>=85&&wc<=86)||wc===66||wc===67)return'snow'; if(wc===45||wc===48)return'fog'; if(wc===2||wc===3){if(ws>=25)return'wind';else return'cloud';} return'sun';} function changeWeather(weatherTypeKey){var weatherData=weatherTypes.find(w=>w.type===weatherTypeKey)||weatherTypes.find(w=>w.type==='sun'); weatherTypes.forEach(w=>$container.removeClass(w.type)); $container.addClass(weatherData.type); currentWeatherType=weatherData; let tWS=0.5; if(weatherData.type==='wind')tWS=5; if(weatherData.type==='sun')tWS=10; if(weatherData.type==='thunder')tWS=0.8; TweenMax.to(settings,3,{windSpeed:tWS,ease:Power2.easeInOut}); let tRC=0; if(weatherData.type==='rain')tRC=20; if(weatherData.type==='thunder')tRC=50; TweenMax.to(settings,3,{rainCount:tRC,ease:Power2.easeInOut}); let tLC=0; if(weatherData.type==='wind')tLC=7; TweenMax.to(settings,3,{leafCount:tLC,ease:Power2.easeInOut}); let tSC=0; if(weatherData.type==='snow')tSC=30; TweenMax.to(settings,3,{snowCount:tSC,ease:Power2.easeInOut}); if(weatherData.type==='sun'){TweenMax.to(sun.node,4,{x:sizes.card.width/2,y:sizes.card.height*0.35,opacity:1,ease:Power2.easeInOut}); TweenMax.to(sunburst.node,4,{scale:1,opacity:0.8,y:(sizes.card.height*0.35)+sizes.cardOffset.top,ease:Power2.easeInOut});}else{TweenMax.to(sun.node,2,{y:-100,opacity:0,ease:Power2.easeIn}); TweenMax.to(sunburst.node,2,{scale:0.4,opacity:0,y:(sizes.container.height/2)-50,ease:Power2.easeIn});} startLightningTimer();} function startLightningTimer(){if(lightningTimeout)clearTimeout(lightningTimeout); if(currentWeatherType.type=='thunder')lightningTimeout=setTimeout(lightning,Math.random()*6000+2000);} function lightning(){startLightningTimer(); TweenMax.fromTo($card,0.75,{y:-10},{y:0,ease:Elastic.easeOut}); var pX=30+Math.random()*(sizes.card.width-60), yO=20, steps=20, pts=[pX+',0']; for(var i=0;i<steps;i++){var x=pX+(Math.random()*yO-(yO/2)), y=(sizes.card.height/steps)*(i+1); pts.push(x+','+y);} var s=innerLightningHolder.path('M'+pts.join(' ')).attr({fill:'none',stroke:'white',strokeWidth:2+Math.random()}); TweenMax.to(s.node,1,{opacity:0,ease:Power4.easeOut,onComplete:function(){if(s)s.remove(); s=null}});}
 
-    // --- API & Rendering (Minimal) ---
+    // --- API & Rendering (Angepasst für Top Layout) ---
     function showOverlayMessage(type, message) { $overlayContainer.empty(); const iC = type === 'loading' ? 'fa-spinner fa-spin' : (type === 'error' ? 'fa-triangle-exclamation' : 'fa-map-location-dot'); const dC = type + '-state'; const h = `<div class="${dC}"> <i class="fas ${iC}"></i> <div>${message}</div> </div>`; $overlayContainer.html(h); }
     function hideOverlayMessage() { $overlayContainer.empty(); }
 
@@ -92,12 +68,11 @@ $(document).ready(function() {
         const { current } = weatherData;
         currentApiData = weatherData;
 
-        // UI Aktualisieren (Top Layout)
-        $location.text(locationName);
+        // UI Aktualisieren (Top Layout, Location separat unten)
         $temp.html(`${Math.round(current.temperature_2m)}<span>°C</span>`);
+        $location.text(locationName); // Setzt den Text für #location unten rechts
         $description.text(getWeatherCondition(current.weathercode).desc);
         $date.text(new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }));
-        // Kein FeelsLike im Top Layout
 
         // Animation triggern
         const mappedType = mapWeatherCodeToType(current.weathercode, current.windspeed_10m);
@@ -108,122 +83,15 @@ $(document).ready(function() {
     async function getWeatherFromCoords(lat, lon, locationName) { currentCoords={lat,lon}; currentCityName=locationName; showOverlayMessage('loading',`Lade Wetter für ${locationName}...`); TweenMax.to(settings,1,{rainCount:0,leafCount:0,snowCount:0}); const params=[`latitude=${lat.toFixed(4)}`,`longitude=${lon.toFixed(4)}`,'current=temperature_2m,apparent_temperature,weathercode,windspeed_10m','temperature_unit=celsius','windspeed_unit=kmh','timezone=auto']; const apiUrl=`https://api.open-meteo.com/v1/forecast?${params.join('&')}`; try{const r=await fetch(apiUrl); if(!r.ok){const eD=await r.json().catch(()=>({}));throw new Error(`API Fehler: ${r.status}`);} const d=await r.json(); if(!d.current)throw new Error('Unvollständige Daten.'); renderWeatherData(locationName,d);}catch(error){console.error('Fehler:',error); handleFetchError(error);}}
     async function getWeatherByCityName(city){if(!city){showError('Bitte gib einen Stadtnamen ein.');return;}showOverlayMessage('loading','Suche Stadt...');hideAutocomplete(); try{const geoR=await fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(city)}&limit=1&lang=de&format=json&apiKey=${GEOAPIFY_API_KEY}`);if(!geoR.ok)throw new Error(`Geoapify Fehler`);const geoD=await geoR.json();if(!geoD.results||geoD.results.length===0)throw new Error(`Stadt nicht gefunden.`);const{lat,lon,formatted}=geoD.results[0];const locN=geoD.results[0].city||formatted;await getWeatherFromCoords(lat,lon,locN);}catch(error){handleFetchError(error);}}
     async function getLocationWeather(){if(!navigator.geolocation){showError('Geolocation nicht unterstützt.');return;}showOverlayMessage('loading','Ermittle Standort...');navigator.geolocation.getCurrentPosition(async(pos)=>{const{latitude,longitude}=pos.coords;try{const revGeoR=await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&lang=de&format=json&apiKey=${GEOAPIFY_API_KEY}`);let locN=`Lat ${latitude.toFixed(2)}, Lon ${longitude.toFixed(2)}`;if(revGeoR.ok){const locD=await revGeoR.json();if(locD.results?.length>0)locN=locD.results[0].city||locD.results[0].village||locD.results[0].suburb||locD.results[0].formatted;}await getWeatherFromCoords(latitude,longitude,locN);}catch(error){await getWeatherFromCoords(latitude,longitude,`Lat ${latitude.toFixed(2)}, Lon ${longitude.toFixed(2)}`);}},(err)=>{handleGeolocationError(err);},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});}
-    async function autoDetectLocation(){if(navigator.geolocation){getLocationWeather();}else{showInitialPrompt();}} function handleGeolocationError(error){let m='Standort nicht ermittelt.';if(error.code===1)m='Zugriff verweigert.';if(error.code===2)m='Position nicht verfügbar.';if(error.code===3)m='Timeout.';showError(m);} function handleFetchError(error){let m='Fehler.';if(error.message.includes('Stadt'))m=error.message;else if(error.message.toLowerCase().includes('fetch')||error.message.toLowerCase().includes('network'))m='Netzwerkfehler.';else if(error.message.includes('API'))m='API Problem.'; console.error("Fetch Error:",error);showError(m);} function showInitialPrompt(){showOverlayMessage('initial','Gib eine Stadt ein oder nutze deinen Standort.'); currentCoords=null; currentCityName=null; currentApiData=null; changeWeather('sun');} function showError(message){showOverlayMessage('error',message); currentCoords=null; currentCityName=null; currentApiData=null; changeWeather('sun');}
+    // async function autoDetectLocation(){ /* Wird durch Default ersetzt */ }
+    function handleGeolocationError(error){let m='Standort nicht ermittelt.';if(error.code===1)m='Zugriff verweigert.';if(error.code===2)m='Position nicht verfügbar.';if(error.code===3)m='Timeout.';showError(m);} function handleFetchError(error){let m='Fehler.';if(error.message.includes('Stadt'))m=error.message;else if(error.message.toLowerCase().includes('fetch')||error.message.toLowerCase().includes('network'))m='Netzwerkfehler.';else if(error.message.includes('API'))m='API Problem.'; console.error("Fetch Error:",error);showError(m);} function showInitialPrompt(){showOverlayMessage('initial','Gib eine Stadt ein oder nutze deinen Standort.'); currentCoords=null; currentCityName=null; currentApiData=null; changeWeather('sun');} function showError(message){showOverlayMessage('error',message); currentCoords=null; currentCityName=null; currentApiData=null; changeWeather('sun');}
 
-    // --- Autocomplete Funktionen (Wieder hinzugefügt) ---
-    function handleAutocompleteInput(e) {
-        clearTimeout(autocompleteTimeout);
-        const query = e.target.value.trim();
-        // ID des Dropdowns holen (Vanilla JS für Konsistenz mit anderen Listenern)
-        const dropdownElement = document.getElementById('autocomplete-dropdown');
-        if (!dropdownElement) return; // Sicherstellen, dass Element existiert
-
-        if (query.length < 2) { // Mindestens 2 Zeichen
-            hideAutocomplete();
-            return;
-        }
-        autocompleteTimeout = setTimeout(async () => {
-            try {
-                const r = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&type=city&lang=de&limit=5&format=json&apiKey=${GEOAPIFY_API_KEY}`);
-                if (!r.ok) throw new Error('Autocomplete API failed');
-                const data = await r.json();
-                currentSuggestions = data.results || [];
-                showAutocompleteSuggestions(currentSuggestions);
-            } catch (err) {
-                console.error("Autocomplete error:", err);
-                hideAutocomplete();
-            }
-        }, 300); // Kleine Verzögerung
-    }
-
-    function showAutocompleteSuggestions(suggestions) {
-        const dropdownElement = document.getElementById('autocomplete-dropdown');
-        if (!dropdownElement) return;
-
-        if (!suggestions || suggestions.length === 0) {
-            hideAutocomplete();
-            return;
-        }
-        // Baue HTML für Dropdown-Items
-        dropdownElement.innerHTML = suggestions.map(s => {
-            const city = s.city || s.name || s.address_line1;
-            const country = s.country || '';
-            const displayName = city && country ? `${city}, ${country}` : s.formatted;
-            // Verwende Vanilla JS um Events zu binden, da wir jQuery nicht überall nutzen
-            return `<div class="autocomplete-item" data-lat="${s.lat}" data-lon="${s.lon}" data-name="${displayName}">
-                        ${highlightMatch(displayName, $('#city-input').val())}
-                    </div>`;
-        }).join('');
-
-        // Event Listener für Klicks auf Items hinzufügen
-        dropdownElement.querySelectorAll('.autocomplete-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const name = item.dataset.name;
-                const lat = parseFloat(item.dataset.lat);
-                const lon = parseFloat(item.dataset.lon);
-                $('#city-input').val(name); // Input-Feld aktualisieren
-                hideAutocomplete();
-                $('#city-input').blur(); // Fokus entfernen
-                getWeatherFromCoords(lat, lon, name); // Wetter holen
-            });
-        });
-
-        dropdownElement.style.display = 'block';
-    }
-
-    function hideAutocomplete() {
-        const dropdownElement = document.getElementById('autocomplete-dropdown');
-        if (dropdownElement) {
-            dropdownElement.style.display = 'none';
-            dropdownElement.innerHTML = '';
-        }
-        currentSuggestions = [];
-    }
-
-    function handleInputKeydown(e) {
-        const dropdownElement = document.getElementById('autocomplete-dropdown');
-        if (e.key === 'Enter') {
-            e.preventDefault(); // Verhindert Formular-Submit, falls vorhanden
-            if (dropdownElement && dropdownElement.style.display === 'block' && currentSuggestions.length > 0) {
-                // Wähle das erste Element aus und triggere Klick
-                const firstItem = dropdownElement.querySelector('.autocomplete-item');
-                if (firstItem) {
-                    firstItem.click(); // Simuliert Klick auf das erste Item
-                } else {
-                     hideAutocomplete(); // Fallback
-                     getWeatherByCityName($('#city-input').val());
-                }
-            } else {
-                // Kein Dropdown offen oder leer -> Normale Suche auslösen
-                hideAutocomplete();
-                getWeatherByCityName($('#city-input').val());
-            }
-            $('#city-input').blur(); // Fokus weg vom Input
-        } else if (e.key === 'Escape') {
-            hideAutocomplete();
-        }
-        // Navigation mit Pfeiltasten könnte hier hinzugefügt werden
-    }
-
-    function handleClickOutsideAutocomplete(e) {
-        // Prüfe, ob Klick außerhalb des .autocomplete-container war
-        if (!$(e.target).closest('.autocomplete-container').length) {
-            hideAutocomplete();
-        }
-    }
-
-    function handleEscapeKey(e) {
-        if (e.key === 'Escape') {
-            hideAutocomplete();
-        }
-    }
-
-    function highlightMatch(text, query) {
-        if (!query || !text) return text || '';
-        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${escapedQuery})`, 'gi');
-        return text.replace(regex, '<b>$1</b>');
-    }
+    // --- Autocomplete Funktionen ---
+    function handleAutocompleteInput(e){clearTimeout(autocompleteTimeout); const query=e.target.value.trim(); const dropdownElement=document.getElementById('autocomplete-dropdown'); if(!dropdownElement)return; if(query.length<2){hideAutocomplete();return;} autocompleteTimeout=setTimeout(async()=>{try{const r=await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&type=city&lang=de&limit=5&format=json&apiKey=${GEOAPIFY_API_KEY}`); if(!r.ok)throw new Error('Autocomplete API failed'); const data=await r.json(); currentSuggestions=data.results||[]; showAutocompleteSuggestions(currentSuggestions);}catch(err){console.error("Autocomplete error:",err); hideAutocomplete();}},300);}
+    function showAutocompleteSuggestions(suggestions){const dropdownElement=document.getElementById('autocomplete-dropdown'); if(!dropdownElement)return; if(!suggestions||suggestions.length===0){hideAutocomplete();return;} dropdownElement.innerHTML=suggestions.map(s=>{const city=s.city||s.name||s.address_line1; const country=s.country||''; const displayName=city&&country?`${city}, ${country}`:s.formatted; return`<div class="autocomplete-item" data-lat="${s.lat}" data-lon="${s.lon}" data-name="${displayName}">${highlightMatch(displayName,$('#city-input').val())}</div>`;}).join(''); dropdownElement.querySelectorAll('.autocomplete-item').forEach(item=>{item.addEventListener('click',()=>{const name=item.dataset.name; const lat=parseFloat(item.dataset.lat); const lon=parseFloat(item.dataset.lon); $('#city-input').val(name); hideAutocomplete(); $('#city-input').blur(); getWeatherFromCoords(lat,lon,name);});}); dropdownElement.style.display='block';}
+    function hideAutocomplete(){const dropdownElement=document.getElementById('autocomplete-dropdown'); if(dropdownElement){dropdownElement.style.display='none'; dropdownElement.innerHTML='';} currentSuggestions=[];}
+    function handleInputKeydown(e){const dropdownElement=document.getElementById('autocomplete-dropdown'); if(e.key==='Enter'){e.preventDefault(); if(dropdownElement&&dropdownElement.style.display==='block'&&currentSuggestions.length>0){const firstItem=dropdownElement.querySelector('.autocomplete-item'); if(firstItem){firstItem.click();}else{hideAutocomplete(); getWeatherByCityName($('#city-input').val());}}else{hideAutocomplete(); getWeatherByCityName($('#city-input').val());}}else if(e.key==='Escape'){hideAutocomplete();}}
+    function handleClickOutsideAutocomplete(e){if(!$(e.target).closest('.autocomplete-container').length){hideAutocomplete();}} function handleEscapeKey(e){if(e.key==='Escape'){hideAutocomplete();}} function highlightMatch(text,query){if(!query||!text)return text||''; const escapedQuery=query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const regex=new RegExp(`(${escapedQuery})`,'gi'); return text.replace(regex,'<b>$1</b>');}
 
     // --- App Start ---
     init();
