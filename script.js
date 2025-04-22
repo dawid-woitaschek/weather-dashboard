@@ -301,7 +301,23 @@ $(document).ready(function() {
 
 
     function fetchWeather(lat, lon, name) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&timezone=Europe/Berlin`; // Timezone added
+        // *** NEU: Explizite Prüfung und Konvertierung der Koordinaten ***
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        console.log(`Attempting fetch for: Name=${name}, Lat=${lat} (Type: ${typeof lat}), Lon=${lon} (Type: ${typeof lon})`); // Debugging
+
+        // Prüfen, ob die Konvertierung erfolgreich war
+        if (isNaN(latitude) || isNaN(longitude)) {
+            console.error("Invalid coordinates received or parsed:", lat, lon);
+            showError("Ungültige Koordinaten erhalten.");
+            return; // Funktion abbrechen, wenn Koordinaten ungültig sind
+        }
+        // *** Ende der neuen Prüfung ***
+
+        // Verwende die geprüften latitude und longitude Werte
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}¤t_weather=true&timezone=Europe/Berlin`;
+        console.log(`Request URL: ${url}`); // Debugging: Zeigt die tatsächlich verwendete URL
 
         // Zeige Ladezustand an
         summary.text('Lädt...');
@@ -309,18 +325,29 @@ $(document).ready(function() {
         locationDisplay.text(name || "..."); // Show selected/current name
 
         fetch(url)
-            .then(response => response.json())
+            .then(response => {
+                 // *** NEU: Response Status prüfen ***
+                 if (!response.ok) {
+                     // Wirf einen Fehler, der im .catch() behandelt wird
+                     // response.statusText enthält oft eine kurze Beschreibung des Fehlers
+                     throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                 }
+                 return response.json();
+            })
             .then(data => {
                 if (data && data.current_weather) {
                     const weather = data.current_weather;
                     updateUI(weather, name);
                 } else {
-                    showError("Wetterdaten nicht verfügbar.");
+                    // Auch wenn der Status 200 OK war, könnten die Daten fehlen
+                    console.error("Valid response but no current_weather data:", data);
+                    showError("Wetterdaten Format ungültig.");
                 }
             })
             .catch(error => {
-                console.error('Error fetching Open-Meteo data:', error);
-                showError("Fehler beim Laden der Wetterdaten.");
+                console.error('Error fetching or parsing Open-Meteo data:', error);
+                 // Zeige die spezifische Fehlermeldung vom Throw oder den Netzwerkfehler
+                showError(`API Fehler: ${error.message}`);
             });
     }
 
