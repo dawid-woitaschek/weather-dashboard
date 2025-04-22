@@ -29,8 +29,9 @@
 	 width: 100%;
 	 overflow: auto;
 	 position: relative;
-	 background: #eee;
-	 background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0));
+	 /* Hintergrund vom Container entfernt, da die Karte selbst den Hintergrund steuert */
+	 /* background: #eee; */
+	 /* background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0)); */
 }
  nav ul {
 	 margin: 20px 20px 0 20px;
@@ -69,13 +70,15 @@
 	 left: 0;
 	 right: 0;
 	 padding: 16px 20px;
-	 color: #888;
+	 color: #888; /* Standard Textfarbe */
 	 display: flex;
 	 flex-direction: row;
 	 justify-content: space-between;
 	 transition: color 2s ease;
+	 z-index: 10; /* Sicherstellen, dass Details über SVG liegen */
 }
- .thunder #card .details {
+ /* Spezifische Textfarbe für Gewitter direkt auf #card bezogen */
+ #card.thunder .details {
 	 color: #ddd;
 }
  #card .details .right {
@@ -98,51 +101,53 @@
 	 vertical-align: top;
 	 margin-left: 5px;
 }
- .weather {
-	 background-color: #dae3fd; /* Standard-Hintergrund, wird ggf. überschrieben */
+ /* Basis-Style für .weather auf #card */
+ #card.weather {
+	 background-color: #dae3fd; /* Standard Hellblau */
 	 transition: background-color 2s ease;
 }
- .thunder .weather {
+ /* Wetter-spezifische Hintergründe, angewendet auf #card */
+ #card.thunder { /* Selektor vereinfacht: .thunder auf #card */
 	 background-color: #9fa4ad;
 }
- .rain .weather {
+ #card.rain { /* Selektor vereinfacht */
 	 background-color: #d8d8d8;
 }
- .sun .weather {
+ #card.sun { /* Selektor vereinfacht */
 	 background-color: #ccf;
 }
- /* Zusätzliche Klassen für Schnee und Wind könnten hier hinzugefügt werden,
-    falls spezifische Hintergrundfarben gewünscht sind */
- .snow .weather {
-     background-color: #eef6ff; /* Beispiel: sehr helles Blau */
+ #card.snow { /* Selektor vereinfacht */
+     background-color: #eef6ff;
  }
- .wind .weather {
-     background-color: #ddeeff; /* Beispiel: leicht anderes Blau */
+ #card.wind { /* Selektor vereinfacht */
+     background-color: #ddeeff;
  }
 
- .weather #inner {
+ /* Innere SVG-Styles beziehen sich weiterhin auf Klassen auf #card */
+ #card .weather #inner { /* Beibehaltung, falls .weather als zusätzliche Logik dient*/
 	 background-color: rgba(255, 255, 255, 1);
 	 background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
 }
- .weather .cloud {
+ #card .weather .cloud { /* Beibehaltung */
 	 transition: fill 2s ease;
 }
- .weather #cloud1 {
+ /* Wolkenfarben basierend auf Klasse auf #card */
+ #card .weather #cloud1 { /* Basis Wolkenfarbe */
 	 fill: #efefef;
 }
- .thunder .weather #cloud1 {
+ #card.thunder #cloud1 { /* .thunder auf #card */
 	 fill: #9fa4ad;
 }
- .weather #cloud2 {
+ #card .weather #cloud2 { /* Basis Wolkenfarbe */
 	 fill: #e6e6e6;
 }
- .thunder .weather #cloud2 {
+ #card.thunder #cloud2 { /* .thunder auf #card */
 	 fill: #8b8e98;
 }
- .weather #cloud3 {
+ #card .weather #cloud3 { /* Basis Wolkenfarbe */
 	 fill: #d5d5d5;
 }
- .thunder .weather #cloud3 {
+ #card.thunder #cloud3 { /* .thunder auf #card */
 	 fill: #7b7988;
 }
  #outer, #back {
