@@ -7,8 +7,8 @@ $(document).ready(function() {
     var innerSVG = Snap('#inner');
     var outerSVG = Snap('#outer');
     var backSVG = Snap('#back');
-    var summaryElement = $('#summary'); // Umbenannt, um Konflikte zu vermeiden
-    var dateElement = $('#date');       // Umbenannt
+    var summaryElement = $('#summary');
+    var dateElement = $('#date');
     var tempValueElement = $('#temp-value');
     var tempUnitElement = $('#temp-unit');
     var weatherContainer1 = Snap.select('#layer1');
@@ -39,7 +39,8 @@ $(document).ready(function() {
     // Größenobjekt
     var sizes = {
         container: { width: 0, height: 0 },
-        card: { width: 0, height: 0 }
+        card: { width: 0, height: 0 },
+        offset: { top: 0, left: 0} // Offset hier initialisieren
     };
 
     // Wolken-Gruppen
@@ -84,21 +85,26 @@ $(document).ready(function() {
 
         // Event Listener für Buttons hinzufügen
         weatherTypes.forEach(w => {
-            if (w.button) {
+            if (w.button && w.button.length > 0) { // Sicherstellen, dass Button existiert
                 w.button.bind('click', w, changeWeather);
             } else {
                 console.error("Button not found for weather type:", w.type);
             }
         });
 
+
         // Wolken zeichnen
         clouds.forEach((cloud, i) => {
             cloud.offset = Math.random() * sizes.card.width;
-            drawCloud(cloud, i);
+            if (cloud.group) { // Nur zeichnen, wenn Gruppe vorhanden ist
+                 drawCloud(cloud, i);
+            } else {
+                 console.error("Cloud group missing for index:", i);
+            }
         });
 
         // Sonnenstrahlen initial ausblenden
-        TweenMax.set(sunburst.node, { opacity: 0 });
+        gsap.set(sunburst.node, { opacity: 0 }); // GSAP 3 Syntax: gsap.set
 
         // Wetterdaten von API abrufen und UI initialisieren
         fetchWeatherData();
@@ -125,9 +131,14 @@ $(document).ready(function() {
                     updateUI(data.current_weather);
                     const weatherCode = data.current_weather.weathercode;
                     const initialWeatherType = mapWeatherCodeToType(weatherCode);
-                    // Finde das passende Wetterobjekt aus unserem Array
-                    const initialWeather = weatherTypes.find(w => w.type === initialWeatherType) || weatherTypes[4]; // Fallback zu Sonnig
-                    changeWeather({ data: initialWeather }); // Initiale Wetteranimation setzen
+                    const initialWeather = weatherTypes.find(w => w.type === initialWeatherType) || weatherTypes.find(w => w.type === 'sun'); // Fallback zu Sonnig
+                    if (initialWeather) {
+                         changeWeather({ data: initialWeather }); // Initiale Wetteranimation setzen
+                    } else {
+                         console.error("Could not find initial weather type object for:", initialWeatherType);
+                         setFallbackWeather();
+                    }
+
                 } else {
                     console.error("Invalid data structure received from API:", data);
                     setFallbackWeather();
@@ -143,62 +154,59 @@ $(document).ready(function() {
     }
 
     function updateUI(weatherData) {
-        // Temperatur
         const temp = Math.round(weatherData.temperature);
         tempValueElement.text(temp);
-        tempUnitElement.text("°C"); // Einheit ist jetzt fix Celsius
+        tempUnitElement.text("°C");
 
-        // Datum formatieren
         try {
             const date = new Date(weatherData.time);
-             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-             // Locale auf 'de-DE' für deutsche Formatierung setzen
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             dateElement.text(date.toLocaleDateString('de-DE', options));
         } catch (e) {
             console.error("Error formatting date:", e);
-            dateElement.text(weatherData.time); // Fallback auf Roh-Zeitstempel
+            dateElement.text(weatherData.time || 'Kein Datum'); // Fallback
         }
-
-
-        // Zusammenfassung (wird in changeWeather gesetzt, basierend auf dem Typ)
-        // Hier könnten wir spezifischere Texte basierend auf dem Code hinzufügen,
-        // aber wir nutzen erstmal die Namen aus weatherTypes.
     }
 
-    // Übersetzt Open-Meteo WMO Codes zu unseren Typen
     function mapWeatherCodeToType(code) {
-        // Quelle: https://open-meteo.com/en/docs#weathervariables
-        if ([0, 1].includes(code)) return 'sun';        // Clear, Mainly clear
-        if ([2, 3].includes(code)) return 'sun';        // Partly cloudy, Overcast (vereinfacht zu 'sun')
-        if ([45, 48].includes(code)) return 'wind';       // Fog (visuell am nächsten zu windig/trüb)
-        if (code >= 51 && code <= 67) return 'rain';   // Drizzle, Rain
-        if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow'; // Snow fall, Snow showers
-        if (code >= 80 && code <= 82) return 'rain';   // Rain showers
-        if ([95, 96, 99].includes(code)) return 'thunder';// Thunderstorm
-        console.warn("Unmapped weather code:", code);
-        return 'sun'; // Fallback
+        if ([0, 1].includes(code)) return 'sun';
+        if ([2, 3].includes(code)) return 'sun'; // Vereinfacht
+        if ([45, 48].includes(code)) return 'wind'; // Nebel -> Windig/Trüb
+        if (code >= 51 && code <= 67) return 'rain';
+        if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow';
+        if (code >= 80 && code <= 82) return 'rain';
+        if ([95, 96, 99].includes(code)) return 'thunder';
+        console.warn("Unmapped weather code:", code, "-> falling back to 'sun'");
+        return 'sun';
     }
 
-    // Setzt ein Standardwetter (z.B. Sonnig), wenn API fehlschlägt
     function setFallbackWeather() {
-        changeWeather({ data: weatherTypes.find(w => w.type === 'sun') });
-        if (summaryElement.text() === "Lädt..." || summaryElement.text() === "Fehler") {
-             summaryElement.text("Wetterdaten nicht verfügbar");
-        }
+        const fallbackWeather = weatherTypes.find(w => w.type === 'sun');
+         if (fallbackWeather) {
+             changeWeather({ data: fallbackWeather });
+             if (summaryElement.text() === "Lädt..." || summaryElement.text() === "Fehler") {
+                 summaryElement.text("Wetterdaten nicht verfügbar");
+             }
+         } else {
+             console.error("Fallback weather 'sun' not found in weatherTypes array!");
+              // Absolute Notfallanzeige
+             summaryElement.text("Init. Fehler");
+             dateElement.text("");
+             tempValueElement.text("--");
+         }
     }
-
 
     // --------------------------------------------------
     // EVENT HANDLER & UI-UPDATES
     // --------------------------------------------------
 
-    // Bei Fenstergrößenänderung
     function onResize() {
         sizes.container.width = container.width();
         sizes.container.height = container.height();
         sizes.card.width = card.width();
         sizes.card.height = card.height();
-        sizes.card.offset = card.offset();
+         // jQuery offset() kann null sein, wenn das Element nicht sichtbar ist. Sicherstellen, dass es ein Objekt gibt.
+        sizes.card.offset = card.offset() || { top: 0, left: 0 };
 
         innerSVG.attr({
             width: sizes.card.width,
@@ -213,107 +221,108 @@ $(document).ready(function() {
             height: sizes.container.height
         });
 
-        TweenMax.set(sunburst.node, { transformOrigin: "50% 50%", x: sizes.container.width / 2, y: (sizes.card.height / 2) + sizes.card.offset.top });
-        // Die Endlos-Rotation der Sonne wird beim Start gesetzt, falls sie läuft
-        if (TweenMax.getTweensOf(sunburst.node).length > 0) {
-             TweenMax.fromTo(sunburst.node, 20, { rotation: 0 }, { rotation: 360, repeat: -1, ease: Power0.easeInOut });
+        // Sonnenstrahlen-Position und Rotation aktualisieren
+        gsap.set(sunburst.node, {
+             transformOrigin: "50% 50%",
+             x: sizes.container.width / 2,
+             y: (sizes.card.height / 2) + sizes.card.offset.top
+        });
+
+        // Nur neu starten, wenn es läuft
+        // Korrektur: gsap.getTweensOf() verwenden
+        if (gsap.getTweensOf(sunburst.node).length > 0) {
+             gsap.fromTo(sunburst.node, { rotation: 0 }, { rotation: 360, duration: 20, repeat: -1, ease: "none" }); // GSAP 3 Ease Syntax
         }
 
+        // Blattmaske aktualisieren
+         leafMask.attr({
+             x: sizes.card.offset.left,
+             y: 0,
+             width: sizes.container.width - sizes.card.offset.left,
+             height: sizes.container.height
+         });
 
-        leafMask.attr({ x: sizes.card.offset.left, y: 0, width: sizes.container.width - sizes.card.offset.left, height: sizes.container.height });
 
         // Wolken neu zeichnen bei Größenänderung
-         clouds.forEach((cloud, i) => {
-            drawCloud(cloud, i);
+        clouds.forEach((cloud, i) => {
+            if (cloud.group) { // Sicherstellen, dass die Gruppe existiert
+                drawCloud(cloud, i);
+            }
         });
     }
 
-    // Wetter ändern (wird von Buttons ODER initialem API-Call ausgelöst)
+
     function changeWeather(weatherInput) {
-        // Ermitteln, ob das Event-Objekt oder unser Wetter-Objekt übergeben wurde
         var weatherData = weatherInput.data ? weatherInput.data : weatherInput;
 
         if (!weatherData || !weatherData.type) {
-             console.error("Invalid weather data passed to changeWeather:", weatherInput);
-             return;
+            console.error("Invalid weather data passed to changeWeather:", weatherInput);
+            return;
         }
 
-        // Vorheriges Wetter zurücksetzen
         resetWeatherState();
+        currentWeather = weatherData;
 
-        currentWeather = weatherData; // Globalen Zustand setzen
-
-        // Aktualisiere Text der Zusammenfassung
         summaryElement.text(currentWeather.name);
-        TweenMax.fromTo(summaryElement, 1.5, { x: 30, opacity: 0 }, { opacity: 1, x: 0, ease: Power4.easeOut });
+        gsap.fromTo(summaryElement, { x: 30, opacity: 0 }, { opacity: 1, x: 0, duration: 1.5, ease: "power4.out" }); // GSAP 3 Syntax
 
-        // CSS-Klasse für das Styling auf der #card setzen
         card.addClass(currentWeather.type);
-        // Aktiven Button markieren
-        if (currentWeather.button) {
+        if (currentWeather.button && currentWeather.button.length > 0) { // Check button existence
              currentWeather.button.addClass('active');
         }
 
 
-        // --- Animationseinstellungen anpassen ---
+        // --- Animationseinstellungen anpassen (GSAP 3 Syntax) ---
 
-        // Windgeschwindigkeit
         let targetWindSpeed = 0.5;
         if (currentWeather.type === 'wind') targetWindSpeed = 3;
-        if (currentWeather.type === 'sun') targetWindSpeed = 20; // Sonne bewegt Wolken schneller weg
-        TweenMax.to(settings, 3, { windSpeed: targetWindSpeed, ease: Power2.easeInOut });
+        if (currentWeather.type === 'sun') targetWindSpeed = 20;
+        gsap.to(settings, { windSpeed: targetWindSpeed, duration: 3, ease: "power2.inOut" });
 
-        // Regenmenge
         let targetRainCount = 0;
         if (currentWeather.type === 'rain') targetRainCount = 10;
         if (currentWeather.type === 'thunder') targetRainCount = 60;
-        TweenMax.to(settings, 3, { rainCount: targetRainCount, ease: Power2.easeInOut });
+        gsap.to(settings, { rainCount: targetRainCount, duration: 3, ease: "power2.inOut" });
 
-        // Blattmenge
         let targetLeafCount = 0;
         if (currentWeather.type === 'wind') targetLeafCount = 5;
-        TweenMax.to(settings, 3, { leafCount: targetLeafCount, ease: Power2.easeInOut });
+        gsap.to(settings, { leafCount: targetLeafCount, duration: 3, ease: "power2.inOut" });
 
-        // Schneemenge
         let targetSnowCount = 0;
         if (currentWeather.type === 'snow') targetSnowCount = 40;
-        TweenMax.to(settings, 3, { snowCount: targetSnowCount, ease: Power2.easeInOut });
+        gsap.to(settings, { snowCount: targetSnowCount, duration: 3, ease: "power2.inOut" });
 
-        // Sonnenposition & Strahlen
+        // Sonnenposition & Strahlen (GSAP 3 Syntax)
         if (currentWeather.type === 'sun') {
-            TweenMax.to(sun.node, 4, { x: sizes.card.width / 2, y: sizes.card.height / 2, ease: Power2.easeInOut });
-            TweenMax.to(sunburst.node, 4, { scale: 1, opacity: 0.8, y: (sizes.card.height / 2) + (sizes.card.offset.top), ease: Power2.easeInOut });
-             // Start rotation if not already running
-             if(TweenMax.getTweensOf(sunburst.node).length === 0){
-                  TweenMax.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: Power0.easeInOut});
-             }
+            gsap.to(sun.node, { x: sizes.card.width / 2, y: sizes.card.height / 2, duration: 4, ease: "power2.inOut" });
+            gsap.to(sunburst.node, { scale: 1, opacity: 0.8, y: (sizes.card.height / 2) + sizes.card.offset.top, duration: 4, ease: "power2.inOut" });
+            // Start rotation if not already running using gsap.getTweensOf()
+            if(gsap.getTweensOf(sunburst.node).length === 0){
+                 gsap.fromTo(sunburst.node, { rotation: 0 }, { rotation: 360, duration: 20, repeat: -1, ease: "none" });
+            }
         } else {
-            TweenMax.to(sun.node, 2, { x: sizes.card.width / 2, y: -100, ease: Power2.easeInOut });
-            TweenMax.to(sunburst.node, 2, { scale: 0.4, opacity: 0, y: (sizes.container.height / 2) - 50, ease: Power2.easeInOut });
-             // Stop rotation
-             TweenMax.killTweensOf(sunburst.node);
+            gsap.to(sun.node, { x: sizes.card.width / 2, y: -100, duration: 2, ease: "power2.inOut" });
+            gsap.to(sunburst.node, { scale: 0.4, opacity: 0, y: (sizes.container.height / 2) - 50, duration: 2, ease: "power2.inOut" });
+            // Stop rotation using gsap.killTweensOf()
+            gsap.killTweensOf(sunburst.node);
         }
 
-        // Blitz-Timer starten/stoppen
         startLightningTimer();
     }
 
-     // Setzt Klassen und aktive Buttons zurück
     function resetWeatherState() {
         weatherTypes.forEach(w => {
             card.removeClass(w.type);
-            if (w.button) {
-                w.button.removeClass('active');
+            if (w.button && w.button.length > 0) { // Check button existence
+                 w.button.removeClass('active');
             }
         });
-         // Stoppt laufende Animationen für Partikel, falls nötig
-         // (GSAP's `to` mit duration 1 stoppt sie implizit)
-         TweenMax.to(settings, 1, { rainCount: 0, leafCount: 0, snowCount: 0, ease: Power2.easeOut });
+        // Stoppt laufende Animationen für Partikel implizit durch neues `to` mit duration 1
+        gsap.to(settings, { rainCount: 0, leafCount: 0, snowCount: 0, duration: 1, ease: "power2.out" });
     }
 
-
     // --------------------------------------------------
-    // ZEICHNEN & ANIMATIONEN (Größtenteils unverändert)
+    // ZEICHNEN & ANIMATIONEN (Angepasst an GSAP 3)
     // --------------------------------------------------
 
     function drawCloud(cloud, i) {
@@ -335,35 +344,59 @@ $(document).ready(function() {
         points.push([-(width), 0].join(','));
 
         var path = points.join(' ');
-        if (!cloud.path) cloud.path = cloud.group.path();
-        // Animate sorgt für weichere Übergänge bei Resize
-        cloud.path.animate({ d: path }, 1000, mina.elastic);
+        if (!cloud.path) {
+             // Pfad erstellen, wenn er nicht existiert
+             if (cloud.group && typeof cloud.group.path === 'function') {
+                 cloud.path = cloud.group.path(path);
+             } else {
+                 console.error("Cannot create path, group invalid for cloud index:", i);
+                 return; // Funktion verlassen, wenn kein Pfad erstellt werden kann
+             }
+        } else {
+            // Bestehenden Pfad animieren
+            cloud.path.animate({ d: path }, 1000, mina.elastic); // Snap.svg Animation bleibt
+        }
     }
 
+
     function makeRain() {
-        if (!currentWeather) return; // Sicherstellen, dass Wetterdaten vorhanden sind
+        if (!currentWeather || !sizes.card.width) return; // Sicherstellen, dass Wetterdaten und Größen vorhanden sind
         var lineWidth = Math.random() * 3;
         var lineLength = currentWeather.type === 'thunder' ? 35 : 14;
         var x = Math.random() * (sizes.card.width - 40) + 20;
 
-        // Wähle die richtige Haltergruppe basierend auf der Liniendicke
-        var holder = [innerRainHolder1, innerRainHolder2, innerRainHolder3][3 - Math.floor(lineWidth)] || innerRainHolder1;
+        var holderIndex = 3 - Math.floor(lineWidth);
+        var holder = [innerRainHolder1, innerRainHolder2, innerRainHolder3][holderIndex] || innerRainHolder1;
+
+        if (!holder) { console.error("Rain holder not found for index", holderIndex); return; }
 
         var line = holder.path('M0,0 0,' + lineLength).attr({
             fill: 'none',
             stroke: currentWeather.type === 'thunder' ? '#777' : '#0000ff',
             strokeWidth: lineWidth,
-            // Kanten abrunden für natürlicheres Aussehen
-             'stroke-linecap': 'round'
+            'stroke-linecap': 'round'
         });
 
         rain.push(line);
 
-        TweenMax.fromTo(line.node, 1, { x: x, y: 0 - lineLength }, { delay: Math.random(), y: sizes.card.height, ease: Power2.easeIn, onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type] });
+        gsap.fromTo(line.node, // GSAP 3 Syntax
+            { x: x, y: 0 - lineLength },
+            {
+                delay: Math.random(),
+                y: sizes.card.height,
+                duration: 1, // Dauer explizit angeben
+                ease: "power2.in", // GSAP 3 Ease Syntax
+                onComplete: onRainEnd,
+                onCompleteParams: [line, lineWidth, x, currentWeather.type] // Parameter bleiben gleich
+            }
+        );
     }
 
+
     function onRainEnd(line, width, x, type) {
-        line.remove();
+        if (line && typeof line.remove === 'function') {
+             line.remove();
+        }
         line = null;
 
         rain = rain.filter(item => item && item.paper); // Bereinige Array
@@ -374,7 +407,7 @@ $(document).ready(function() {
         }
     }
 
-     function makeSplash(x, type) {
+    function makeSplash(x, type) {
          var splashLength = type === 'thunder' ? 30 : 20;
          var splashBounce = type === 'thunder' ? 120 : 100;
          var splashDistance = 80;
@@ -391,31 +424,39 @@ $(document).ready(function() {
              fill: "none",
              stroke: type === 'thunder' ? '#777' : '#0000ff',
              strokeWidth: 1,
-             'stroke-linecap': 'round' // Runde Kanten
+             'stroke-linecap': 'round'
          });
 
-         var pathLength = splash.getTotalLength(); // Snap.path.getTotalLength ist veraltet
+         var pathLength = splash.getTotalLength();
          var xOffset = sizes.card.offset.left;
          var yOffset = sizes.card.offset.top + sizes.card.height;
          splash.node.style.strokeDasharray = pathLength + ' ' + pathLength;
-         splash.node.style.strokeDashoffset = pathLength; // Start mit Offset
+         splash.node.style.strokeDashoffset = pathLength;
 
-         TweenMax.fromTo(splash.node, speed,
-             { y: yOffset, x: xOffset + x, // Korrigierte X-Position
-              opacity: 1, strokeDashoffset: pathLength, strokeWidth: 2 },
-             { strokeWidth: 0, strokeDashoffset: -pathLength, opacity: 1, // Endet bei 0 Breite
-               onComplete: onSplashComplete, onCompleteParams: [splash],
-               ease: SlowMo.ease.config(0.4, 0.1, false) }
+         // GSAP 3 Syntax für SlowMo
+         gsap.fromTo(splash.node,
+             { y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength, strokeWidth: 2 },
+             {
+                 duration: speed,
+                 strokeWidth: 0,
+                 strokeDashoffset: -pathLength,
+                 opacity: 1,
+                 onComplete: onSplashComplete,
+                 onCompleteParams: [splash],
+                 ease: "slow(0.4, 0.1, false)" // GSAP 3 SlowMo Syntax
+             }
          );
      }
 
     function onSplashComplete(splash) {
-        splash.remove();
+        if (splash && typeof splash.remove === 'function') {
+             splash.remove();
+        }
         splash = null;
     }
 
     function makeLeaf() {
-         if (!sizes.card.offset) return; // Verhindert Fehler vor dem ersten Resize
+        if (!sizes.card.offset || !sizes.container.width) return;
 
         var scale = 0.5 + (Math.random() * 0.5);
         var newLeaf;
@@ -426,34 +467,66 @@ $(document).ready(function() {
         var colors = ['#76993E', '#4A5E23', '#6D632F'];
         var color = colors[Math.floor(Math.random() * colors.length)];
 
-        if (scale > 0.8) { // Blatt fliegt aus der Karte heraus
-            newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
-             // Startposition relativ zur Karte anpassen
+        var holder = null; // Definiere holder hier
+
+        if (scale > 0.8) {
+            holder = outerLeafHolder;
             y = y + sizes.card.offset.top / 2;
             endY = endY + sizes.card.offset.top / 2;
-            x = sizes.card.offset.left - 100; // Links außerhalb starten
-             xBezier = sizes.card.offset.left + (sizes.container.width - sizes.card.offset.left) / 2; // Kontrollpunkt in der Mitte des äußeren Bereichs
-            endX = sizes.container.width + 50; // Rechts außerhalb enden
-        } else { // Blatt bleibt innerhalb der Karte
-            newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color });
-            x = -100; // Links außerhalb der Karte starten
-            xBezier = sizes.card.width / 2; // Kontrollpunkt Mitte der Karte
-            endX = sizes.card.width + 50; // Rechts außerhalb der Karte enden
+            x = sizes.card.offset.left - 100;
+            xBezier = sizes.card.offset.left + (sizes.container.width - sizes.card.offset.left) / 2;
+            endX = sizes.container.width + 50;
+        } else {
+            holder = innerLeafHolder;
+            x = -100;
+            xBezier = sizes.card.width / 2;
+            endX = sizes.card.width + 50;
         }
+
+        // Sicherstellen, dass 'holder' und 'leaf' gültig sind
+        if (!holder || !leaf) {
+            console.error("Cannot create leaf: Invalid holder or leaf template.");
+            return;
+        }
+
+
+        newLeaf = leaf.clone();
+        if (typeof newLeaf.appendTo === 'function') {
+            newLeaf.appendTo(holder).attr({ fill: color }); // Hinzufügen und Farbe setzen
+        } else {
+            console.error("Cannot append leaf, 'appendTo' is not a function.");
+            return;
+        }
+
 
         leafs.push(newLeaf);
 
-        var bezier = [{ x: x, y: y }, { x: xBezier, y: (Math.random() * endY) + (endY / 3) }, { x: endX, y: endY }];
-        TweenMax.fromTo(newLeaf.node, 2 + (Math.random()*2) , // Dauer variieren
+        var bezierPoints = [{ x: x, y: y }, { x: xBezier, y: (Math.random() * endY) + (endY / 3) }, { x: endX, y: endY }];
+
+        // GSAP 3 Syntax für Bezier und Ease
+        gsap.fromTo(newLeaf.node,
             { rotation: Math.random() * 180, x: x, y: y, scale: scale },
-            { rotation: Math.random() * 360, bezier: bezier, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: Power0.easeNone } // easeIn war zu schnell am Ende
+            {
+                duration: 2 + (Math.random() * 2),
+                rotation: Math.random() * 360,
+                bezier: { // Bezier als Objekt
+                    path: bezierPoints,
+                    curviness: 1.25 // Beispiel für Kurvigkeit
+                },
+                onComplete: onLeafEnd,
+                onCompleteParams: [newLeaf],
+                ease: "none" // GSAP 3 Ease Syntax (Power0.easeNone -> "none")
+            }
         );
     }
 
+
     function onLeafEnd(leaf) {
-        leaf.remove();
+        if (leaf && typeof leaf.remove === 'function') {
+            leaf.remove();
+        }
         leaf = null;
-        leafs = leafs.filter(item => item && item.paper); // Array säubern
+        leafs = leafs.filter(item => item && item.paper);
 
         if (leafs.length < settings.leafCount) {
             makeLeaf();
@@ -461,58 +534,85 @@ $(document).ready(function() {
     }
 
     function makeSnow() {
-         if (!sizes.card.offset) return; // Verhindert Fehler vor dem ersten Resize
+        if (!sizes.card.offset || !sizes.container.height) return;
 
         var scale = 0.5 + (Math.random() * 0.5);
         var newSnow;
         var x = 20 + (Math.random() * (sizes.card.width - 40));
         var y = -10;
         var endY;
+        var holder = null; // Holder definieren
 
-        if (scale > 0.8) { // Größere Flocken außerhalb
-            newSnow = outerSnowHolder.circle(0, 0, 5 * scale).attr({ fill: 'white' }); // Größe anpassen
+        if (scale > 0.8) {
+            holder = outerSnowHolder;
             endY = sizes.container.height + 10;
-            y = sizes.card.offset.top + settings.cloudHeight; // Start unter den Wolken
-            x = x + sizes.card.offset.left; // X-Position anpassen
-        } else { // Kleinere Flocken innerhalb
-            newSnow = innerSnowHolder.circle(0, 0, 5 * scale).attr({ fill: 'white' }); // Größe anpassen
+            y = sizes.card.offset.top + settings.cloudHeight;
+            x = x + sizes.card.offset.left;
+        } else {
+            holder = innerSnowHolder;
             endY = sizes.card.height + 10;
-            y = settings.cloudHeight - 20; // Start innerhalb der Karte, unter den Wolken
+            y = settings.cloudHeight - 20;
         }
+
+        if (!holder || typeof holder.circle !== 'function') {
+             console.error("Cannot create snow: Invalid holder.");
+             return; // Abbruch, wenn Holder ungültig ist
+        }
+
+        newSnow = holder.circle(0, 0, 5 * scale).attr({ fill: 'white' });
+
 
         snow.push(newSnow);
 
-        TweenMax.fromTo(newSnow.node, 3 + (Math.random() * 5),
-            { x: x, y: y, scale: 0 }, // Start unsichtbar und klein
-            { y: endY, scale: scale, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn }
+        // GSAP 3 Syntax für Hauptanimation (fallen)
+        gsap.fromTo(newSnow.node,
+            { x: x, y: y, scale: 0 },
+            {
+                duration: 3 + (Math.random() * 5),
+                y: endY,
+                scale: scale, // Skalierung in derselben Animation
+                onComplete: onSnowEnd,
+                onCompleteParams: [newSnow],
+                ease: "none" // GSAP 3 (Power0.easeIn -> "none" oder "power1.in")
+            }
         );
-        // Leichtes horizontales Schwanken hinzufügen
-        TweenMax.to(newSnow.node, 1.5 + Math.random() * 1.5, { x: x + ((Math.random() * 150) - 75), repeat: -1, yoyo: true, ease: Power1.easeInOut });
+
+        // GSAP 3 Syntax für horizontales Schwanken
+        gsap.to(newSnow.node, {
+            duration: 1.5 + Math.random() * 1.5,
+            x: x + ((Math.random() * 150) - 75),
+            repeat: -1,
+            yoyo: true,
+            ease: "power1.inOut" // GSAP 3 Ease Syntax
+        });
     }
 
-
     function onSnowEnd(flake) {
-        TweenMax.killTweensOf(flake.node); // Wichtig: Auch die x-Animation stoppen
-        flake.remove();
+        if (flake) {
+             gsap.killTweensOf(flake.node); // GSAP 3 Syntax
+             if (typeof flake.remove === 'function') {
+                 flake.remove();
+             }
+        }
         flake = null;
-        snow = snow.filter(item => item && item.paper); // Array säubern
+        snow = snow.filter(item => item && item.paper);
 
         if (snow.length < settings.snowCount) {
             makeSnow();
         }
     }
 
-    // Blitz Timer & Animation
     function startLightningTimer() {
         if (lightningTimeout) clearTimeout(lightningTimeout);
         if (currentWeather && currentWeather.type === 'thunder') {
-            lightningTimeout = setTimeout(lightning, Math.random() * 6000 + 1000); // Mind. 1 Sek Pause
+            lightningTimeout = setTimeout(lightning, Math.random() * 6000 + 1000);
         }
     }
 
     function lightning() {
-        startLightningTimer(); // Nächsten Blitz planen
-        TweenMax.fromTo(card, 0.75, { y: -15 }, { y: 0, ease: Elastic.easeOut }); // Weniger starkes Wackeln
+        startLightningTimer();
+        // GSAP 3 Syntax für Elastic Ease
+        gsap.fromTo(card, { y: -15 }, { y: 0, duration: 0.75, ease: "elastic.out(1, 0.3)" }); // GSAP 3 Elastic Syntax
 
         var pathX = 30 + Math.random() * (sizes.card.width - 60);
         var yOffset = 20;
@@ -524,55 +624,74 @@ $(document).ready(function() {
             points.push(x + ',' + y);
         }
 
-        var strike = innerLightningHolder.path('M' + points.join(' ')) // Blitz im inneren SVG
+        // Sicherstellen, dass innerLightningHolder existiert
+         if (!innerLightningHolder || typeof innerLightningHolder.path !== 'function') {
+             console.error("Cannot create lightning: Invalid innerLightningHolder.");
+             return;
+         }
+
+
+        var strike = innerLightningHolder.path('M' + points.join(' '))
             .attr({
                 fill: 'none',
                 stroke: 'white',
-                strokeWidth: 1 + Math.random() * 2 // Variablere Dicke
+                strokeWidth: 1 + Math.random() * 2
             });
 
-        // Schnelles Aufblitzen und Verblassen
-        TweenMax.fromTo(strike.node, 0.05, { opacity: 1 }, { opacity: 0, delay: 0.05, ease: Power4.easeOut, onComplete: function() { strike.remove(); strike = null; } });
-        // Man kann auch die Helligkeit der Karte kurz ändern
-         TweenMax.fromTo(card, 0.1, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)', delay: 0.01 });
+        // GSAP 3 Syntax für Verblassen
+        gsap.to(strike.node, { // fromTo nicht nötig, da Startwert implizit 1 ist
+            opacity: 0,
+            duration: 0.1, // Kurze Dauer für Blitz
+            delay: 0.05,
+            ease: "power4.out", // GSAP 3 Ease Syntax
+            onComplete: function() {
+                 if (strike && typeof strike.remove === 'function') { strike.remove(); }
+                 strike = null;
+            }
+        });
+
+         // GSAP 3 Syntax für Helligkeit (filter)
+        gsap.fromTo(card, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)', duration: 0.1, delay: 0.01 });
     }
 
-    // Animations-Tick (Haupt-Loop)
+
     function tick() {
         tickCount++;
         var check = tickCount % settings.renewCheck;
 
-         // Nur Partikel erzeugen, wenn benötigt und Wettertyp aktiv ist
-        if (check === 0) { // Nur alle 'renewCheck' Ticks prüfen
+        if (check === 0) {
             if (currentWeather && currentWeather.type === 'rain' && rain.length < settings.rainCount) makeRain();
             if (currentWeather && currentWeather.type === 'wind' && leafs.length < settings.leafCount) makeLeaf();
             if (currentWeather && currentWeather.type === 'snow' && snow.length < settings.snowCount) makeSnow();
         }
 
-        // Wolken bewegen
         clouds.forEach((cloud, i) => {
-            var cloudWidth = sizes.card.width * 4; // Breite einer einzelnen Wolkengrafik (approx)
-            var layerSpeedMultiplier = 1 / (i + 1); // Hintere Wolken langsamer
+             if (!cloud.group || !sizes.card.width) return; // Überspringen, wenn Gruppe oder Breite fehlt
 
-             if (currentWeather && currentWeather.type === 'sun') {
-                 // Wolken bewegen sich bei Sonne schneller nach links 'raus'
-                 cloud.offset -= settings.windSpeed * layerSpeedMultiplier * 0.5; // Halbe Geschwindigkeit für Sonnen-Wegschieben
-                 // Wenn Wolke komplett links raus ist, neu positionieren für nächsten Zyklus (optional)
-                 if (cloud.offset < -(cloudWidth)) {
-                     // cloud.offset = sizes.card.width; // Oder andere Logik
-                 }
-             } else {
-                  // Normale Wolkenbewegung nach rechts
-                 cloud.offset += settings.windSpeed * layerSpeedMultiplier;
-                 // Loop: Wenn Wolke rechts raus, links wieder reinholen
-                 if (cloud.offset > sizes.card.width) {
-                     cloud.offset = cloud.offset - cloudWidth; // Exakt um die Breite zurücksetzen
-                 }
-             }
-             cloud.group.transform('t' + cloud.offset + ',' + 0);
+            var cloudWidth = sizes.card.width * 4;
+            var layerSpeedMultiplier = 1 / (i + 1);
+
+            if (currentWeather && currentWeather.type === 'sun') {
+                cloud.offset -= settings.windSpeed * layerSpeedMultiplier * 0.5;
+                // Keine explizite Loop-Logik für Sonne, sie sollen rausfliegen
+            } else {
+                cloud.offset += settings.windSpeed * layerSpeedMultiplier;
+                 // Loop nur, wenn nicht Sonne
+                if (cloud.offset > sizes.card.width) {
+                     // Zurücksetzen, um den Eindruck einer Endlosschleife zu erwecken
+                     // Die genaue Berechnung hängt davon ab, wie der Pfad definiert ist.
+                     // Vereinfacht: um die sichtbare Breite zurücksetzen.
+                     // Eine präzisere Methode wäre, die tatsächliche Pfadbreite zu kennen.
+                     cloud.offset -= cloudWidth; // Annahme: cloudWidth ist die Breite des wiederholenden Musters
+                }
+            }
+            // Verwende GSAP für eine möglicherweise glattere Transformation, obwohl .transform() direkt auch geht
+            gsap.set(cloud.group.node, { x: cloud.offset }); // Animiert die x-Position
+            // cloud.group.transform('t' + cloud.offset + ',' + 0); // Alternative direkte SVG-Transformation
         });
 
-        requestAnimationFrame(tick); // Nächsten Frame anfordern
+
+        requestAnimationFrame(tick);
     }
 
     // App starten, wenn das Dokument bereit ist
