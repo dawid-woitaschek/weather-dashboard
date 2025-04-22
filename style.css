@@ -1,306 +1,304 @@
-@import 'https://fonts.googleapis.com/css?family=Lato:300';
-@import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
-html, body, .background {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    font-family: 'Lato', sans-serif;
+ @import 'https://fonts.googleapis.com/css?family=Lato:300';
+ @import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
+ html, body, .background {
+	 width: 100%;
+	 height: 100%;
+	 margin: 0;
+	 padding: 0;
+	 font-family: 'Lato', sans-serif;
 }
-html {
-    background: #fff;
+ html {
+	 background: #fff;
 }
-body {
-    background: #f9f9f9;
-    background: linear-gradient(0deg, rgba(200, 200, 240, 0.2), rgba(200, 200, 240, 0));
+ body {
+	 background: #f9f9f9;
+	 background: linear-gradient(0deg, rgba(200, 200, 240, 0.2), rgba(200, 200, 240, 0));
 }
-.background {
-    background: #f9f9f9;
-    background: linear-gradient(120deg, rgba(180, 210, 200, 0.2), rgba(180, 180, 220, 0));
+ .background {
+	 background: #f9f9f9;
+	 background: linear-gradient(120deg, rgba(180, 210, 200, 0.2), rgba(180, 180, 220, 0));
 }
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 30px;
-    margin: 0;
-    height: 100%;
-    width: 100%;
-    overflow: auto;
-    position: relative;
-    background: transparent;
-    box-sizing: border-box;
-}
-
-#app-title {
-    display: flex;
-    align-items: center;
-    font-size: 20px;
-    font-weight: 300;
-    color: #555;
-    margin-bottom: 15px;
-}
-#app-title i {
-    font-size: 26px;
-    margin-right: 10px;
-    color: #777;
+ .container {
+	 display: flex;
+	 flex-direction: column;
+	 align-items: center;
+	 padding-top: 30px;
+	 margin: 0;
+	 height: 100%;
+	 width: 100%;
+	 overflow: auto;
+	 position: relative;
+	 background: transparent;
+	 box-sizing: border-box;
 }
 
-#location-search-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 25px;
-    position: relative;
-    width: 320px;
-    background-color: #ffffff;
-    border-radius: 25px;
-    padding: 8px 15px 8px 20px; /* Padding rechts für Button Platz lassen */
-    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
-    border: 1px solid #eee;
-}
-#location-search-input {
-    flex-grow: 1;
-    padding: 6px 0;
-    border: none;
-    background: transparent;
-    font-size: 15px;
-    font-family: 'Lato', sans-serif;
-    outline: none;
-    color: #555;
-    margin-right: 10px; /* Abstand zum Icon */
-}
-#location-search-input::placeholder {
-    color: #bbb;
-    font-weight: 300;
-}
+ #app-title {
+	 display: flex;
+	 align-items: center;
+	 font-size: 20px;
+	 font-weight: 300;
+	 color: #555;
+	 margin-bottom: 15px;
+ }
+ #app-title i {
+	 font-size: 26px;
+	 margin-right: 10px;
+	 color: #777;
+ }
 
-/* *** KORRIGIERT: Geolocation Button als freistehendes Icon *** */
-#geolocation-button {
-    background: none; /* Kein Hintergrund */
-    border: none; /* Kein Rand */
-    color: #aaa; /* Farbe des Icons */
-    cursor: pointer;
-    padding: 0; /* Kein Innenabstand */
-    margin: 0; /* Kein Außenabstand */
-    font-size: 20px; /* Größe des Icons */
-    line-height: 1; /* Verhindert vertikale Verschiebung */
-    transition: color 0.2s ease;
-    flex-shrink: 0; /* Verhindert, dass das Icon schrumpft */
-    /* Entfernt: width, height, border-radius, display:flex, align-items, justify-content */
-}
-#geolocation-button:hover {
-    color: #666; /* Farbe bei Hover */
-}
-#geolocation-button i {
-    display: block; /* Stellt sicher, dass das Icon korrekt angezeigt wird */
-    /* Keine weiteren Stile nötig, erbt Farbe vom Button */
-}
-/* *** Ende Korrektur Geolocation Button *** */
+ #location-search-container {
+	 display: flex;
+	 align-items: center;
+	 margin-bottom: 25px;
+	 position: relative;
+	 width: 320px;
+	 background-color: #ffffff;
+	 border-radius: 25px;
+	 padding: 8px 15px 8px 20px; /* Padding rechts angepasst */
+	 box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+	 border: 1px solid #eee;
+ }
+ #location-search-input {
+	 flex-grow: 1;
+	 padding: 6px 0;
+	 border: none;
+	 background: transparent;
+	 font-size: 15px;
+	 font-family: 'Lato', sans-serif;
+	 outline: none;
+	 color: #555;
+	 margin-right: 10px; /* Abstand zum Button */
+ }
+ #location-search-input::placeholder {
+	 color: #bbb;
+	 font-weight: 300;
+ }
 
-
-#location-suggestions {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    width: 100%;
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 5px 10px rgba(0,0,0,0.08);
-    box-sizing: border-box;
-}
-#location-suggestions div {
-    padding: 10px 20px;
-    cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
-    font-size: 14px;
-    color: #555;
-}
-#location-suggestions div:last-child {
-    border-bottom: none;
-}
-#location-suggestions div:hover {
-    background-color: #f9f9f9;
-}
-#location-suggestions div .suggestion-details {
-    font-size: 12px;
-    color: #999;
-    margin-left: 8px;
-}
+ /* *** ÜBERARBEITET: Geolocation Button als freistehendes Icon *** */
+ #geolocation-button {
+	 background: none; /* Kein Hintergrund */
+	 border: none;
+	 color: #aaa; /* Farbe des Icons */
+	 cursor: pointer;
+	 padding: 0; /* Kein extra Padding */
+	 margin: 0; /* Kein extra Margin */
+	 font-size: 20px; /* Größe des Icons anpassen */
+	 line-height: 1; /* Wichtig für vertikale Ausrichtung */
+	 transition: color 0.2s ease;
+	 flex-shrink: 0;
+ }
+ #geolocation-button:hover {
+	 color: #666; /* Iconfarbe bei Hover ändern */
+ }
+ #geolocation-button i {
+	 display: block; /* Stellt sicher, dass das Icon korrekt angezeigt wird */
+ }
+ /* *** Ende Geolocation Button Anpassung *** */
 
 
-nav ul {
-    margin: 0 20px 0 20px;
-    list-style-type: none;
-    padding: 0;
-    display: flex;
-    flex-direction: row;
-}
-nav li a {
-    display: block;
-    width: 45px;
-    text-align: center;
-    color: #bbb;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-nav li a i {
-    font-size: 20px;
-}
-nav li a:hover {
-    color: #777;
-}
-nav li a.active {
-    color: #5982E8;
-}
-#card {
-    box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    width: 300px;
-    padding: 0;
-    height: 400px;
-    min-height: 300px;
-    margin: 20px;
-    border-radius: 8px;
-    position: relative;
-}
-#card .details {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 16px 20px;
-    color: #888;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    transition: color 2s ease;
-    z-index: 10;
-}
-.thunder #card .details,
-.cloudy #card .details
- {
-    color: #ddd;
-}
-#card .details .right {
-    text-align: right;
-}
-#card .details #location-name {
-    font-size: 14px;
-    font-weight: 300;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
-}
-#card .details #date {
-    margin: 4px 0;
-    font-size: 12px;
-}
-#card .details #summary {
-    font-weight: 600;
-    font-size: 22px;
-}
-#card .details .temp {
-    font-size: 60px;
-    line-height: 60px;
-}
-#card .details .temp span {
-    font-size: 18px;
-    line-height: 30px;
-    vertical-align: top;
-    margin-left: 5px;
-}
-
-/* Basis-Wetter-Stil */
-.weather {
-    background-color: #dae3fd;
-    transition: background-color 2s ease;
-}
-
-/* Spezifische Hintergrundfarben */
-.thunder .weather {
-    background-color: #9fa4ad;
-}
-.rain .weather {
-    background-color: #d8d8d8;
-}
-.sun .weather {
-    background-color: #ccf;
-}
-.cloudy .weather {
-    background-color: #b0b8c9;
-}
-
-.weather #inner {
-    background-color: rgba(255, 255, 255, 1);
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-.weather .cloud {
-    transition: fill 2s ease;
-}
-
-/* Standard Wolkenfarben */
-.weather #cloud1 {
-    fill: #efefef;
-}
-.weather #cloud2 {
-    fill: #e6e6e6;
-}
-.weather #cloud3 {
-    fill: #d5d5d5;
-}
-
-/* Dunklere Wolken für Gewitter */
-.thunder .weather #cloud1 {
-    fill: #9fa4ad;
-}
-.thunder .weather #cloud2 {
-    fill: #8b8e98;
-}
-.thunder .weather #cloud3 {
-    fill: #7b7988;
-}
-
-/* Dunklere Wolken für Bewölkt */
-.cloudy .weather #cloud1 {
-    fill: #a8b0bf;
-}
-.cloudy .weather #cloud2 {
-    fill: #98a0af;
-}
-.cloudy .weather #cloud3 {
-    fill: #88909f;
-}
+ #location-suggestions {
+	 display: none;
+	 position: absolute;
+	 top: calc(100% + 6px);
+	 left: 0;
+	 width: 100%;
+	 background-color: #fff;
+	 border: 1px solid #eee;
+	 border-radius: 8px;
+	 max-height: 200px;
+	 overflow-y: auto;
+	 z-index: 100;
+	 box-shadow: 0 5px 10px rgba(0,0,0,0.08);
+	 box-sizing: border-box;
+ }
+ #location-suggestions div {
+	 padding: 10px 20px;
+	 cursor: pointer;
+	 border-bottom: 1px solid #f5f5f5;
+	 font-size: 14px;
+	 color: #555;
+ }
+ #location-suggestions div:last-child {
+	 border-bottom: none;
+ }
+ #location-suggestions div:hover {
+	 background-color: #f9f9f9;
+ }
+ #location-suggestions div .suggestion-details {
+	 font-size: 12px;
+	 color: #999;
+	 margin-left: 8px;
+ }
 
 
-#outer, #back {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+ nav ul {
+	 margin: 0 20px 0 20px;
+	 list-style-type: none;
+	 padding: 0;
+	 display: flex;
+	 flex-direction: row;
+ }
+ nav li a {
+	 display: block;
+	 width: 45px;
+	 text-align: center;
+	 color: #bbb;
+	 cursor: pointer;
+	 transition: color 0.2s ease;
+ }
+ nav li a i {
+	 font-size: 20px;
+ }
+ nav li a:hover {
+	 color: #777;
+ }
+ nav li a.active {
+	 color: #5982E8;
 }
-#back {
-    z-index: -1;
+ #card {
+	 box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.15);
+	 overflow: hidden;
+	 width: 300px;
+	 padding: 0;
+	 height: 400px;
+	 min-height: 300px;
+	 margin: 20px;
+	 border-radius: 8px;
+	 position: relative;
 }
-#outer {
-    z-index: 5;
+ #card .details {
+	 position: absolute;
+	 top: 0;
+	 left: 0;
+	 right: 0;
+	 padding: 16px 20px;
+	 color: #888;
+	 display: flex;
+	 flex-direction: row;
+	 justify-content: space-between;
+	 transition: color 2s ease;
+	 z-index: 10;
 }
-#card #inner {
-    z-index: 1;
+ .thunder #card .details,
+ .cloudy #card .details
+  {
+	 color: #ddd;
 }
-#card .details .right div {
-    color: inherit;
+ #card .details .right {
+	 text-align: right;
+ }
+ #card .details #location-name {
+	 font-size: 14px;
+	 font-weight: 300;
+	 margin-bottom: 2px;
+	 white-space: nowrap;
+	 overflow: hidden;
+	 text-overflow: ellipsis;
+	 max-width: 150px;
+ }
+ #card .details #date {
+	 margin: 4px 0;
+	 font-size: 12px;
+ }
+ #card .details #summary {
+	 font-weight: 600;
+	 font-size: 22px;
+ }
+ #card .details .temp {
+	 font-size: 60px;
+	 line-height: 60px;
+ }
+ #card .details .temp span {
+	 font-size: 18px;
+	 line-height: 30px;
+	 vertical-align: top;
+	 margin-left: 5px;
+ }
+
+ /* Basis-Wetter-Stil */
+ .weather {
+	 background-color: #dae3fd;
+	 transition: background-color 2s ease;
 }
+
+ /* Spezifische Hintergrundfarben */
+ .thunder .weather {
+	 background-color: #9fa4ad;
+}
+ .rain .weather {
+	 background-color: #d8d8d8;
+}
+ .sun .weather {
+	 background-color: #ccf;
+}
+ .cloudy .weather {
+	 background-color: #b0b8c9;
+}
+
+ .weather #inner {
+	 background-color: rgba(255, 255, 255, 1);
+	 background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
+	 position: absolute;
+	 top: 0;
+	 left: 0;
+	 width: 100%;
+	 height: 100%;
+}
+ .weather .cloud {
+	 transition: fill 2s ease;
+}
+
+ /* Standard Wolkenfarben */
+ .weather #cloud1 {
+	 fill: #efefef;
+}
+ .weather #cloud2 {
+	 fill: #e6e6e6;
+}
+ .weather #cloud3 {
+	 fill: #d5d5d5;
+}
+
+ /* Dunklere Wolken für Gewitter */
+ .thunder .weather #cloud1 {
+	 fill: #9fa4ad;
+}
+ .thunder .weather #cloud2 {
+	 fill: #8b8e98;
+}
+ .thunder .weather #cloud3 {
+	 fill: #7b7988;
+}
+
+ /* Dunklere Wolken für Bewölkt */
+ .cloudy .weather #cloud1 {
+	 fill: #a8b0bf;
+ }
+ .cloudy .weather #cloud2 {
+	 fill: #98a0af;
+ }
+ .cloudy .weather #cloud3 {
+	 fill: #88909f;
+ }
+
+
+ #outer, #back {
+	 position: fixed;
+	 top: 0;
+	 left: 0;
+	 width: 100%;
+	 height: 100%;
+	 pointer-events: none;
+}
+ #back {
+	 z-index: -1;
+ }
+ #outer {
+	 z-index: 5;
+ }
+ #card #inner {
+	 z-index: 1;
+ }
+ #card .details .right div {
+	 color: inherit;
+ }
