@@ -301,46 +301,58 @@ $(document).ready(function() {
 
 
     function fetchWeather(lat, lon, name) {
-        // Explizite Prüfung und Konvertierung der Koordinaten
         const latitude = parseFloat(lat);
         const longitude = parseFloat(lon);
 
-        console.log(`Attempting fetch for: Name=${name}, Lat=${lat} (Type: ${typeof lat}), Lon=${lon} (Type: ${typeof lon})`); // Debugging
+        console.log(`Attempting fetch for: Name=${name}, Lat=${lat} (Type: ${typeof lat}), Lon=${lon} (Type: ${typeof lon})`);
 
-        // Prüfen, ob die Konvertierung erfolgreich war
         if (isNaN(latitude) || isNaN(longitude)) {
             console.error("Invalid coordinates received or parsed:", lat, lon);
             showError("Ungültige Koordinaten erhalten.");
-            return; // Funktion abbrechen, wenn Koordinaten ungültig sind
+            return;
         }
 
-        // *** KORREKTUR: Koordinaten formatieren mit .toFixed(4) ***
         const formattedLat = latitude.toFixed(4);
         const formattedLon = longitude.toFixed(4);
 
-        // Verwende die geprüften UND formatierten latitude und longitude Werte
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${formattedLat}&longitude=${formattedLon}¤t_weather=true&timezone=Europe/Berlin`;
-        console.log(`Request URL: ${url}`); // Debugging: Zeigt die tatsächlich verwendete URL
+        // *** KORREKTUR: Parameter an funktionierende Version angepasst ***
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${formattedLat}&longitude=${formattedLon}¤t=temperature_2m,weathercode&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto`;
+        // Hinweis: windspeed_10m hinzugefügt, falls du es für die Wind-Animation brauchst, sonst weglassen.
+        // Falls nicht benötigt: const url = `https://api.open-meteo.com/v1/forecast?latitude=${formattedLat}&longitude=${formattedLon}¤t=temperature_2m,weathercode&temperature_unit=celsius&timezone=auto`;
 
-        // Zeige Ladezustand an
+        console.log(`Request URL: ${url}`);
+
         summary.text('Lädt...');
         temp.html('--<span>°C</span>');
-        locationDisplay.text(name || "..."); // Show selected/current name
+        locationDisplay.text(name || "...");
 
         fetch(url)
             .then(response => {
-                 // Response Status prüfen
                  if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                     // Versuche, detailliertere Fehlermeldung von der API zu bekommen (falls vorhanden)
+                     return response.json().catch(() => null).then(errorBody => {
+                         let errorMsg = `HTTP error! status: ${response.status} ${response.statusText}`;
+                         if (errorBody && errorBody.reason) {
+                             errorMsg += ` - Reason: ${errorBody.reason}`;
+                         }
+                         throw new Error(errorMsg);
+                     });
                  }
                  return response.json();
             })
             .then(data => {
-                if (data && data.current_weather) {
-                    const weather = data.current_weather;
+                // *** KORREKTUR: Datenstruktur an neuen Parameter angepasst ***
+                if (data && data.current && data.current.time) { // Prüfe auf 'current' und eine Variable darin (z.B. 'time')
+                    // Baue das benötigte 'current_weather' Objekt manuell nach
+                    const weather = {
+                        temperature: data.current.temperature_2m,
+                        weathercode: data.current.weathercode,
+                        // windspeed: data.current.windspeed_10m, // Falls angefordert und benötigt
+                        time: data.current.time // Kann nützlich sein
+                    };
                     updateUI(weather, name);
                 } else {
-                    console.error("Valid response but no current_weather data:", data);
+                    console.error("Valid response but missing 'current' data:", data);
                     showError("Wetterdaten Format ungültig.");
                 }
             })
@@ -348,12 +360,6 @@ $(document).ready(function() {
                 console.error('Error fetching or parsing Open-Meteo data:', error);
                 showError(`API Fehler: ${error.message}`);
             });
-    }
-
-    function showError(message) {
-         summary.text(message);
-         temp.html('--<span>°C</span>');
-         resetVisuals(); // Reset animation to default state
     }
 
 
