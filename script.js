@@ -339,7 +339,7 @@ function makeLeaf()
         rotation: Math.random()* 180,
         scale: scale
     }, {
-        duration: 2,
+        duration: 4,
         rotation: Math.random()* 360,
         motionPath: {
             path: bezier,
