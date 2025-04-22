@@ -24,12 +24,6 @@ var outerSplashHolder = outerSVG.group();
 var outerLeafHolder = outerSVG.group();
 var outerSnowHolder = outerSVG.group();
 
-// *** NEU: DOM Nodes für Suche ***
-var searchInput = $('#location-search-input');
-var suggestionsContainer = $('#location-suggestions');
-var geolocationButton = $('#geolocation-button');
-var geocodingTimeout; // Für Debouncing
-
 var lightningTimeout;
 
 // GSAP Plugin Registrierung
@@ -39,7 +33,7 @@ if (window.gsap && window.MotionPathPlugin) {
     console.error("GSAP oder MotionPathPlugin ist nicht geladen!");
 }
 
-// Set mask for leaf holder (Korrekter Platz im globalen Scope)
+// Set mask for leaf holder
 outerLeafHolder.attr({
 	'clip-path': leafMask
 });
@@ -67,7 +61,6 @@ var weather = [
 	{ type: 'cloudy', name: 'Bewölkt'}
 ];
 var currentWeather = null;
-var currentLocationName = "Dortmund"; // Startwert
 
 // 🛠 app settings
 var settings = {
@@ -87,88 +80,17 @@ var rain = [];
 var leafs = [];
 var snow = [];
 
-// --- API URLs ---
-const GEOCODING_API_BASE = "https://geocoding-api.open-meteo.com/v1/search";
-const WEATHER_API_BASE = "https://api.open-meteo.com/v1/forecast";
+// --- Open-Meteo Integration ---
+const DORTMUND_LAT = 51.51;
+const DORTMUND_LON = 7.46;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
 
-// --- Geocoding Funktionen ---
-function fetchGeocodingData(query) {
-    const url = `${GEOCODING_API_BASE}?name=${encodeURIComponent(query)}&count=10&language=de&format=json`;
-    console.log("Requesting Geocoding URL:", url);
-
-    $.get(url)
+// Funktion zum Abrufen und Verarbeiten der Wetterdaten
+function fetchWeatherData() {
+    console.log("Requesting API URL:", API_URL);
+    $.get(API_URL)
         .done(function(data) {
-            console.log("Geocoding Data:", data);
-            displaySuggestions(data.results || []);
-        })
-        .fail(function(jqXHR, textStatus, errorThrown) {
-            console.error("Geocoding API Request Failed:", textStatus, errorThrown);
-            suggestionsContainer.empty().hide();
-        });
-}
-
-function displaySuggestions(results) {
-    suggestionsContainer.empty();
-
-    if (!results || results.length === 0) {
-        suggestionsContainer.hide();
-        return;
-    }
-
-    results.sort((a, b) => {
-        const aIsDE = a.country_code === 'DE';
-        const bIsDE = b.country_code === 'DE';
-        if (aIsDE && !bIsDE) return -1;
-        if (!aIsDE && bIsDE) return 1;
-        return 0;
-    });
-
-
-    results.forEach(location => {
-        let details = [];
-        if (location.admin1) details.push(location.admin1);
-        if (location.country) details.push(location.country);
-
-        const detailString = details.length > 0 ? `(${details.join(', ')})` : '';
-
-        const suggestionDiv = $('<div>')
-            .html(`${location.name} <span class="suggestion-details">${detailString}</span>`)
-            .attr('data-lat', location.latitude)
-            .attr('data-lon', location.longitude)
-            .attr('data-name', location.name);
-
-        suggestionDiv.on('click', function() {
-            const lat = $(this).data('lat');
-            const lon = $(this).data('lon');
-            const name = $(this).data('name');
-
-            console.log(`Suggestion clicked: ${name} (${lat}, ${lon})`);
-
-            searchInput.val('');
-            suggestionsContainer.empty().hide();
-            fetchWeatherData(lat, lon, name);
-        });
-
-        suggestionsContainer.append(suggestionDiv);
-    });
-
-    suggestionsContainer.show();
-}
-
-// --- Wetter Funktion (angepasst für Koordinaten) ---
-function fetchWeatherData(latitude, longitude, locationName) {
-    currentLocationName = locationName;
-    console.log(`Fetching weather for: ${locationName} (${latitude}, ${longitude})`);
-
-    temp.html("--<span>c</span>");
-    summary.text("Lädt...");
-    updateDate(); // Ruft die korrigierte updateDate auf
-
-    const url = `${WEATHER_API_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
-
-    $.get(url)
-        .done(function(data) {
-            console.log("Weather Data:", data);
+            console.log("Open-Meteo Data:", data);
 
             if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
                 const current = data.current;
@@ -176,6 +98,7 @@ function fetchWeatherData(latitude, longitude, locationName) {
                 const weatherCode = current.weather_code;
 
                 temp.html(tempValue + '<span>c</span>');
+                updateDate();
 
                 const weatherType = getWeatherTypeFromCode(weatherCode);
                 const targetWeather = weather.find(w => w.type === weatherType);
@@ -188,21 +111,24 @@ function fetchWeatherData(latitude, longitude, locationName) {
                 }
 
             } else {
-                handleApiError("Ungültige Wetter-API-Antwortstruktur.");
+                handleApiError("Ungültige API-Antwortstruktur - 'current' Objekt oder benötigte Variablen fehlen.");
             }
         })
         .fail(function(jqXHR, textStatus, errorThrown) {
-            console.error("Weather API Request Failed:", textStatus, errorThrown);
-            handleApiError(`Wetter-API: ${jqXHR.status} ${textStatus}`);
+            console.error("API Request Failed:");
+            console.error("Status:", jqXHR.status, textStatus);
+            console.error("Error:", errorThrown);
+            console.error("Response Text:", jqXHR.responseText);
+            handleApiError(`${jqXHR.status} ${textStatus}: ${errorThrown}`);
         });
 }
 
 // Funktion zur Behandlung von API-Fehlern
 function handleApiError(errorMsg) {
-    console.error("API Fehler:", errorMsg);
+    console.error("Fehler beim Abrufen der Wetterdaten:", errorMsg);
     temp.html("--<span>c</span>");
     summary.text("Fehler");
-    date.text(currentLocationName + " - Fehler");
+    date.text("Keine Daten");
 }
 
 // Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
@@ -220,16 +146,15 @@ function getWeatherTypeFromCode(code) {
     return 'sun';
 }
 
-// *** KORRIGIERTE updateDate Funktion ***
+// Funktion zum Formatieren und Anzeigen des aktuellen Datums
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
     const formattedDate = now.toLocaleDateString('de-DE', options);
-    // Korrekte Zeile zum Setzen des HTML-Inhalts
-    date.html(`${currentLocationName}<br>${formattedDate}`);
-} // <<< Korrektes Ende der Funktion
+    date.text(formattedDate);
+}
 
-// --- Ende API Integration ---
+// --- Ende Open-Meteo Integration ---
 
 
 // ⚙ initialize app
@@ -237,69 +162,6 @@ init();
 
 // 👁 watch for window resize
 $(window).resize(onResize);
-
-// --- Event Listener für Suche und Geolocation ---
-function setupEventListeners() {
-    searchInput.on('input', function() {
-        const query = $(this).val();
-        clearTimeout(geocodingTimeout);
-
-        if (query.length >= 3) {
-            geocodingTimeout = setTimeout(() => {
-                fetchGeocodingData(query);
-            }, 300);
-        } else {
-            suggestionsContainer.empty().hide();
-        }
-    });
-
-    searchInput.on('keydown', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            const firstSuggestion = suggestionsContainer.children().first();
-            if (firstSuggestion.length > 0) {
-                firstSuggestion.trigger('click');
-            }
-        }
-    });
-
-    geolocationButton.on('click', function() {
-        console.log("Geolocation button clicked");
-        if (navigator.geolocation) {
-            summary.text("Suche Standort...");
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    console.log(`Geolocation success: ${lat}, ${lon}`);
-                    fetchWeatherData(lat, lon, "Mein Standort");
-                },
-                (error) => {
-                    console.error("Geolocation Error:", error);
-                    let errorMsg = "Standort konnte nicht ermittelt werden.";
-                    if (error.code === error.PERMISSION_DENIED) {
-                        errorMsg = "Zugriff auf Standort verweigert.";
-                    } else if (error.code === error.POSITION_UNAVAILABLE) {
-                        errorMsg = "Standortinformationen nicht verfügbar.";
-                    } else if (error.code === error.TIMEOUT) {
-                        errorMsg = "Standortsuche Zeitüberschreitung.";
-                    }
-                    summary.text(errorMsg);
-                }
-            );
-        } else {
-            console.error("Geolocation not supported by this browser.");
-            summary.text("Geolocation nicht unterstützt.");
-        }
-    });
-
-    $(document).on('click', function(event) {
-        if (!$(event.target).closest('#search-container').length) {
-            suggestionsContainer.empty().hide();
-        }
-    });
-}
-
 
 // 🏃 start animations
 
@@ -323,11 +185,7 @@ function init()
 		drawCloud(clouds[i], i);
 	}
 
-    setupEventListeners();
-
-    // Initiales Wetter für Dortmund laden
-    fetchWeatherData(DORTMUND_LAT, DORTMUND_LON, "Dortmund");
-
+    fetchWeatherData();
 	requestAnimationFrame(tick);
 }
 
@@ -481,7 +339,8 @@ function makeLeaf()
         rotation: Math.random()* 180,
         scale: scale
     }, {
-        duration: 4,
+        // *** DAUER ANGEPASST ***
+        duration: 4, // Verdoppelt die Dauer -> halbiert die Geschwindigkeit
         rotation: Math.random()* 360,
         motionPath: {
             path: bezier,
