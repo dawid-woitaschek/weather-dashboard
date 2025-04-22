@@ -76,7 +76,7 @@ var snow = [];
 const DORTMUND_LAT = 51.51; // Beibehaltung der ursprünglichen Koordinaten
 const DORTMUND_LON = 7.46;
 // *** KORREKTE API URL mit current= Parameter ***
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
 
 // Funktion zum Abrufen und Verarbeiten der Wetterdaten
 function fetchWeatherData() {
