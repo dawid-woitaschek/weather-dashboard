@@ -73,10 +73,9 @@ var leafs = [];
 var snow = [];
 
 // --- Open-Meteo Integration ---
-const DORTMUND_LAT = 51.51; // Beibehaltung der ursprünglichen Koordinaten
+const DORTMUND_LAT = 51.51;
 const DORTMUND_LON = 7.46;
-// *** KORREKTE API URL mit current= Parameter ***
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
 
 // Funktion zum Abrufen und Verarbeiten der Wetterdaten
 function fetchWeatherData() {
@@ -85,11 +84,10 @@ function fetchWeatherData() {
         .done(function(data) {
             console.log("Open-Meteo Data:", data);
 
-            // *** Anpassung an die neue Antwortstruktur (data.current statt data.current_weather) ***
             if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
                 const current = data.current;
-                const tempValue = Math.round(current.temperature_2m); // Temperatur auslesen
-                const weatherCode = current.weather_code; // Wettercode auslesen
+                const tempValue = Math.round(current.temperature_2m);
+                const weatherCode = current.weather_code;
 
                 temp.html(tempValue + '<span>c</span>');
                 updateDate();
@@ -101,11 +99,10 @@ function fetchWeatherData() {
                     changeWeather(targetWeather);
                 } else {
                     console.warn("Unbekannter Wettercode:", weatherCode);
-                    changeWeather(weather.find(w => w.type === 'sun')); // Fallback
+                    changeWeather(weather.find(w => w.type === 'sun'));
                 }
 
             } else {
-                // Fehler, wenn die erwarteten Daten im 'current' Objekt fehlen
                 handleApiError("Ungültige API-Antwortstruktur - 'current' Objekt oder benötigte Variablen fehlen.");
             }
         })
@@ -124,11 +121,9 @@ function handleApiError(errorMsg) {
     temp.html("--<span>c</span>");
     summary.text("Fehler");
     date.text("Keine Daten");
-    // Optional: Standard-Wetter anzeigen
-    // changeWeather(weather.find(w => w.type === 'sun'));
 }
 
-// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen (unverändert)
+// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
 function getWeatherTypeFromCode(code) {
     if ([0, 1].includes(code)) return 'sun';
     if ([2, 3].includes(code)) return 'sun';
@@ -143,7 +138,7 @@ function getWeatherTypeFromCode(code) {
     return 'sun';
 }
 
-// Funktion zum Formatieren und Anzeigen des aktuellen Datums (unverändert)
+// Funktion zum Formatieren und Anzeigen des aktuellen Datums
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
@@ -160,7 +155,7 @@ init();
 // 👁 watch for window resize
 $(window).resize(onResize);
 
-// 🏃 start animations (tick wird am Ende von init aufgerufen)
+// 🏃 start animations
 
 function init()
 {
@@ -182,10 +177,7 @@ function init()
 		drawCloud(clouds[i], i);
 	}
 
-    // Wetterdaten abrufen
     fetchWeatherData();
-
-	// Animation starten
 	requestAnimationFrame(tick);
 }
 
@@ -296,7 +288,8 @@ function makeSplash(x, type)
 	var yOffset = sizes.card.offset.top + sizes.card.height;
     splash.node.style.strokeDasharray = splashLength + ' ' + pathLength;
 
-	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease:  SlowMo.ease.config(0.4, 0.1, false)})
+    // *** KORRIGIERTE EASE ***
+	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"})
 }
 
 function onSplashComplete(splash)
@@ -393,7 +386,6 @@ function tick()
 		if(snow.length < settings.snowCount) makeSnow();
 	}
 
-    // Wolkenlogik (unverändert zur vorherigen korrigierten Version, verwendet settings.windSpeed)
 	for(var i = 0; i < clouds.length; i++)
 	{
 		if(currentWeather.type == 'sun')
@@ -463,7 +455,6 @@ function lightning()
 	TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ strike.remove(); strike = null}})
 }
 
-// Diese Funktion steuert zentral den Wechsel des Wetterzustands (unverändert zur vorherigen Version)
 function changeWeather(weatherData)
 {
     var newWeather = weatherData.data ? weatherData.data : weatherData;
@@ -490,8 +481,7 @@ function changeWeather(weatherData)
 	    currentWeather.button.addClass('active');
     }
 
-	// --- Animationen basierend auf dem NEUEN currentWeather anpassen ---
-    let windTarget, rainTarget, leafTarget, snowTarget;
+	let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 
 	switch(currentWeather.type) {
@@ -520,7 +510,7 @@ function changeWeather(weatherData)
             sunXTarget = sizes.card.width / 2; sunYTarget = -100;
             sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
-		default: // Fallback
+		default:
             windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0;
             sunXTarget = sizes.card.width / 2; sunYTarget = -100;
             sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
