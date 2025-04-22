@@ -6,7 +6,7 @@ var outerSVG = Snap('#outer');
 var backSVG = Snap('#back');
 var summary = $('#summary');
 var date = $('#date');
-var temp = $('.temp'); // Temperatur-Element hinzugefügt
+var temp = $('.temp');
 var weatherContainer1 = Snap.select('#layer1');
 var weatherContainer2 = Snap.select('#layer2');
 var weatherContainer3 = Snap.select('#layer3');
@@ -26,18 +26,12 @@ var outerSnowHolder = outerSVG.group();
 
 var lightningTimeout;
 
-// *** NEU: GSAP Plugin Registrierung ***
-// Muss nach dem Laden von GSAP erfolgen, aber bevor das Plugin verwendet wird.
-// Stellen sicher, dass GSAP (TweenMax) vorher global verfügbar ist.
-// Wenn MotionPathPlugin nicht im Standard-gsap.min.js enthalten ist,
-// müsste es separat geladen werden. Aber oft reicht die Registrierung.
-if (window.gsap) {
+// GSAP Plugin Registrierung
+if (window.gsap && window.MotionPathPlugin) {
     gsap.registerPlugin(MotionPathPlugin);
 } else {
-    console.error("GSAP ist nicht geladen!");
-    // Ggf. Fallback oder Fehlermeldung anzeigen
+    console.error("GSAP oder MotionPathPlugin ist nicht geladen!");
 }
-
 
 // Set mask for leaf holder
 outerLeafHolder.attr({
@@ -57,13 +51,14 @@ var clouds = [
 	{group: Snap.select('#cloud3')}
 ]
 
-// set weather types ☁️ 🌬 🌧 ⛈ ☀️
+// *** NEU: Wettertyp 'cloudy' hinzugefügt ***
 var weather = [
 	{ type: 'snow', name: 'Schnee'},
-	{ type: 'wind', name: 'Windig'},
+	{ type: 'wind', name: 'Windig'}, // Behält Nebel-Mapping vorerst
 	{ type: 'rain', name: 'Regen'},
 	{ type: 'thunder', name: 'Gewitter'},
-	{ type: 'sun', name: 'Sonnig'}
+	{ type: 'sun', name: 'Sonnig'},
+	{ type: 'cloudy', name: 'Bewölkt'} // Neuer Typ
 ];
 var currentWeather = null;
 
@@ -88,7 +83,7 @@ var snow = [];
 // --- Open-Meteo Integration ---
 const DORTMUND_LAT = 51.51;
 const DORTMUND_LON = 7.46;
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
 
 // Funktion zum Abrufen und Verarbeiten der Wetterdaten
 function fetchWeatherData() {
@@ -136,19 +131,19 @@ function handleApiError(errorMsg) {
     date.text("Keine Daten");
 }
 
-// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
+// *** NEU: API-Mapping für 'cloudy' angepasst ***
 function getWeatherTypeFromCode(code) {
-    if ([0, 1].includes(code)) return 'sun';
-    if ([2, 3].includes(code)) return 'sun';
-    if ([45, 48].includes(code)) return 'wind';
-    if ([51, 53, 55, 56, 57].includes(code)) return 'rain';
-    if ([61, 63, 65, 66, 67].includes(code)) return 'rain';
-    if ([71, 73, 75, 77].includes(code)) return 'snow';
-    if ([80, 81, 82].includes(code)) return 'rain';
-    if ([85, 86].includes(code)) return 'snow';
-    if ([95, 96, 99].includes(code)) return 'thunder';
+    if ([0, 1].includes(code)) return 'sun';        // Klar, Leicht bewölkt
+    if ([2, 3].includes(code)) return 'cloudy';     // Teilweise bewölkt, Bedeckt -> NEU: cloudy
+    if ([45, 48].includes(code)) return 'wind';     // Nebel -> bleibt windig (oder zu 'cloudy' ändern?)
+    if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; // Nieselregen
+    if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; // Regen
+    if ([71, 73, 75, 77].includes(code)) return 'snow'; // Schnee
+    if ([80, 81, 82].includes(code)) return 'rain'; // Regenschauer
+    if ([85, 86].includes(code)) return 'snow'; // Schneeschauer
+    if ([95, 96, 99].includes(code)) return 'thunder';// Gewitter
     console.warn("Unbekannter Wettercode erhalten:", code);
-    return 'sun';
+    return 'sun'; // Fallback
 }
 
 // Funktion zum Formatieren und Anzeigen des aktuellen Datums
@@ -174,12 +169,12 @@ function init()
 {
 	onResize();
 
-	// 🖱 bind weather menu buttons
+	// 🖱 bind weather menu buttons (findet neuen Button automatisch)
 	for(var i = 0; i < weather.length; i++)
 	{
 		var w = weather[i];
 		var b = $('#button-' + w.type);
-		w.button = b;
+		w.button = b; // Speichert Referenz zum Button im Wetter-Objekt
 		b.bind('click', w, changeWeather);
 	}
 
@@ -217,8 +212,8 @@ function onResize()
 		height: sizes.container.height
 	})
 
-	TweenMax.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
-	TweenMax.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: Power0.easeInOut})
+	gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
+	gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"});
 
 	leafMask.attr({x: sizes.card.offset.left, y: 0, width: sizes.container.width - sizes.card.offset.left,  height: sizes.container.height});
 }
@@ -262,7 +257,7 @@ function makeRain()
 	});
 
 	rain.push(line);
-	TweenMax.fromTo(line.node, 1, {x: x, y: 0- lineLength}, {delay: Math.random(), y: sizes.card.height, ease: Power2.easeIn, onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]});
+	gsap.fromTo(line.node, {x: x, y: 0- lineLength}, {duration: 1, delay: Math.random(), y: sizes.card.height, ease: "power2.in", onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]});
 }
 
 function onRainEnd(line, width, x, type)
@@ -301,7 +296,7 @@ function makeSplash(x, type)
 	var yOffset = sizes.card.offset.top + sizes.card.height;
     splash.node.style.strokeDasharray = splashLength + ' ' + pathLength;
 
-	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"})
+	gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"})
 }
 
 function onSplashComplete(splash)
@@ -339,22 +334,20 @@ function makeLeaf()
 
 	leafs.push(newLeaf);
 
-    // *** KORRIGIERTE BLATT-ANIMATION mit GSAP 3 Syntax ***
 	var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}];
-    gsap.fromTo(newLeaf.node, { // Startwerte
+    gsap.fromTo(newLeaf.node, {
         rotation: Math.random()* 180,
         scale: scale
-    }, { // Endwerte & Animationseinstellungen
+    }, {
         duration: 2,
         rotation: Math.random()* 360,
         motionPath: {
             path: bezier,
             curviness: 1.25
-            // autoRotate: true // Optional
         },
         onComplete: onLeafEnd,
         onCompleteParams: [newLeaf],
-        ease: Power0.easeIn
+        ease: "none"
     });
 }
 
@@ -385,9 +378,9 @@ function makeSnow()
 	}
 
 	snow.push(newSnow);
-	TweenMax.fromTo(newSnow.node, 3 + (Math.random() * 5), {x: x, y: y}, {y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn})
-	TweenMax.fromTo(newSnow.node, 1,{scale: 0}, {scale: scale, ease: Power1.easeInOut})
-	TweenMax.to(newSnow.node, 3, {x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: Power1.easeInOut})
+	gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"})
+	gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"})
+	gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"})
 }
 
 function onSnowEnd(flake)
@@ -448,7 +441,7 @@ function updateSummaryText()
 {
     if (!currentWeather) return;
 	summary.html(currentWeather.name);
-	TweenMax.fromTo(summary, 1.5, {x: 30}, {opacity: 1, x: 0, ease: Power4.easeOut});
+	gsap.fromTo(summary, {x: 30}, {duration: 1.5, opacity: 1, x: 0, ease: "power4.out"});
 }
 
 function startLightningTimer()
@@ -462,7 +455,7 @@ function startLightningTimer()
 function lightning()
 {
 	startLightningTimer();
-	TweenMax.fromTo(card, 0.75, {y: -30}, {y:0, ease:Elastic.easeOut});
+	gsap.fromTo(card, {y: -30}, {duration: 0.75, y:0, ease:"elastic.out"});
 
 	var pathX = 30 + Math.random() * (sizes.card.width - 60);
 	var yOffset = 20;
@@ -480,7 +473,7 @@ function lightning()
 		strokeWidth: 2 + Math.random()
 	})
 
-	TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ strike.remove(); strike = null}})
+	gsap.to(strike.node, {duration: 1, opacity: 0, ease:"power4.out", onComplete: function(){ strike.remove(); strike = null}})
 }
 
 function changeWeather(weatherData)
@@ -489,11 +482,11 @@ function changeWeather(weatherData)
 
     if (currentWeather && currentWeather.type === newWeather.type) {
          if (summary.html() !== newWeather.name) {
-             TweenMax.killTweensOf(summary);
-             TweenMax.to(summary, 0.5, {opacity: 0, x: -30, onComplete: function() {
+             gsap.killTweensOf(summary);
+             gsap.to(summary, {duration: 0.5, opacity: 0, x: -30, onComplete: function() {
                  summary.html(newWeather.name);
-                 TweenMax.to(summary, 0.5, {opacity: 1, x: 0, ease: Power4.easeOut});
-             }, ease: Power4.easeIn});
+                 gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power4.out"});
+             }, ease: "power4.in"});
          }
         return;
     }
@@ -501,8 +494,8 @@ function changeWeather(weatherData)
 	reset();
 	currentWeather = newWeather;
 
-	TweenMax.killTweensOf(summary);
-	TweenMax.to(summary, 1, {opacity: 0, x: -30, onComplete: updateSummaryText, ease: Power4.easeIn})
+	gsap.killTweensOf(summary);
+	gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"})
 
 	container.addClass(currentWeather.type);
     if (currentWeather.button) {
@@ -512,6 +505,7 @@ function changeWeather(weatherData)
 	let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 
+	// *** NEU: Case für 'cloudy' hinzugefügt ***
 	switch(currentWeather.type) {
 		case 'wind':
             windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0;
@@ -538,6 +532,14 @@ function changeWeather(weatherData)
             sunXTarget = sizes.card.width / 2; sunYTarget = -100;
             sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
+        case 'cloudy': // NEUER CASE
+            windTarget = 0.5; // Langsame Wolken
+            rainTarget = 0;
+            leafTarget = 0;
+            snowTarget = 0;
+            sunXTarget = sizes.card.width / 2; sunYTarget = -100; // Sonne versteckt
+            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; // Sunburst versteckt
+            break;
 		default:
             windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0;
             sunXTarget = sizes.card.width / 2; sunYTarget = -100;
@@ -545,13 +547,13 @@ function changeWeather(weatherData)
 			break;
 	}
 
-    TweenMax.to(settings, 3, { windSpeed: windTarget, ease: Power2.easeInOut });
-    TweenMax.to(settings, currentWeather.type === 'rain' || currentWeather.type === 'thunder' ? 3 : 1, { rainCount: rainTarget, ease: Power2.easeInOut });
-    TweenMax.to(settings, currentWeather.type === 'wind' ? 3 : 1, { leafCount: leafTarget, ease: Power2.easeInOut });
-    TweenMax.to(settings, currentWeather.type === 'snow' ? 3 : 1, { snowCount: snowTarget, ease: Power2.easeInOut });
+    gsap.to(settings, { duration: 3, windSpeed: windTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: currentWeather.type === 'rain' || currentWeather.type === 'thunder' ? 3 : 1, rainCount: rainTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: currentWeather.type === 'wind' ? 3 : 1, leafCount: leafTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: currentWeather.type === 'snow' ? 3 : 1, snowCount: snowTarget, ease: "power2.inOut" });
 
-    TweenMax.to(sun.node, currentWeather.type === 'sun' ? 4 : 2, { x: sunXTarget, y: sunYTarget, ease: Power2.easeInOut });
-    TweenMax.to(sunburst.node, currentWeather.type === 'sun' ? 4 : 2, { scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: Power2.easeInOut });
+    gsap.to(sun.node, { duration: currentWeather.type === 'sun' ? 4 : 2, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" });
+    gsap.to(sunburst.node, { duration: currentWeather.type === 'sun' ? 4 : 2, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" });
 
-	startLightningTimer();
+	startLightningTimer(); // Stellt sicher, dass Blitze nur bei Gewitter aktiv sind
 }
