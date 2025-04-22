@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animiertes Wetter-Widget - Dortmund</title>
 
-    <!-- Style.css verlinken -->
+    <!-- CSS Verlinkung -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Die @import-Regeln in style.css laden Schriften und Icons -->
+    <!-- Externe Schriften/Icons (werden auch via CSS @import geladen) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css">
 
 </head>
 <body>
@@ -31,6 +33,7 @@
             </svg>
             <nav>
                 <ul>
+                    <!-- active class wird nun durch JS gesetzt, initial entfernen -->
                     <li><a id="button-snow"><i class="wi wi-snow"></i></a></li>
                     <li><a id="button-wind"><i class="wi wi-strong-wind"></i></a></li>
                     <li><a id="button-rain"><i class="wi wi-rain"></i></a></li>
@@ -38,8 +41,7 @@
                     <li><a id="button-sun"><i class="wi wi-day-sunny"></i></a></li>
                 </ul>
             </nav>
-            <!-- WICHTIG: Die Klasse "weather" ist initial auf der Karte -->
-            <div id="card" class="weather">
+            <div id="card" class="weather"> <!-- Startklasse kann beliebig sein, wird überschrieben -->
                 <svg id="inner">
                     <defs>
                         <path id="leaf" d="M41.9,56.3l0.1-2.5c0,0,4.6-1.2,5.6-2.2c1-1,3.6-13,12-15.6c9.7-3.1,19.9-2,26.1-2.1c2.7,0-10,23.9-20.5,25 c-7.5,0.8-17.2-5.1-17.2-5.1L41.9,56.3z"/>
@@ -53,8 +55,10 @@
                     <g id="cloud1" class="cloud"></g>
                 </svg>
                 <div class="details">
-                    <div class="temp">--<span>°c</span></div>
+                     <!-- Temperatur wird durch JS befüllt -->
+                    <div class="temp">--<span>c</span></div>
                     <div class="right">
+                         <!-- Datum und Zusammenfassung werden durch JS befüllt -->
                         <div id="date">Lädt...</div>
                         <div id="summary">Lädt...</div>
                     </div>
@@ -64,7 +68,7 @@
         </div>
     </div>
 
-    <!-- Benötigte Bibliotheken -->
+    <!-- Bibliotheken (jQuery, Snap.svg, GSAP) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>

@@ -1,12 +1,12 @@
 // 📝 Fetch all DOM nodes in jQuery and Snap SVG
 var container = $('.container');
-var card = $('#card'); // Das ist das Element, das die Klasse bekommen soll
+var card = $('#card');
 var innerSVG = Snap('#inner');
 var outerSVG = Snap('#outer');
 var backSVG = Snap('#back');
 var summary = $('#summary');
 var date = $('#date');
-var temp = $('.temp');
+var temp = $('.temp'); // Temperatur-Element hinzugefügt
 var weatherContainer1 = Snap.select('#layer1');
 var weatherContainer2 = Snap.select('#layer2');
 var weatherContainer3 = Snap.select('#layer3');
@@ -42,17 +42,19 @@ var clouds = [
 	{group: Snap.select('#cloud1')},
 	{group: Snap.select('#cloud2')},
 	{group: Snap.select('#cloud3')}
-];
+]
 
 // set weather types ☁️ 🌬 🌧 ⛈ ☀️
+// WICHTIG: Die Reihenfolge oder das Vorhandensein dieser Typen darf nicht geändert werden,
+// da die changeWeather Funktion darauf basiert.
 var weather = [
-	{ type: 'snow', name: 'Schnee'},
+	{ type: 'snow', name: 'Schnee'}, // Name angepasst
 	{ type: 'wind', name: 'Windig'},
-	{ type: 'rain', name: 'Regen'},
-	{ type: 'thunder', name: 'Gewitter'},
-	{ type: 'sun', name: 'Sonnig'}
+	{ type: 'rain', name: 'Regen'},  // Name angepasst
+	{ type: 'thunder', name: 'Gewitter'}, // Name angepasst
+	{ type: 'sun', name: 'Sonnig'} // Name angepasst
 ];
-var currentWeather = null;
+var currentWeather = null; // Wird durch API gesetzt
 
 // 🛠 app settings
 var settings = {
@@ -72,81 +74,90 @@ var rain = [];
 var leafs = [];
 var snow = [];
 
-// --- Open-Meteo API Integration ---
+// --- NEU: Open-Meteo Integration ---
 const DORTMUND_LAT = 51.51;
 const DORTMUND_LON = 7.46;
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t_weather=true&temperature_unit=celsius&windspeed_unit=kmh&timezone=Europe/Berlin`;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t_weather=true&temperature_unit=celsius`;
 
+// Funktion zum Abrufen und Verarbeiten der Wetterdaten
 function fetchWeatherData() {
-    console.log("Fetching weather data from Open-Meteo...");
-    summary.text("Lade Wetter...");
-    date.text("");
-    temp.html("--<span>°c</span>");
+    $.get(API_URL)
+        .done(function(data) {
+            // API-Antwort erfolgreich erhalten
+            console.log("Open-Meteo Data:", data); // Zur Fehlersuche
 
-    $.ajax({
-        url: API_URL,
-        method: 'GET',
-        success: function(data) {
-            console.log("API Data received:", data);
             if (data && data.current_weather) {
-                const cw = data.current_weather;
-                const currentTemp = Math.round(cw.temperature);
-                const weatherCode = cw.weathercode;
-                const apiTime = cw.time;
+                const current = data.current_weather;
+                const tempValue = Math.round(current.temperature);
+                const weatherCode = current.weathercode;
 
-                temp.html(currentTemp + '<span>°c</span>');
-                date.text(formatDateFromAPI(apiTime));
+                // Temperatur aktualisieren
+                temp.html(tempValue + '<span>c</span>');
 
-                const weatherTypeString = mapWeatherCodeToType(weatherCode);
-                const targetWeather = weather.find(w => w.type === weatherTypeString);
+                // Datum aktualisieren
+                updateDate(); // Eigene Funktion für das Datum
+
+                // Wettertyp basierend auf Code bestimmen
+                const weatherType = getWeatherTypeFromCode(weatherCode);
+                const targetWeather = weather.find(w => w.type === weatherType);
 
                 if (targetWeather) {
+                    // Bestehende changeWeather Funktion aufrufen, um UI zu aktualisieren
                     changeWeather(targetWeather);
                 } else {
-                    console.warn(`Kein passendes Wetter-Objekt für Typ "${weatherTypeString}" gefunden.`);
-                    changeWeather(weather.find(w => w.type === 'sun')); // Fallback
+                    // Fallback, falls Code unbekannt
+                    console.warn("Unbekannter Wettercode:", weatherCode);
+                    changeWeather(weather.find(w => w.type === 'sun')); // Standard: Sonnig
                 }
 
             } else {
-                console.error("Ungültige Daten von API erhalten.");
-                summary.text("Fehler");
-                // Evtl. Standard-Wetter anzeigen
-                 changeWeather(weather.find(w => w.type === 'sun'));
+                handleApiError("Ungültige API-Antwortstruktur");
             }
-        },
-        error: function(jqXHR, textStatus, errorThrown) {
-            console.error("Fehler beim Abrufen der Wetterdaten:", textStatus, errorThrown);
-            summary.text("API Fehler");
-            temp.html("--<span>°c</span>");
-            date.text("Konnte nicht laden");
-             // Evtl. Standard-Wetter anzeigen bei Fehler
-             changeWeather(weather.find(w => w.type === 'sun'));
-        }
-    });
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            // Fehler beim API-Aufruf
+            handleApiError(textStatus + ": " + errorThrown);
+        });
 }
 
-function formatDateFromAPI(isoString) {
-    const dateObj = new Date(isoString);
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    return dateObj.toLocaleDateString('de-DE', options);
+// Funktion zur Behandlung von API-Fehlern
+function handleApiError(errorMsg) {
+    console.error("Fehler beim Abrufen der Wetterdaten:", errorMsg);
+    temp.html("--<span>c</span>"); // Platzhalter anzeigen
+    summary.text("Fehler");
+    date.text("Keine Daten");
+    // Optional: Standard-Wetter anzeigen (z.B. sonnig) oder eine Fehlermeldung
+    // changeWeather(weather.find(w => w.type === 'sun')); // Zeigt sonnig bei Fehler
 }
 
-function mapWeatherCodeToType(code) {
-    // Basierend auf WMO Weather interpretation codes von Open-Meteo Doku
-    if ([0, 1].includes(code)) return 'sun';
-    if ([2, 3].includes(code)) return 'sun'; // Teilweise bewölkt / Bedeckt -> visuell eher 'sun' als 'wind'
-    if ([45, 48].includes(code)) return 'wind'; // Nebel -> 'wind' als Platzhalter Animation
-    if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; // Nieselregen
-    if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; // Regen / Gefrierender Regen
-    if ([80, 81, 82].includes(code)) return 'rain'; // Regenschauer
-    if ([71, 73, 75, 77].includes(code)) return 'snow'; // Schneefall / Schneekörner
-    if ([85, 86].includes(code)) return 'snow'; // Schneeschauer
-    if ([95, 96, 99].includes(code)) return 'thunder'; // Gewitter
-
-    console.warn(`Unbekannter Wettercode: ${code}, fallback zu 'sun'`);
+// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
+function getWeatherTypeFromCode(code) {
+    // Quelle: https://open-meteo.com/en/docs#weathervariables -> WMO Weather interpretation codes
+    if ([0, 1].includes(code)) return 'sun';        // Clear sky, Mainly clear
+    if ([2, 3].includes(code)) return 'sun';        // Partly cloudy, Overcast (Widget hat kein 'cloudy', nehmen 'sun')
+    if ([45, 48].includes(code)) return 'wind';     // Fog and depositing rime fog (Widget hat kein 'fog', nehmen 'wind')
+    if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; // Drizzle
+    if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; // Rain
+    if ([71, 73, 75, 77].includes(code)) return 'snow'; // Snow fall, Snow grains
+    if ([80, 81, 82].includes(code)) return 'rain'; // Rain showers
+    if ([85, 86].includes(code)) return 'snow'; // Snow showers
+    if ([95, 96, 99].includes(code)) return 'thunder';// Thunderstorm
+    // Fallback für unbekannte Codes
     return 'sun';
 }
-// --- Ende API Integration ---
+
+// Funktion zum Formatieren und Anzeigen des aktuellen Datums
+function updateDate() {
+    const now = new Date();
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    // Locale 'de-DE' für deutsche Wochentage/Monate
+    const formattedDate = now.toLocaleDateString('de-DE', options);
+    date.text(formattedDate);
+}
+
+
+// --- Ende NEU: Open-Meteo Integration ---
+
 
 // ⚙ initialize app
 init();
@@ -154,19 +165,20 @@ init();
 // 👁 watch for window resize
 $(window).resize(onResize);
 
-// 🏃 start animations
-requestAnimationFrame(tick);
+// 🏃 start animations (tick wird am Ende von init aufgerufen)
+// requestAnimationFrame(tick); // Wird jetzt in init() gestartet, NACH dem ersten API-Call
 
 function init()
 {
 	onResize();
 
-	// 🖱 bind weather menu buttons
+	// 🖱 bind weather menu buttons (Funktionalität bleibt erhalten)
 	for(var i = 0; i < weather.length; i++)
 	{
 		var w = weather[i];
 		var b = $('#button-' + w.type);
 		w.button = b;
+		// Wichtig: 'w' als Daten an den Handler übergeben
 		b.bind('click', w, changeWeather);
 	}
 
@@ -177,38 +189,50 @@ function init()
 		drawCloud(clouds[i], i);
 	}
 
-    // ☀️ Wetterdaten beim Start laden
-    fetchWeatherData();
+    // ☀️ Setze initialen Ladezustand (wird durch API überschrieben)
+    // Setze einen Standardwert, bevor die API-Daten eintreffen
+    // changeWeather(weather[0]); // Initial Schnee anzeigen, wird überschrieben
+    // Besser: Erst API-Daten abwarten
 
-	TweenMax.set(sunburst.node, {opacity: 0});
+    // NEU: Wetterdaten abrufen
+    fetchWeatherData(); // Startet den API-Aufruf
+
+	// Animation starten (requestAnimationFrame)
+	requestAnimationFrame(tick);
 }
 
 function onResize()
 {
+	// 📏 grab window and card sizes
 	sizes.container.width = container.width();
 	sizes.container.height = container.height();
 	sizes.card.width = card.width();
 	sizes.card.height = card.height();
 	sizes.card.offset = card.offset();
 
+	// 📐 update svg sizes
 	innerSVG.attr({
 		width: sizes.card.width,
 		height: sizes.card.height
-	});
+	})
 
 	outerSVG.attr({
 		width: sizes.container.width,
 		height: sizes.container.height
-	});
+	})
 
 	backSVG.attr({
 		width: sizes.container.width,
 		height: sizes.container.height
-	});
+	})
 
 	TweenMax.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
-	TweenMax.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: Power0.easeInOut});
+	// Dauerhafte Sonnenstrahl-Rotation nur, wenn Sonne aktiv ist? Vorerst global lassen.
+	TweenMax.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: Power0.easeInOut})
 
+	// 🍃 The leaf mask is for the leafs that float out of the
+	// container, it is full window height and starts on the left
+	// inline with the card
 	leafMask.attr({x: sizes.card.offset.left, y: 0, width: sizes.container.width - sizes.card.offset.left,  height: sizes.container.height});
 }
 
@@ -228,7 +252,7 @@ function drawCloud(cloud, i)
 	points.push([0, height].join(','));
 	points.push('Q' + [width * -0.5, arch].join(','));
 	points.push([-width, height].join(','));
-	points.push('Q' + [-(width * 2), height/2].join(','));
+	points.push('Q' + [- (width * 2), height/2].join(','));
 	points.push([-(width), 0].join(','));
 
 	var path = points.join(' ');
@@ -240,7 +264,8 @@ function drawCloud(cloud, i)
 
 function makeRain()
 {
-    if (!currentWeather || (currentWeather.type !== 'rain' && currentWeather.type !== 'thunder')) return;
+    // Nur ausführen, wenn currentWeather definiert ist
+    if (!currentWeather) return;
 
 	var lineWidth = Math.random() * 3;
 	var lineLength = currentWeather.type == 'thunder' ? 35 : 14;
@@ -257,12 +282,9 @@ function makeRain()
 
 function onRainEnd(line, width, x, type)
 {
-    if (line && line.node) { // Prüfen ob line noch existiert
-	    line.remove();
-    }
-	line = null; // Referenz entfernen
-	rain = rain.filter(item => item !== null); // Array aufräumen (sicherer als splice in loop)
-
+	line.remove();
+	line = null;
+	for(var i in rain) { if(!rain[i].paper) rain.splice(i, 1); }
 	if(rain.length < settings.rainCount) {
 		makeRain();
 		if(width > 2) makeSplash(x, type);
@@ -271,13 +293,15 @@ function onRainEnd(line, width, x, type)
 
 function makeSplash(x, type)
 {
+    // Nur ausführen, wenn currentWeather definiert ist
+    if (!currentWeather) return;
+
 	var splashLength = type == 'thunder' ? 30 : 20;
 	var splashBounce = type == 'thunder' ? 120 : 100;
 	var splashDistance = 80;
 	var speed = type == 'thunder' ? 0.7 : 0.5;
 	var splashUp = 0 - (Math.random() * splashBounce);
 	var randomX = ((Math.random() * splashDistance) - (splashDistance / 2));
-
 	var points = [];
 	points.push('M' + 0 + ',' + 0);
     points.push('Q' + randomX + ',' + splashUp);
@@ -294,29 +318,27 @@ function makeSplash(x, type)
 	var yOffset = sizes.card.offset.top + sizes.card.height;
     splash.node.style.strokeDasharray = splashLength + ' ' + pathLength;
 
-	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease:  SlowMo.ease.config(0.4, 0.1, false)});
+	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease:  SlowMo.ease.config(0.4, 0.1, false)})
 }
 
 function onSplashComplete(splash)
 {
-    if (splash && splash.node) { // Prüfen ob splash noch existiert
-	    splash.remove();
-    }
-	splash = null; // Referenz entfernen
+	splash.remove();
+	splash = null;
 }
 
 function makeLeaf()
 {
-    if (!currentWeather || currentWeather.type !== 'wind') return;
-
 	var scale = 0.5 + (Math.random() * 0.5);
 	var newLeaf;
 	var areaY = sizes.card.height/2;
 	var y = areaY + (Math.random() * areaY);
-	var endY = y - ((Math.random() * (areaY * 2)) - areaY);
-	var x, endX, xBezier;
+	var endY = y - ((Math.random() * (areaY * 2)) - areaY)
+	var x;
+	var endX;
 	var colors = ['#76993E', '#4A5E23', '#6D632F'];
 	var color = colors[Math.floor(Math.random() * colors.length)];
+	var xBezier;
 
 	if(scale > 0.8) {
 		newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
@@ -331,6 +353,7 @@ function makeLeaf()
 		xBezier = sizes.card.width / 2;
 		endX = sizes.card.width + 50;
 	}
+
 	leafs.push(newLeaf);
 	var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}]
 	TweenMax.fromTo(newLeaf.node, 2, {rotation: Math.random()* 180, x: x, y: y, scale:scale}, {rotation: Math.random()* 360, bezier: bezier, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: Power0.easeIn})
@@ -338,21 +361,14 @@ function makeLeaf()
 
 function onLeafEnd(leaf)
 {
-    if (leaf && leaf.node) { // Prüfen ob leaf noch existiert
-	    leaf.remove();
-    }
-	leaf = null; // Referenz entfernen
-	leafs = leafs.filter(item => item !== null); // Array aufräumen
-
-	if(leafs.length < settings.leafCount) {
-		makeLeaf();
-	}
+	leaf.remove();
+	leaf = null;
+	for(var i in leafs) { if(!leafs[i].paper) leafs.splice(i, 1); }
+	if(leafs.length < settings.leafCount) { makeLeaf(); }
 }
 
 function makeSnow()
 {
-    if (!currentWeather || currentWeather.type !== 'snow') return;
-
 	var scale = 0.5 + (Math.random() * 0.5);
 	var newSnow;
 	var x = 20 + (Math.random() * (sizes.card.width - 40));
@@ -368,72 +384,48 @@ function makeSnow()
 		newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' });
 		endY = sizes.card.height + 10;
 	}
+
 	snow.push(newSnow);
-	TweenMax.fromTo(newSnow.node, 3 + (Math.random() * 5), {x: x, y: y}, {y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn});
-	TweenMax.fromTo(newSnow.node, 1,{scale: 0}, {scale: scale, ease: Power1.easeInOut});
-	TweenMax.to(newSnow.node, 3, {x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: Power1.easeInOut});
+	TweenMax.fromTo(newSnow.node, 3 + (Math.random() * 5), {x: x, y: y}, {y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn})
+	TweenMax.fromTo(newSnow.node, 1,{scale: 0}, {scale: scale, ease: Power1.easeInOut})
+	TweenMax.to(newSnow.node, 3, {x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: Power1.easeInOut})
 }
 
 function onSnowEnd(flake)
 {
-    if (flake && flake.node) { // Prüfen ob flake noch existiert
-	    flake.remove();
-    }
-	flake = null; // Referenz entfernen
-	snow = snow.filter(item => item !== null); // Array aufräumen
-
-	if(snow.length < settings.snowCount) {
-		makeSnow();
-	}
+	flake.remove();
+	flake = null;
+	for(var i in snow) { if(!snow[i].paper) snow.splice(i, 1); }
+	if(snow.length < settings.snowCount) { makeSnow(); }
 }
 
 function tick()
 {
+    // Nur ausführen, wenn currentWeather definiert ist
+    if (!currentWeather) {
+        requestAnimationFrame(tick); // Weiter auf API warten
+        return;
+    }
+
 	tickCount++;
 	var check = tickCount % settings.renewCheck;
 
-	if(check && currentWeather) {
-		if(currentWeather.type === 'rain' || currentWeather.type === 'thunder') {
-            if(rain.length < settings.rainCount) makeRain();
-        }
-		if(currentWeather.type === 'wind') {
-            if(leafs.length < settings.leafCount) makeLeaf();
-        }
-        if(currentWeather.type === 'snow') {
-		    if(snow.length < settings.snowCount) makeSnow();
-        }
+	if(check) {
+		if(rain.length < settings.rainCount) makeRain();
+		if(leafs.length < settings.leafCount) makeLeaf();
+		if(snow.length < settings.snowCount) makeSnow();
 	}
 
-	// Wolken bewegen
 	for(var i = 0; i < clouds.length; i++) {
-        let cloudSpeed = settings.windSpeed; // Start mit dem aktuellen Setting
-        if (currentWeather) { // Nur anpassen, wenn Wetterdaten da sind
-            if (currentWeather.type !== 'sun' && currentWeather.type !== 'wind') {
-               cloudSpeed = 0.5; // Langsamer Standardwert für Regen, Schnee, Gewitter
-            } else if (currentWeather.type === 'sun') {
-                cloudSpeed = 1; // Leichte Brise bei Sonne
-            }
-            // Bei 'wind' wird der Wert aus settings.windSpeed (via TweenMax gesetzt) verwendet
-        } else {
-            cloudSpeed = 0.5; // Langsam, wenn noch kein Wetter geladen
-        }
-
-
-        clouds[i].offset += cloudSpeed / (i + 1);
-
-        // Loop-Logik - Wolken zurücksetzen
-        // Annahme: Die SVG-Form ist ca. 4x Kartenbreite, 2x links, 2x rechts
-        const cloudResetOffset = sizes.card.width * 2; // Punkt, an dem zurückgesetzt wird
-        if (clouds[i].offset > cloudResetOffset) {
-             // Wenn Wolke rechts raus ist, links wieder rein (-cloudResetOffset)
-             // plus den Betrag, den sie über cloudResetOffset hinausging
-             clouds[i].offset = -cloudResetOffset + (clouds[i].offset - cloudResetOffset);
-        } else if (clouds[i].offset < -cloudResetOffset * 2) { // Sicherstellen, dass sie weit genug links ist
-             // Wenn Wolke links raus ist, rechts wieder rein (cloudResetOffset)
-             clouds[i].offset = cloudResetOffset + (clouds[i].offset + cloudResetOffset * 2);
-        }
-
-		clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
+		if(currentWeather.type == 'sun') {
+			if(clouds[i].offset > -(sizes.card.width * 1.5)) clouds[i].offset += settings.windSpeed / (i + 1);
+			if(clouds[i].offset > sizes.card.width * 2.5) clouds[i].offset = -(sizes.card.width * 1.5);
+			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
+		} else {
+			clouds[i].offset += settings.windSpeed / (i + 1);
+			if(clouds[i].offset > sizes.card.width) clouds[i].offset = 0 + (clouds[i].offset - sizes.card.width);
+			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
+		}
 	}
 
 	requestAnimationFrame(tick);
@@ -441,38 +433,33 @@ function tick()
 
 function reset()
 {
-    // Entfernt alle Wetter-Typ-Klassen von der #card
 	for(var i = 0; i < weather.length; i++) {
-		card.removeClass(weather[i].type); // *** KORREKTUR: Klasse von card entfernen ***
-		if (weather[i].button) {
+		container.removeClass(weather[i].type);
+		if (weather[i].button) { // Sicherstellen, dass Button existiert
 		    weather[i].button.removeClass('active');
-        }
+		}
 	}
-    // WICHTIG: Die Basisklasse 'weather' wird NICHT entfernt, da sie nicht im 'weather'-Array ist.
 }
 
 function updateSummaryText()
 {
-    if (currentWeather) {
-	    summary.html(currentWeather.name);
-	    TweenMax.fromTo(summary, 1.5, {opacity: 0, x: 30}, {opacity: 1, x: 0, ease: Power4.easeOut}); // Start von rechts
-    } else {
-        summary.html("...");
-    }
+    // Nur ausführen, wenn currentWeather definiert ist
+    if (!currentWeather) return;
+	summary.html(currentWeather.name); // Name aus dem Wetter-Objekt verwenden
+	TweenMax.fromTo(summary, 1.5, {x: 30}, {opacity: 1, x: 0, ease: Power4.easeOut});
 }
 
 function startLightningTimer()
 {
 	if(lightningTimeout) clearTimeout(lightningTimeout);
+    // Nur starten, wenn currentWeather definiert ist und Typ 'thunder' ist
 	if(currentWeather && currentWeather.type == 'thunder') {
-		lightningTimeout = setTimeout(lightning, Math.random()*6000 + 1000);
+		lightningTimeout = setTimeout(lightning, Math.random()*6000);
 	}
 }
 
 function lightning()
 {
-    if (!currentWeather || currentWeather.type !== 'thunder') return;
-
 	startLightningTimer();
 	TweenMax.fromTo(card, 0.75, {y: -30}, {y:0, ease:Elastic.easeOut});
 
@@ -482,93 +469,107 @@ function lightning()
 	var points = [pathX + ',0'];
 	for(var i = 0; i < steps; i++) {
 		var x = pathX + (Math.random() * yOffset - (yOffset / 2));
-		var y = (sizes.card.height / steps) * (i + 1);
+		var y = (sizes.card.height / steps) * (i + 1)
 		points.push(x + ',' + y);
 	}
 
-	var strike = innerLightningHolder.path('M' + points.join(' '))
-	    .attr({
-    		fill: 'none',
-	    	stroke: 'white',
-		    strokeWidth: 2 + Math.random()
-	    });
+	var strike = weatherContainer1.path('M' + points.join(' ')).attr({
+		fill: 'none',
+		stroke: 'white',
+		strokeWidth: 2 + Math.random()
+	})
 
-	TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){
-        if (strike && strike.node) strike.remove();
-        strike = null;
-    }});
+	TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ strike.remove(); strike = null}})
 }
 
-// Nimmt das ganze Wetter-Objekt entgegen
+// Diese Funktion ist jetzt der zentrale Punkt zum Ändern des Wetters
+// Sie wird entweder durch Klick oder durch die API aufgerufen
 function changeWeather(weatherData)
 {
-    if (weatherData && weatherData.data) { // Von Button-Klick
-        weatherData = weatherData.data;
-    }
+    // Prüfen, ob das Event-Objekt oder das Wetter-Objekt übergeben wurde
+    var newWeather = weatherData.data ? weatherData.data : weatherData;
 
-    if (!weatherData || typeof weatherData !== 'object' || !weatherData.type) {
-        console.error("changeWeather wurde mit ungültigen Daten aufgerufen:", weatherData);
-        fetchWeatherData(); // Erneut versuchen, API-Daten zu laden als Fallback
+    // Wenn das aktuelle Wetter bereits das neue ist, nichts tun
+    // Verhindert unnötige Animationen, wenn API dasselbe Wetter liefert wie manuell gewählt
+    if (currentWeather && currentWeather.type === newWeather.type) {
+        // Optional: Nur Text aktualisieren, falls nötig (z.B. wenn Name sich ändern könnte)
+        // summary.html(newWeather.name);
         return;
     }
 
-	console.log("Changing weather to:", weatherData.type);
-	reset(); // Alte Klassen (von card) und aktive Zustände entfernen
+	reset(); // Alte Klassen und aktiven Button entfernen
 
-	currentWeather = weatherData;
+	currentWeather = newWeather; // Globalen Zustand aktualisieren
 
-    // Summary Text mit Animation aktualisieren
-	TweenMax.to(summary, 0.5, {opacity: 0, x: -30, onComplete: updateSummaryText, ease: Power4.easeIn});
+	// Summary Text aktualisieren (mit Animation)
+	TweenMax.killTweensOf(summary);
+	TweenMax.to(summary, 1, {opacity: 0, x: -30, onComplete: updateSummaryText, ease: Power4.easeIn})
 
-	card.addClass(weatherData.type); // *** KORREKTUR: Klasse zu card hinzufügen ***
-    if (weatherData.button) {
-	    weatherData.button.addClass('active');
+	container.addClass(currentWeather.type);
+    if (currentWeather.button) { // Sicherstellen, dass Button existiert
+	    currentWeather.button.addClass('active');
     }
 
-	// Einstellungen anpassen
-	let targetWindSpeed = 0.5;
-    let targetRainCount = 0;
-    let targetLeafCount = 0;
-    let targetSnowCount = 0;
+	// --- Animationen basierend auf dem NEUEN currentWeather anpassen ---
 
-	switch(weatherData.type)
-	{
+	// windSpeed
+	switch(currentWeather.type) {
 		case 'wind':
-			targetWindSpeed = 3;
-            targetLeafCount = 5;
+			TweenMax.to(settings, 3, {windSpeed: 3, ease: Power2.easeInOut});
 			break;
 		case 'sun':
-			targetWindSpeed = 1;
+			TweenMax.to(settings, 3, {windSpeed: 20, ease: Power2.easeInOut});
 			break;
+		default:
+			TweenMax.to(settings, 3, {windSpeed: 0.5, ease: Power2.easeOut});
+			break;
+	}
+
+	// rainCount
+	switch(currentWeather.type) {
 		case 'rain':
-            targetWindSpeed = 0.5; // Wenig Wind bei Regen
-			targetRainCount = 10;
+			TweenMax.to(settings, 3, {rainCount: 10, ease: Power2.easeInOut});
 			break;
 		case 'thunder':
-            targetWindSpeed = 1; // Etwas Wind
-			targetRainCount = 60;
+			TweenMax.to(settings, 3, {rainCount: 60, ease: Power2.easeInOut});
 			break;
-        case 'snow':
-            targetWindSpeed = 0.2; // Sehr wenig Wind bei Schnee
-            targetSnowCount = 40;
-            break;
+		default:
+			TweenMax.to(settings, 1, {rainCount: 0, ease: Power2.easeOut});
+			break;
 	}
 
-    TweenMax.to(settings, 3, { windSpeed: targetWindSpeed, ease: Power2.easeInOut });
-    TweenMax.to(settings, 3, { rainCount: targetRainCount, ease: Power2.easeInOut });
-    TweenMax.to(settings, 3, { leafCount: targetLeafCount, ease: Power2.easeInOut });
-    TweenMax.to(settings, 3, { snowCount: targetSnowCount, ease: Power2.easeInOut });
-
-
-	// Sonnenposition und Strahlen
-    const sunYPosition = sizes.card.height * 0.25; // Einheitliche Y-Position für Sonne
-	if (weatherData.type == 'sun') {
-		TweenMax.to(sun.node, 4, {x: sizes.card.width / 2, y: sunYPosition, ease: Power2.easeInOut});
-		TweenMax.to(sunburst.node, 4, {scale: 1, opacity: 0.8, y: sunYPosition + sizes.card.offset.top, ease: Power2.easeInOut});
-	} else {
-		TweenMax.to(sun.node, 2, {x: sizes.card.width / 2, y: -100, ease: Power2.easeInOut}); // Sonne rausfahren
-		TweenMax.to(sunburst.node, 2, {scale: 0.4, opacity: 0, y: (sizes.container.height/2)-50, ease: Power2.easeInOut}); // Strahlen ausblenden
+	// leafCount
+	switch(currentWeather.type) {
+		case 'wind':
+			TweenMax.to(settings, 3, {leafCount: 5, ease: Power2.easeInOut});
+			break;
+		default:
+			TweenMax.to(settings, 1, {leafCount: 0, ease: Power2.easeOut});
+			break;
 	}
 
-	startLightningTimer(); // Blitz-Timer (neu) starten oder stoppen
+	// snowCount
+	switch(currentWeather.type) {
+		case 'snow':
+			TweenMax.to(settings, 3, {snowCount: 40, ease: Power2.easeInOut});
+			break;
+		default:
+			TweenMax.to(settings, 1, {snowCount: 0, ease: Power2.easeOut});
+			break;
+	}
+
+	// sun position
+	switch(currentWeather.type) {
+		case 'sun':
+			TweenMax.to(sun.node, 4, {x: sizes.card.width / 2, y: sizes.card.height / 2, ease: Power2.easeInOut});
+			TweenMax.to(sunburst.node, 4, {scale: 1, opacity: 0.8, y: (sizes.card.height/2) + (sizes.card.offset.top), ease: Power2.easeInOut});
+			break;
+		default:
+			TweenMax.to(sun.node, 2, {x: sizes.card.width / 2, y: -100, ease: Power2.easeInOut}); // leafCount hier entfernt, gehört oben hin
+			TweenMax.to(sunburst.node, 2, {scale: 0.4, opacity: 0, y: (sizes.container.height/2)-50, ease: Power2.easeInOut});
+			break;
+	}
+
+	// lightning
+	startLightningTimer(); // Startet/stoppt den Timer basierend auf dem neuen Wetter
 }
