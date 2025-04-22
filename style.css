@@ -22,7 +22,8 @@ body {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
+	/* justify-content: center; -> Entfernt, damit Suche oben bleibt */
+	padding-top: 20px; /* Platz für Suche oben */
 	margin: 0;
 	padding: 0;
 	height: 100%;
@@ -32,8 +33,85 @@ body {
 	background: #eee;
 	background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0));
 }
+
+/* *** NEU: Stile für Suchbereich *** */
+#search-container {
+   position: relative; /* Für absolute Positionierung der Vorschläge */
+   display: flex;
+   align-items: center;
+   margin-bottom: 15px; /* Abstand zur Navi */
+   width: 300px; /* Gleiche Breite wie Karte */
+}
+
+#location-search-input {
+   flex-grow: 1; /* Nimmt verfügbaren Platz ein */
+   padding: 8px 12px;
+   font-family: 'Lato', sans-serif;
+   font-size: 16px;
+   border: 1px solid #ccc;
+   border-radius: 4px;
+   margin-right: 5px; /* Abstand zum Button */
+   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+#location-search-input:focus {
+   outline: none;
+   border-color: #44f;
+   box-shadow: 0 0 5px rgba(68, 68, 255, 0.5);
+}
+
+#geolocation-button {
+   background: none;
+   border: none;
+   padding: 5px;
+   cursor: pointer;
+   font-size: 24px; /* Icon Größe */
+   color: #aaa;
+   transition: color 0.3s ease;
+}
+#geolocation-button:hover {
+   color: #444;
+}
+#geolocation-button i {
+   display: block; /* Verhindert extra Platz unter dem Icon */
+}
+
+#location-suggestions {
+   display: none; /* Standardmäßig versteckt */
+   position: absolute;
+   top: 100%; /* Direkt unter dem Input */
+   left: 0;
+   right: 0; /* Nimmt die Breite des Containers ein */
+   background-color: #fff;
+   border: 1px solid #ccc;
+   border-top: none; /* Obere Kante nicht doppelt */
+   border-radius: 0 0 4px 4px;
+   max-height: 200px; /* Verhindert zu lange Listen */
+   overflow-y: auto; /* Scrollbar bei Bedarf */
+   z-index: 100; /* Über anderen Elementen */
+   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+#location-suggestions div { /* Styling für einzelne Vorschläge */
+   padding: 8px 12px;
+   cursor: pointer;
+   border-bottom: 1px solid #eee;
+   font-size: 14px;
+}
+#location-suggestions div:last-child {
+   border-bottom: none;
+}
+#location-suggestions div:hover {
+   background-color: #f5f5f5;
+}
+#location-suggestions div .suggestion-details { /* Kleinere Schrift für Region/Land */
+   font-size: 12px;
+   color: #777;
+   margin-left: 5px;
+}
+/* *** Ende Suchbereich-Stile *** */
+
+
 nav ul {
-	margin: 20px 20px 0 20px;
+	margin: 0 20px 0 20px; /* Top-Margin entfernt, da Abstand durch Suche */
 	list-style-type: none;
 	padding: 0;
 	display: flex;
@@ -50,7 +128,7 @@ nav li a:hover {
 	color: #444;
 }
 nav li a.active {
-	color: #44f; /* Farbe für aktiven Button, kann angepasst werden */
+	color: #44f;
 }
 #card {
 	box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.25);
@@ -69,7 +147,7 @@ nav li a.active {
 	left: 0;
 	right: 0;
 	padding: 16px 20px;
-	color: #888; /* Standard Textfarbe */
+	color: #888;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
@@ -77,15 +155,17 @@ nav li a.active {
 	z-index: 10;
 }
 .thunder #card .details,
-.cloudy #card .details /* Textfarbe für Gewitter und Bewölkt anpassen, falls nötig */
+.cloudy #card .details
  {
-	color: #ddd; /* Hellerer Text auf dunklerem Hintergrund */
+	color: #ddd;
 }
 #card .details .right {
 	text-align: right;
 }
 #card .details #date {
 	margin: 4px 0;
+	font-size: 14px; /* Etwas kleiner für Ort + Datum */
+	line-height: 1.3; /* Zeilenhöhe anpassen */
 }
 #card .details #summary {
 	font-weight: 600;
@@ -101,14 +181,10 @@ nav li a.active {
 	vertical-align: top;
 	margin-left: 5px;
 }
-
-/* Basis-Wetter-Stil */
 .weather {
-	background-color: #dae3fd; /* Standard (ähnlich wie Schnee?) */
+	background-color: #dae3fd;
 	transition: background-color 2s ease;
 }
-
-/* Spezifische Hintergrundfarben */
 .thunder .weather {
 	background-color: #9fa4ad;
 }
@@ -116,13 +192,11 @@ nav li a.active {
 	background-color: #d8d8d8;
 }
 .sun .weather {
-	background-color: #ccf; /* Helleres Blau für Sonne */
+	background-color: #ccf;
 }
-/* *** NEU: Hintergrund für Bewölkt *** */
 .cloudy .weather {
-	background-color: #b0b8c9; /* Gedecktes Grau-Blau */
+	background-color: #b0b8c9;
 }
-
 .weather #inner {
 	background-color: rgba(255, 255, 255, 1);
 	background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
@@ -135,8 +209,6 @@ nav li a.active {
 .weather .cloud {
 	transition: fill 2s ease;
 }
-
-/* Standard Wolkenfarben (für Schnee, Wind, Regen - wenn nicht überschrieben) */
 .weather #cloud1 {
 	fill: #efefef;
 }
@@ -146,8 +218,6 @@ nav li a.active {
 .weather #cloud3 {
 	fill: #d5d5d5;
 }
-
-/* Dunklere Wolken für Gewitter */
 .thunder .weather #cloud1 {
 	fill: #9fa4ad;
 }
@@ -157,10 +227,8 @@ nav li a.active {
 .thunder .weather #cloud3 {
 	fill: #7b7988;
 }
-
-/* *** NEU: Dunklere Wolken für Bewölkt (leicht anders als Gewitter) *** */
 .cloudy .weather #cloud1 {
-	fill: #a8b0bf; /* Etwas helleres Grau als Gewitter */
+	fill: #a8b0bf;
 }
 .cloudy .weather #cloud2 {
 	fill: #98a0af;
@@ -168,8 +236,6 @@ nav li a.active {
 .cloudy .weather #cloud3 {
 	fill: #88909f;
 }
-
-
 #outer, #back {
 	position: fixed;
 	top: 0;
