@@ -56,7 +56,7 @@ var currentWeather = null;
 
 // 🛠 app settings
 var settings = {
-	windSpeed: 2, // Dieser Wert wird jetzt von changeWeather animiert und von tick gelesen
+	windSpeed: 2,
 	rainCount: 0,
 	leafCount: 0,
 	snowCount: 0,
@@ -73,10 +73,10 @@ var leafs = [];
 var snow = [];
 
 // --- Open-Meteo Integration ---
-const DORTMUND_LAT = 51.51;
+const DORTMUND_LAT = 51.51; // Beibehaltung der ursprünglichen Koordinaten
 const DORTMUND_LON = 7.46;
-// KORRIGIERTE API URL: Fügt 'hourly=temperature_2m' hinzu, um 400er zu vermeiden
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t_weather=true&temperature_unit=celsius&hourly=temperature_2m`;
+// *** KORREKTE API URL mit current= Parameter ***
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
 
 // Funktion zum Abrufen und Verarbeiten der Wetterdaten
 function fetchWeatherData() {
@@ -85,10 +85,11 @@ function fetchWeatherData() {
         .done(function(data) {
             console.log("Open-Meteo Data:", data);
 
-            if (data && data.current_weather) {
-                const current = data.current_weather;
-                const tempValue = Math.round(current.temperature);
-                const weatherCode = current.weathercode;
+            // *** Anpassung an die neue Antwortstruktur (data.current statt data.current_weather) ***
+            if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
+                const current = data.current;
+                const tempValue = Math.round(current.temperature_2m); // Temperatur auslesen
+                const weatherCode = current.weather_code; // Wettercode auslesen
 
                 temp.html(tempValue + '<span>c</span>');
                 updateDate();
@@ -100,11 +101,12 @@ function fetchWeatherData() {
                     changeWeather(targetWeather);
                 } else {
                     console.warn("Unbekannter Wettercode:", weatherCode);
-                    changeWeather(weather.find(w => w.type === 'sun'));
+                    changeWeather(weather.find(w => w.type === 'sun')); // Fallback
                 }
 
             } else {
-                handleApiError("Ungültige API-Antwortstruktur - 'current_weather' fehlt.");
+                // Fehler, wenn die erwarteten Daten im 'current' Objekt fehlen
+                handleApiError("Ungültige API-Antwortstruktur - 'current' Objekt oder benötigte Variablen fehlen.");
             }
         })
         .fail(function(jqXHR, textStatus, errorThrown) {
@@ -126,7 +128,7 @@ function handleApiError(errorMsg) {
     // changeWeather(weather.find(w => w.type === 'sun'));
 }
 
-// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
+// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen (unverändert)
 function getWeatherTypeFromCode(code) {
     if ([0, 1].includes(code)) return 'sun';
     if ([2, 3].includes(code)) return 'sun';
@@ -141,7 +143,7 @@ function getWeatherTypeFromCode(code) {
     return 'sun';
 }
 
-// Funktion zum Formatieren und Anzeigen des aktuellen Datums
+// Funktion zum Formatieren und Anzeigen des aktuellen Datums (unverändert)
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
@@ -180,7 +182,7 @@ function init()
 		drawCloud(clouds[i], i);
 	}
 
-    // NEU: Wetterdaten abrufen
+    // Wetterdaten abrufen
     fetchWeatherData();
 
 	// Animation starten
@@ -391,27 +393,22 @@ function tick()
 		if(snow.length < settings.snowCount) makeSnow();
 	}
 
-    // *** HIER IST DIE ZURÜCKGESETZTE WOLKENLOGIK AUS DEINER ORIGINALDATEI ***
+    // Wolkenlogik (unverändert zur vorherigen korrigierten Version, verwendet settings.windSpeed)
 	for(var i = 0; i < clouds.length; i++)
 	{
 		if(currentWeather.type == 'sun')
 		{
-            // Bei Sonne: Schnellere Bewegung (gesteuert durch settings.windSpeed in changeWeather)
-            // und spezielles Reset-Verhalten
 			if(clouds[i].offset > -(sizes.card.width * 1.5)) clouds[i].offset += settings.windSpeed / (i + 1);
 			if(clouds[i].offset > sizes.card.width * 2.5) clouds[i].offset = -(sizes.card.width * 1.5);
 			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
 		}
 		else
 		{
-            // Bei anderem Wetter: Langsamere Bewegung (gesteuert durch settings.windSpeed in changeWeather)
-            // und nahtlose Schleife
 			clouds[i].offset += settings.windSpeed / (i + 1);
 			if(clouds[i].offset > sizes.card.width) clouds[i].offset = 0 + (clouds[i].offset - sizes.card.width);
 			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
 		}
 	}
-    // *** ENDE DER ZURÜCKGESETZTEN WOLKENLOGIK ***
 
 	requestAnimationFrame(tick);
 }
@@ -466,7 +463,7 @@ function lightning()
 	TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ strike.remove(); strike = null}})
 }
 
-// Diese Funktion steuert zentral den Wechsel des Wetterzustands
+// Diese Funktion steuert zentral den Wechsel des Wetterzustands (unverändert zur vorherigen Version)
 function changeWeather(weatherData)
 {
     var newWeather = weatherData.data ? weatherData.data : weatherData;
@@ -497,7 +494,6 @@ function changeWeather(weatherData)
     let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 
-	// Zielwerte für Animationen basierend auf dem Wettertyp setzen
 	switch(currentWeather.type) {
 		case 'wind':
             windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0;
@@ -505,8 +501,8 @@ function changeWeather(weatherData)
             sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
 			break;
 		case 'sun':
-            windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Hohe Windgeschwindigkeit für Wolken in tick
-            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2; // Sonne sichtbar
+            windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0;
+            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2;
             sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height/2) + (sizes.card.offset.top);
 			break;
         case 'rain':
@@ -531,17 +527,13 @@ function changeWeather(weatherData)
 			break;
 	}
 
-    // Anwenden der Zielwerte mit TweenMax auf das 'settings'-Objekt und die SVG-Elemente
-    TweenMax.to(settings, 3, { windSpeed: windTarget, ease: Power2.easeInOut }); // Wird von tick() für Wolken verwendet
+    TweenMax.to(settings, 3, { windSpeed: windTarget, ease: Power2.easeInOut });
     TweenMax.to(settings, currentWeather.type === 'rain' || currentWeather.type === 'thunder' ? 3 : 1, { rainCount: rainTarget, ease: Power2.easeInOut });
     TweenMax.to(settings, currentWeather.type === 'wind' ? 3 : 1, { leafCount: leafTarget, ease: Power2.easeInOut });
     TweenMax.to(settings, currentWeather.type === 'snow' ? 3 : 1, { snowCount: snowTarget, ease: Power2.easeInOut });
 
-    // Sonnen-Animationen
     TweenMax.to(sun.node, currentWeather.type === 'sun' ? 4 : 2, { x: sunXTarget, y: sunYTarget, ease: Power2.easeInOut });
     TweenMax.to(sunburst.node, currentWeather.type === 'sun' ? 4 : 2, { scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: Power2.easeInOut });
 
-
-	// lightning Timer starten/stoppen
 	startLightningTimer();
 }
