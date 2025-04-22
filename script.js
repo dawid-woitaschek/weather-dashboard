@@ -26,6 +26,19 @@ var outerSnowHolder = outerSVG.group();
 
 var lightningTimeout;
 
+// *** NEU: GSAP Plugin Registrierung ***
+// Muss nach dem Laden von GSAP erfolgen, aber bevor das Plugin verwendet wird.
+// Stellen sicher, dass GSAP (TweenMax) vorher global verfügbar ist.
+// Wenn MotionPathPlugin nicht im Standard-gsap.min.js enthalten ist,
+// müsste es separat geladen werden. Aber oft reicht die Registrierung.
+if (window.gsap) {
+    gsap.registerPlugin(MotionPathPlugin);
+} else {
+    console.error("GSAP ist nicht geladen!");
+    // Ggf. Fallback oder Fehlermeldung anzeigen
+}
+
+
 // Set mask for leaf holder
 outerLeafHolder.attr({
 	'clip-path': leafMask
@@ -288,7 +301,6 @@ function makeSplash(x, type)
 	var yOffset = sizes.card.offset.top + sizes.card.height;
     splash.node.style.strokeDasharray = splashLength + ' ' + pathLength;
 
-    // *** KORRIGIERTE EASE ***
 	TweenMax.fromTo(splash.node, speed, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"})
 }
 
@@ -326,8 +338,24 @@ function makeLeaf()
 	}
 
 	leafs.push(newLeaf);
-	var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}]
-	TweenMax.fromTo(newLeaf.node, 2, {rotation: Math.random()* 180, x: x, y: y, scale:scale}, {rotation: Math.random()* 360, bezier: bezier, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: Power0.easeIn})
+
+    // *** KORRIGIERTE BLATT-ANIMATION mit GSAP 3 Syntax ***
+	var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}];
+    gsap.fromTo(newLeaf.node, { // Startwerte
+        rotation: Math.random()* 180,
+        scale: scale
+    }, { // Endwerte & Animationseinstellungen
+        duration: 2,
+        rotation: Math.random()* 360,
+        motionPath: {
+            path: bezier,
+            curviness: 1.25
+            // autoRotate: true // Optional
+        },
+        onComplete: onLeafEnd,
+        onCompleteParams: [newLeaf],
+        ease: Power0.easeIn
+    });
 }
 
 function onLeafEnd(leaf)
