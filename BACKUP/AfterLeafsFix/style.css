@@ -1,0 +1,192 @@
+@import 'https://fonts.googleapis.com/css?family=Lato:300';
+@import 'https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css';
+html, body, .background {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Lato', sans-serif;
+}
+html {
+    background: #fff;
+}
+body {
+    background: #eee;
+    background: linear-gradient(0deg, rgba(0, 0, 200, 0.2), rgba(0, 0, 200, 0));
+}
+.background {
+    background: #eee;
+    background: linear-gradient(120deg, rgba(50, 150, 100, 0.2), rgba(0, 0, 100, 0));
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    position: relative;
+    background: #eee;
+    background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0));
+}
+nav ul {
+    margin: 20px 20px 0 20px;
+    list-style-type: none;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+}
+nav li a {
+    display: block;
+    width: 50px;
+    text-align: center;
+    color: #aaa;
+    cursor: pointer;
+}
+nav li a:hover {
+    color: #444;
+}
+nav li a.active {
+    color: #44f; /* Farbe für aktiven Button, kann angepasst werden */
+}
+#card {
+    box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    width: 300px;
+    padding: 0;
+    height: 400px;
+    min-height: 300px;
+    margin: 20px;
+    border-radius: 5px;
+    position: relative;
+}
+#card .details {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    color: #888; /* Standard Textfarbe */
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    transition: color 2s ease;
+    z-index: 10;
+}
+.thunder #card .details,
+.cloudy #card .details /* Textfarbe für Gewitter und Bewölkt anpassen, falls nötig */
+ {
+    color: #ddd; /* Hellerer Text auf dunklerem Hintergrund */
+}
+#card .details .right {
+    text-align: right;
+}
+#card .details #date {
+    margin: 4px 0;
+}
+#card .details #summary {
+    font-weight: 600;
+    font-size: 22px;
+}
+#card .details .temp {
+    font-size: 60px;
+    line-height: 60px;
+}
+#card .details .temp span {
+    font-size: 18px;
+    line-height: 30px;
+    vertical-align: top;
+    margin-left: 5px;
+}
+
+/* Basis-Wetter-Stil */
+.weather {
+    background-color: #dae3fd; /* Standard (ähnlich wie Schnee?) */
+    transition: background-color 2s ease;
+}
+
+/* Spezifische Hintergrundfarben */
+.thunder .weather {
+    background-color: #9fa4ad;
+}
+.rain .weather {
+    background-color: #d8d8d8;
+}
+.sun .weather {
+    background-color: #ccf; /* Helleres Blau für Sonne */
+}
+/* *** NEU: Hintergrund für Bewölkt *** */
+.cloudy .weather {
+    background-color: #b0b8c9; /* Gedecktes Grau-Blau */
+}
+
+.weather #inner {
+    background-color: rgba(255, 255, 255, 1);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.weather .cloud {
+    transition: fill 2s ease;
+}
+
+/* Standard Wolkenfarben (für Schnee, Wind, Regen - wenn nicht überschrieben) */
+.weather #cloud1 {
+    fill: #efefef;
+}
+.weather #cloud2 {
+    fill: #e6e6e6;
+}
+.weather #cloud3 {
+    fill: #d5d5d5;
+}
+
+/* Dunklere Wolken für Gewitter */
+.thunder .weather #cloud1 {
+    fill: #9fa4ad;
+}
+.thunder .weather #cloud2 {
+    fill: #8b8e98;
+}
+.thunder .weather #cloud3 {
+    fill: #7b7988;
+}
+
+/* *** NEU: Dunklere Wolken für Bewölkt (leicht anders als Gewitter) *** */
+.cloudy .weather #cloud1 {
+    fill: #a8b0bf; /* Etwas helleres Grau als Gewitter */
+}
+.cloudy .weather #cloud2 {
+    fill: #98a0af;
+}
+.cloudy .weather #cloud3 {
+    fill: #88909f;
+}
+
+
+#outer, #back {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+#back {
+    z-index: -1;
+}
+#outer {
+    z-index: 5;
+}
+#card #inner {
+    z-index: 1;
+}
+#card .details .right div {
+    color: inherit;
+}
