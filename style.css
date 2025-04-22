@@ -99,7 +99,7 @@
 	 margin-left: 5px;
 }
  .weather {
-	 background-color: #dae3fd;
+	 background-color: #dae3fd; /* Standard-Hintergrund, wird ggf. überschrieben */
 	 transition: background-color 2s ease;
 }
  .thunder .weather {
@@ -111,6 +111,15 @@
  .sun .weather {
 	 background-color: #ccf;
 }
+ /* Zusätzliche Klassen für Schnee und Wind könnten hier hinzugefügt werden,
+    falls spezifische Hintergrundfarben gewünscht sind */
+ .snow .weather {
+     background-color: #eef6ff; /* Beispiel: sehr helles Blau */
+ }
+ .wind .weather {
+     background-color: #ddeeff; /* Beispiel: leicht anderes Blau */
+ }
+
  .weather #inner {
 	 background-color: rgba(255, 255, 255, 1);
 	 background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
@@ -140,4 +149,3 @@
 	 position: fixed;
 	 pointer-events: none;
 }
- 

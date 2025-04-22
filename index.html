@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animiertes Wetter-Widget (Dortmund)</title>
+    <title>Animiertes Wetter-Widget - Dortmund</title>
 
-    <!-- CSS-Datei verlinken -->
+    <!-- Style.css verlinken -->
     <link rel="stylesheet" href="style.css">
 
     <!-- Die @import-Regeln in style.css laden Schriften und Icons -->
@@ -31,7 +31,7 @@
             </svg>
             <nav>
                 <ul>
-                    <!-- Die Klasse 'active' wird jetzt dynamisch gesetzt -->
+                    <!-- Buttons bleiben, aber der 'active' Status wird durch API-Daten gesetzt -->
                     <li><a id="button-snow"><i class="wi wi-snow"></i></a></li>
                     <li><a id="button-wind"><i class="wi wi-strong-wind"></i></a></li>
                     <li><a id="button-rain"><i class="wi wi-rain"></i></a></li>
@@ -39,8 +39,7 @@
                     <li><a id="button-sun"><i class="wi wi-day-sunny"></i></a></li>
                 </ul>
             </nav>
-            <!-- Die Klasse 'weather' wird dynamisch gesetzt -->
-            <div id="card">
+            <div id="card" class="weather"> <!-- Startklasse ist 'weather', wird durch JS angepasst -->
                 <svg id="inner">
                     <defs>
                         <path id="leaf" d="M41.9,56.3l0.1-2.5c0,0,4.6-1.2,5.6-2.2c1-1,3.6-13,12-15.6c9.7-3.1,19.9-2,26.1-2.1c2.7,0-10,23.9-20.5,25 c-7.5,0.8-17.2-5.1-17.2-5.1L41.9,56.3z"/>
@@ -54,12 +53,12 @@
                     <g id="cloud1" class="cloud"></g>
                 </svg>
                 <div class="details">
-                     <!-- Temperatur wird dynamisch gefüllt -->
-                    <div class="temp"><span id="temp-value">--</span><span id="temp-unit">°C</span></div>
+                    <!-- Temperatur wird hier durch JS eingefügt -->
+                    <div class="temp">--<span>°c</span></div>
                     <div class="right">
-                         <!-- Datum wird dynamisch gefüllt -->
+                         <!-- Datum wird hier durch JS eingefügt -->
                         <div id="date">Lädt...</div>
-                         <!-- Zusammenfassung wird dynamisch gefüllt -->
+                         <!-- Zusammenfassung wird hier durch JS eingefügt -->
                         <div id="summary">Lädt...</div>
                     </div>
                 </div>
@@ -68,10 +67,10 @@
         </div>
     </div>
 
-    <!-- Benötigte Skripte -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> <!-- jQuery aktualisiert -->
+    <!-- Benötigte Bibliotheken (jQuery, Snap.svg, GSAP/TweenMax) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script> <!-- GSAP aktualisiert -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
     <!-- Eigenes Skript -->
     <script src="script.js"></script>
 
