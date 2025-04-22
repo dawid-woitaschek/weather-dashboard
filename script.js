@@ -176,7 +176,7 @@ function displaySuggestions(results) {
 // *** MODIFIZIERT: Funktion zum Abrufen der Wetterdaten (akzeptiert Parameter) ***
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
     // API URL dynamisch bauen
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
     console.log("Requesting Weather URL:", weatherApiUrl);
 
     // Ortsnamen im UI aktualisieren
