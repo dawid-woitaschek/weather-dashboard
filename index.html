@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animiertes Wetter-Widget - Dortmund</title>
+    <title>Animiertes Wetter-Widget</title> <!-- Titel vereinfacht -->
 
     <!-- CSS Verlinkung -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Externe Schriften/Icons (werden auch via CSS @import geladen) -->
+    <!-- Externe Schriften/Icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css">
 
@@ -31,6 +31,18 @@
             c32.7-19,68.1-32,105.2-38.6L-8-46.1C-13-45.2-17.8-43.4-22.2-40.8z M22-40.9c-4.4-2.6-9.2-4.3-14.2-5.1l47.1-273.6
             c37.2,6.4,72.7,19.2,105.4,38L22-40.9z"/>
             </svg>
+
+            <!-- *** NEU: Ortssuche *** -->
+            <div id="location-search-container">
+                <input type="text" id="location-search-input" placeholder="Ort suchen...">
+                <button id="geolocation-button" title="Aktuellen Standort verwenden">
+                    <i class="wi wi-crosshairs"></i>
+                </button>
+                <div id="location-suggestions">
+                    <!-- Vorschläge werden hier per JS eingefügt -->
+                </div>
+            </div>
+
             <nav>
                 <ul>
                     <li><a id="button-snow"><i class="wi wi-snow"></i></a></li>
@@ -38,7 +50,6 @@
                     <li><a id="button-rain"><i class="wi wi-rain"></i></a></li>
                     <li><a id="button-thunder"><i class="wi wi-lightning"></i></a></li>
                     <li><a id="button-sun"><i class="wi wi-day-sunny"></i></a></li>
-                    <!-- *** NEUER BUTTON für Bewölkt *** -->
                     <li><a id="button-cloudy"><i class="wi wi-cloudy"></i></a></li>
                 </ul>
             </nav>
@@ -58,6 +69,8 @@
                 <div class="details">
                     <div class="temp">--<span>c</span></div>
                     <div class="right">
+                        <!-- *** NEU: Element für Ortsnamen *** -->
+                        <div id="location-name">Dortmund</div>
                         <div id="date">Lädt...</div>
                         <div id="summary">Lädt...</div>
                     </div>

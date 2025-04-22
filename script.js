@@ -7,6 +7,14 @@ var backSVG = Snap('#back');
 var summary = $('#summary');
 var date = $('#date');
 var temp = $('.temp');
+var locationNameElement = $('#location-name'); // *** NEU: Referenz Ortsname ***
+
+// *** NEU: Referenzen für Suche ***
+var searchContainer = $('#location-search-container');
+var searchInput = $('#location-search-input');
+var suggestionsContainer = $('#location-suggestions');
+var geolocationButton = $('#geolocation-button');
+
 var weatherContainer1 = Snap.select('#layer1');
 var weatherContainer2 = Snap.select('#layer2');
 var weatherContainer3 = Snap.select('#layer3');
@@ -25,6 +33,7 @@ var outerLeafHolder = outerSVG.group();
 var outerSnowHolder = outerSVG.group();
 
 var lightningTimeout;
+var geocodeTimeout; // *** NEU: Für Debounce ***
 
 // GSAP Plugin Registrierung
 if (window.gsap && window.MotionPathPlugin) {
@@ -51,16 +60,19 @@ var clouds = [
 	{group: Snap.select('#cloud3')}
 ]
 
-// *** NEU: Wettertyp 'cloudy' hinzugefügt ***
+// set weather types ☁️ 🌬 🌧 ⛈ ☀️
 var weather = [
 	{ type: 'snow', name: 'Schnee'},
-	{ type: 'wind', name: 'Windig'}, // Behält Nebel-Mapping vorerst
+	{ type: 'wind', name: 'Windig'},
 	{ type: 'rain', name: 'Regen'},
 	{ type: 'thunder', name: 'Gewitter'},
 	{ type: 'sun', name: 'Sonnig'},
-	{ type: 'cloudy', name: 'Bewölkt'} // Neuer Typ
+	{ type: 'cloudy', name: 'Bewölkt'}
 ];
 var currentWeather = null;
+var currentLat = 51.51; // Default Dortmund
+var currentLon = 7.46;  // Default Dortmund
+var currentLocationName = "Dortmund"; // Default Name
 
 // 🛠 app settings
 var settings = {
@@ -80,17 +92,103 @@ var rain = [];
 var leafs = [];
 var snow = [];
 
-// --- Open-Meteo Integration ---
-const DORTMUND_LAT = 51.51;
-const DORTMUND_LON = 7.46;
-const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${DORTMUND_LAT}&longitude=${DORTMUND_LON}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+// --- Geocoding & Wetter API ---
 
-// Funktion zum Abrufen und Verarbeiten der Wetterdaten
-function fetchWeatherData() {
-    console.log("Requesting API URL:", API_URL);
-    $.get(API_URL)
+const GEOCODING_API_URL_BASE = "https://geocoding-api.open-meteo.com/v1/search";
+const WEATHER_API_URL_BASE = "https://api.open-meteo.com/v1/forecast";
+
+// *** NEU: Funktion für Geocoding API Aufruf ***
+function fetchGeocodingData(query) {
+    const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=10&language=de&format=json`;
+    console.log("Requesting Geocoding URL:", url);
+
+    $.get(url)
         .done(function(data) {
-            console.log("Open-Meteo Data:", data);
+            console.log("Geocoding Data:", data);
+            if (data && data.results) {
+                displaySuggestions(data.results);
+            } else {
+                suggestionsContainer.empty().hide(); // Keine Ergebnisse, ausblenden
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error("Geocoding API Request Failed:", textStatus, errorThrown);
+            suggestionsContainer.empty().hide(); // Bei Fehler ausblenden
+        });
+}
+
+// *** NEU: Funktion zum Anzeigen der Vorschläge ***
+function displaySuggestions(results) {
+    suggestionsContainer.empty().hide(); // Erst leeren und verstecken
+
+    if (!results || results.length === 0) {
+        return; // Nichts zu tun, wenn keine Ergebnisse
+    }
+
+    // Deutschland priorisieren
+    results.sort((a, b) => {
+        const scoreA = a.country_code === 'DE' ? 1000 + (a.admin1 === 'Nordrhein-Westfalen' ? 10 : 0) : (a.population || 0); // NRW leicht bevorzugen
+        const scoreB = b.country_code === 'DE' ? 1000 + (b.admin1 === 'Nordrhein-Westfalen' ? 10 : 0) : (b.population || 0);
+        // Sortiere primär nach DE, dann nach Population (absteigend)
+        if (a.country_code === 'DE' && b.country_code !== 'DE') return -1;
+        if (a.country_code !== 'DE' && b.country_code === 'DE') return 1;
+        return scoreB - scoreA; // Höhere Population zuerst
+    });
+
+
+    results.forEach(location => {
+        // Zusätzliche Details für die Anzeige (Bundesland/Region, Land)
+        let details = [];
+        if (location.admin1) details.push(location.admin1);
+        if (location.country && location.country_code !== 'DE') details.push(location.country); // Land nur anzeigen, wenn nicht DE
+
+        const suggestionHTML = `
+            <div data-lat="${location.latitude}" data-lon="${location.longitude}" data-name="${location.name}">
+                ${location.name}
+                ${details.length > 0 ? `<span class="suggestion-details">(${details.join(', ')})</span>` : ''}
+            </div>
+        `;
+        suggestionsContainer.append(suggestionHTML);
+    });
+
+    // Event Listener für Klicks auf Vorschläge hinzufügen
+    $('#location-suggestions div').on('click', function() {
+        const lat = $(this).data('lat');
+        const lon = $(this).data('lon');
+        const name = $(this).data('name');
+
+        console.log(`Suggestion selected: ${name} (${lat}, ${lon})`);
+
+        currentLat = lat; // Globale Koordinaten aktualisieren
+        currentLon = lon;
+        currentLocationName = name; // Globalen Namen aktualisieren
+
+        fetchWeatherData(lat, lon, name); // Wetter für gewählten Ort holen
+
+        searchInput.val(''); // Input leeren
+        suggestionsContainer.empty().hide(); // Vorschläge ausblenden
+    });
+
+    suggestionsContainer.show(); // Vorschläge anzeigen
+}
+
+
+// *** MODIFIZIERT: Funktion zum Abrufen der Wetterdaten (akzeptiert Parameter) ***
+function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
+    // API URL dynamisch bauen
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    console.log("Requesting Weather URL:", weatherApiUrl);
+
+    // Ortsnamen im UI aktualisieren
+    locationNameElement.text(locationName);
+    // Ggf. Ladezustand anzeigen
+    summary.text("Lädt...");
+    temp.html("--<span>c</span>");
+
+
+    $.get(weatherApiUrl)
+        .done(function(data) {
+            console.log("Weather Data:", data);
 
             if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
                 const current = data.current;
@@ -98,52 +196,50 @@ function fetchWeatherData() {
                 const weatherCode = current.weather_code;
 
                 temp.html(tempValue + '<span>c</span>');
-                updateDate();
+                updateDate(); // Datum bleibt aktuell
 
                 const weatherType = getWeatherTypeFromCode(weatherCode);
                 const targetWeather = weather.find(w => w.type === weatherType);
 
                 if (targetWeather) {
-                    changeWeather(targetWeather);
+                    changeWeather(targetWeather); // Wetteranzeige aktualisieren
                 } else {
                     console.warn("Unbekannter Wettercode:", weatherCode);
-                    changeWeather(weather.find(w => w.type === 'sun'));
+                    changeWeather(weather.find(w => w.type === 'sun')); // Fallback
                 }
 
             } else {
-                handleApiError("Ungültige API-Antwortstruktur - 'current' Objekt oder benötigte Variablen fehlen.");
+                handleApiError("Ungültige Wetter-API-Antwortstruktur.");
             }
         })
         .fail(function(jqXHR, textStatus, errorThrown) {
-            console.error("API Request Failed:");
-            console.error("Status:", jqXHR.status, textStatus);
-            console.error("Error:", errorThrown);
-            console.error("Response Text:", jqXHR.responseText);
-            handleApiError(`${jqXHR.status} ${textStatus}: ${errorThrown}`);
+            console.error("Weather API Request Failed:", textStatus, errorThrown);
+            handleApiError(`Wetterdaten konnten nicht geladen werden (${textStatus})`);
         });
 }
 
 // Funktion zur Behandlung von API-Fehlern
 function handleApiError(errorMsg) {
-    console.error("Fehler beim Abrufen der Wetterdaten:", errorMsg);
+    console.error("Fehler:", errorMsg);
     temp.html("--<span>c</span>");
     summary.text("Fehler");
     date.text("Keine Daten");
+    locationNameElement.text("Ort unbekannt"); // Auch Ortsnamen zurücksetzen
 }
 
-// *** NEU: API-Mapping für 'cloudy' angepasst ***
+// Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
 function getWeatherTypeFromCode(code) {
-    if ([0, 1].includes(code)) return 'sun';        // Klar, Leicht bewölkt
-    if ([2, 3].includes(code)) return 'cloudy';     // Teilweise bewölkt, Bedeckt -> NEU: cloudy
-    if ([45, 48].includes(code)) return 'wind';     // Nebel -> bleibt windig (oder zu 'cloudy' ändern?)
-    if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; // Nieselregen
-    if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; // Regen
-    if ([71, 73, 75, 77].includes(code)) return 'snow'; // Schnee
-    if ([80, 81, 82].includes(code)) return 'rain'; // Regenschauer
-    if ([85, 86].includes(code)) return 'snow'; // Schneeschauer
-    if ([95, 96, 99].includes(code)) return 'thunder';// Gewitter
+    if ([0, 1].includes(code)) return 'sun';
+    if ([2, 3].includes(code)) return 'cloudy';
+    if ([45, 48].includes(code)) return 'wind'; // Nebel -> Windig
+    if ([51, 53, 55, 56, 57].includes(code)) return 'rain';
+    if ([61, 63, 65, 66, 67].includes(code)) return 'rain';
+    if ([71, 73, 75, 77].includes(code)) return 'snow';
+    if ([80, 81, 82].includes(code)) return 'rain';
+    if ([85, 86].includes(code)) return 'snow';
+    if ([95, 96, 99].includes(code)) return 'thunder';
     console.warn("Unbekannter Wettercode erhalten:", code);
-    return 'sun'; // Fallback
+    return 'sun';
 }
 
 // Funktion zum Formatieren und Anzeigen des aktuellen Datums
@@ -154,7 +250,7 @@ function updateDate() {
     date.text(formattedDate);
 }
 
-// --- Ende Open-Meteo Integration ---
+// --- Ende API Integration ---
 
 
 // ⚙ initialize app
@@ -163,18 +259,100 @@ init();
 // 👁 watch for window resize
 $(window).resize(onResize);
 
+// --- NEUE Event Listener für Suche & Geolocation ---
+$(document).ready(function() {
+
+    // Debounced Geocoding auf Input
+    searchInput.on('input', function() {
+        clearTimeout(geocodeTimeout); // Alten Timer löschen
+        const query = $(this).val();
+
+        if (query.length >= 3) {
+            geocodeTimeout = setTimeout(() => {
+                fetchGeocodingData(query);
+            }, 300); // 300ms warten nach letzter Eingabe
+        } else {
+            suggestionsContainer.empty().hide(); // Vorschläge ausblenden bei < 3 Zeichen
+        }
+    });
+
+    // Enter im Suchfeld
+    searchInput.on('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Standard-Enter-Verhalten verhindern
+            const firstSuggestion = $('#location-suggestions div:first-child');
+            if (firstSuggestion.length > 0) {
+                firstSuggestion.trigger('click'); // Klick auf ersten Vorschlag simulieren
+            }
+        }
+    });
+
+    // Geolocation Button Klick
+    geolocationButton.on('click', function() {
+        if (navigator.geolocation) {
+            console.log("Requesting geolocation...");
+            // Optional: Ladezustand anzeigen
+            locationNameElement.text("Suche Standort...");
+            summary.text("");
+            temp.html("--<span>c</span>");
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log("Geolocation success:", position.coords);
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    currentLat = lat; // Globale Koordinaten aktualisieren
+                    currentLon = lon;
+                    currentLocationName = "Aktueller Standort"; // Namen setzen
+
+                    fetchWeatherData(lat, lon, currentLocationName); // Wetter holen
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    let errorMsg = "Standort konnte nicht ermittelt werden.";
+                    if (error.code === error.PERMISSION_DENIED) {
+                        errorMsg = "Standortzugriff verweigert.";
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        errorMsg = "Standortinformationen nicht verfügbar.";
+                    } else if (error.code === error.TIMEOUT) {
+                        errorMsg = "Standortabfrage Zeitüberschreitung.";
+                    }
+                    handleApiError(errorMsg); // Fehler im UI anzeigen
+                },
+                { // Optionen für getCurrentPosition
+                    enableHighAccuracy: false, // Spart Akku
+                    timeout: 10000,         // 10 Sekunden Timeout
+                    maximumAge: 600000      // 10 Minuten altes Ergebnis akzeptieren
+                }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
+            handleApiError("Geolocation wird nicht unterstützt.");
+        }
+    });
+
+    // Klick außerhalb der Suche schließt Vorschläge
+    $(document).on('click', function(event) {
+        if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0) {
+            suggestionsContainer.hide();
+        }
+    });
+
+});
+
+
 // 🏃 start animations
 
 function init()
 {
 	onResize();
 
-	// 🖱 bind weather menu buttons (findet neuen Button automatisch)
+	// 🖱 bind weather menu buttons
 	for(var i = 0; i < weather.length; i++)
 	{
 		var w = weather[i];
 		var b = $('#button-' + w.type);
-		w.button = b; // Speichert Referenz zum Button im Wetter-Objekt
+		w.button = b;
 		b.bind('click', w, changeWeather);
 	}
 
@@ -185,7 +363,9 @@ function init()
 		drawCloud(clouds[i], i);
 	}
 
-    fetchWeatherData();
+    // *** MODIFIZIERT: Wetter für Default-Ort holen ***
+    fetchWeatherData(currentLat, currentLon, currentLocationName);
+
 	requestAnimationFrame(tick);
 }
 
@@ -339,7 +519,7 @@ function makeLeaf()
         rotation: Math.random()* 180,
         scale: scale
     }, {
-        duration: 4,
+        duration: 4, // Langsamere Blattgeschwindigkeit
         rotation: Math.random()* 360,
         motionPath: {
             path: bezier,
@@ -480,19 +660,22 @@ function changeWeather(weatherData)
 {
     var newWeather = weatherData.data ? weatherData.data : weatherData;
 
-    if (currentWeather && currentWeather.type === newWeather.type) {
-         if (summary.html() !== newWeather.name) {
-             gsap.killTweensOf(summary);
-             gsap.to(summary, {duration: 0.5, opacity: 0, x: -30, onComplete: function() {
-                 summary.html(newWeather.name);
-                 gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power4.out"});
-             }, ease: "power4.in"});
-         }
-        return;
-    }
+    // Verhindert unnötige Animationen, wenn sich nichts ändert (wichtig bei API-Updates)
+    // if (currentWeather && currentWeather.type === newWeather.type) {
+    //      // Nur Text aktualisieren, falls nötig (z.B. wenn Name sich ändern könnte)
+    //      if (summary.html() !== newWeather.name) {
+    //          gsap.killTweensOf(summary);
+    //          gsap.to(summary, {duration: 0.5, opacity: 0, x: -30, onComplete: function() {
+    //              summary.html(newWeather.name);
+    //              gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power4.out"});
+    //          }, ease: "power4.in"});
+    //      }
+    //     return;
+    // }
+    // ^^^ Auskommentiert: Erlaubt "Neuladen" des gleichen Zustands, falls gewünscht
 
 	reset();
-	currentWeather = newWeather;
+	currentWeather = newWeather; // Globalen Wetterzustand aktualisieren
 
 	gsap.killTweensOf(summary);
 	gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"})
@@ -500,12 +683,18 @@ function changeWeather(weatherData)
 	container.addClass(currentWeather.type);
     if (currentWeather.button) {
 	    currentWeather.button.addClass('active');
+    } else {
+        // Finde den Button, falls er nicht direkt übergeben wurde (z.B. bei API-Aufruf)
+        const matchingButton = $('#button-' + currentWeather.type);
+        if (matchingButton.length) {
+            matchingButton.addClass('active');
+        }
     }
+
 
 	let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 
-	// *** NEU: Case für 'cloudy' hinzugefügt ***
 	switch(currentWeather.type) {
 		case 'wind':
             windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0;
@@ -532,13 +721,13 @@ function changeWeather(weatherData)
             sunXTarget = sizes.card.width / 2; sunYTarget = -100;
             sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
-        case 'cloudy': // NEUER CASE
-            windTarget = 0.5; // Langsame Wolken
+        case 'cloudy':
+            windTarget = 0.5;
             rainTarget = 0;
             leafTarget = 0;
             snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100; // Sonne versteckt
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; // Sunburst versteckt
+            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
+            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
 		default:
             windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0;
@@ -555,5 +744,5 @@ function changeWeather(weatherData)
     gsap.to(sun.node, { duration: currentWeather.type === 'sun' ? 4 : 2, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" });
     gsap.to(sunburst.node, { duration: currentWeather.type === 'sun' ? 4 : 2, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" });
 
-	startLightningTimer(); // Stellt sicher, dass Blitze nur bei Gewitter aktiv sind
+	startLightningTimer();
 }
