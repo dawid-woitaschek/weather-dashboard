@@ -54,7 +54,7 @@ body {
     width: 320px;
     background-color: #ffffff;
     border-radius: 25px;
-    padding: 8px 15px 8px 20px; /* Padding rechts angepasst */
+    padding: 8px 15px 8px 20px; /* Padding rechts für Button Platz lassen */
     box-shadow: 0 3px 8px rgba(0,0,0,0.06);
     border: 1px solid #eee;
 }
@@ -67,33 +67,35 @@ body {
     font-family: 'Lato', sans-serif;
     outline: none;
     color: #555;
-    margin-right: 10px; /* Abstand zum Button */
+    margin-right: 10px; /* Abstand zum Icon */
 }
 #location-search-input::placeholder {
     color: #bbb;
     font-weight: 300;
 }
 
-/* *** ÜBERARBEITET: Geolocation Button als freistehendes Icon *** */
+/* *** KORRIGIERT: Geolocation Button als freistehendes Icon *** */
 #geolocation-button {
     background: none; /* Kein Hintergrund */
-    border: none;
+    border: none; /* Kein Rand */
     color: #aaa; /* Farbe des Icons */
     cursor: pointer;
-    padding: 0; /* Kein extra Padding */
-    margin: 0; /* Kein extra Margin */
-    font-size: 20px; /* Größe des Icons anpassen */
-    line-height: 1; /* Wichtig für vertikale Ausrichtung */
+    padding: 0; /* Kein Innenabstand */
+    margin: 0; /* Kein Außenabstand */
+    font-size: 20px; /* Größe des Icons */
+    line-height: 1; /* Verhindert vertikale Verschiebung */
     transition: color 0.2s ease;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Verhindert, dass das Icon schrumpft */
+    /* Entfernt: width, height, border-radius, display:flex, align-items, justify-content */
 }
 #geolocation-button:hover {
-    color: #666; /* Iconfarbe bei Hover ändern */
+    color: #666; /* Farbe bei Hover */
 }
 #geolocation-button i {
     display: block; /* Stellt sicher, dass das Icon korrekt angezeigt wird */
+    /* Keine weiteren Stile nötig, erbt Farbe vom Button */
 }
-/* *** Ende Geolocation Button Anpassung *** */
+/* *** Ende Korrektur Geolocation Button *** */
 
 
 #location-suggestions {
