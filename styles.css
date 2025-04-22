@@ -1,4 +1,4 @@
-/* styles.css – Komplett mit Anpassungen für Original‑Look */
+/* styles.css – Vollständige Version mit Original‑CodePen‑Look */
 
 /* -------- Imports -------- */
 @import 'https://fonts.googleapis.com/css?family=Lato:300,400,700';
@@ -22,9 +22,6 @@ body {
   font-family: 'Lato', sans-serif;
   font-weight: 300;
 }
-.background {
-  /* optional */
-}
 .container {
   display: flex;
   flex-direction: column;
@@ -37,7 +34,7 @@ body {
   position: relative;
 }
 
-/* -------- Controls (Unverändert) -------- */
+/* -------- Controls (unverändert) -------- */
 .controls {
   display: flex;
   gap: 10px;
@@ -113,12 +110,12 @@ body {
 
 /* -------- Card Styling mit Gradient -------- */
 #card {
-  /* Basis‑Gradient von oben (fast Weiß) nach unten (Pastell) */
+  /* Gradient von fast Weiß oben nach Pastell unten */
   --bg-color: #DAE3FD;  /* Default für Sonne */
   background: linear-gradient(
     to bottom,
     rgba(255,255,255,0.9) 0%,
-    var(--bg-color) 100%
+    var(--bg-color)       100%
   );
   box-shadow: 9px 7px 40px -6px rgba(0,0,0,0.25);
   overflow: hidden;
@@ -131,16 +128,16 @@ body {
   transition: background 1s ease;
 }
 
-/* Wetter‑abhängige Hintergrundfarbe per Variable */
-.container.sun    #card { --bg-color: #ccccff; }
-.container.rain   #card { --bg-color: #D8D8D8; }
-.container.snow   #card { --bg-color: #E6E8ED; }
-.container.thunder#card { --bg-color: #9FA4AD; }
-.container.wind   #card { --bg-color: #C5D8EA; }
-.container.fog    #card { --bg-color: #d4d7dd; }
-.container.cloud  #card { --bg-color: #dfe3ee; }
+/* Wetter‑abhängige Background‑Colors über Variable */
+.container.sun     #card { --bg-color: #ccccff; }
+.container.rain    #card { --bg-color: #D8D8D8; }
+.container.snow    #card { --bg-color: #E6E8ED; }
+.container.thunder #card { --bg-color: #9FA4AD; }
+.container.wind    #card { --bg-color: #C5D8EA; }
+.container.fog     #card { --bg-color: #d4d7dd; }
+.container.cloud   #card { --bg-color: #dfe3ee; }
 
-/* Inner SVG ebenes Hintergrundbild */
+/* Inneres SVG als absolute Hintergrundebene */
 #inner {
   position: absolute;
   top: 0;
@@ -150,7 +147,7 @@ body {
   z-index: 0;
 }
 
-/* -------- Details (Temperatur, Datum, Text) -------- */
+/* -------- Details Section OBEN -------- */
 #card .details {
   position: relative;
   z-index: 1;
@@ -195,7 +192,7 @@ body {
   right: 20px;
   font-size: 16px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgba(0,0,0,0.6);
   text-align: right;
   z-index: 1;
   transition: color 1s ease;
@@ -204,40 +201,41 @@ body {
 .container.thunder #location { color: rgba(255,255,255,0.7); }
 .container.sun     #location { color: rgba(36,51,90,0.7); }
 
-/* -------- Wolken & SVG Styling -------- */
-.weather .cloud {
-  transition: fill 1s ease;
+/* -------- Wolken (Cloud Layers) -------- */
+/* Grundfarben und volle Sichtbarkeit */
+#cloud1, #cloud2, #cloud3 {
+  opacity: 1 !important;
 }
 #cloud1 { fill: #efefef; }
 #cloud2 { fill: #E6E6E6; }
 #cloud3 { fill: #D5D5D5; }
 
-/* thunder */
+/* Thunder */
 .container.thunder #cloud1 { fill: #9FA4AD; }
 .container.thunder #cloud2 { fill: #8B8E98; }
 .container.thunder #cloud3 { fill: #7B7988; }
-/* snow */
-.container.snow #cloud1    { fill: #f6f6f6; }
-.container.snow #cloud2    { fill: #f1f1f1; }
-.container.snow #cloud3    { fill: #ececec; }
-/* rain – klare Kontraste */
-.container.rain #cloud1    { fill: #e5e5e5; }
-.container.rain #cloud2    { fill: #d8d8d8; }
-.container.rain #cloud3    { fill: #c8c8c8; }
-/* wind */
-.container.wind #cloud1    { fill: #ddebf8; }
-.container.wind #cloud2    { fill: #d5e6f7; }
-.container.wind #cloud3    { fill: #cddff3; }
-/* fog */
-.container.fog #cloud1     { fill: #e8e8e8; }
-.container.fog #cloud2     { fill: #e0e0e0; }
-.container.fog #cloud3     { fill: #d8d8d8; }
-/* cloud */
-.container.cloud #cloud1   { fill: #f0f0f0; }
-.container.cloud #cloud2   { fill: #d0d0d0; }
-.container.cloud #cloud3   { fill: #a8a8a8; }
+/* Snow */
+.container.snow    #cloud1 { fill: #f6f6f6; }
+.container.snow    #cloud2 { fill: #f1f1f1; }
+.container.snow    #cloud3 { fill: #ececec; }
+/* Rain */
+.container.rain    #cloud1 { fill: #e5e5e5; }
+.container.rain    #cloud2 { fill: #d8d8d8; }
+.container.rain    #cloud3 { fill: #c8c8c8; }
+/* Wind */
+.container.wind    #cloud1 { fill: #ddebf8; }
+.container.wind    #cloud2 { fill: #d5e6f7; }
+.container.wind    #cloud3 { fill: #cddff3; }
+/* Fog */
+.container.fog     #cloud1 { fill: #e8e8e8; }
+.container.fog     #cloud2 { fill: #e0e0e0; }
+.container.fog     #cloud3 { fill: #d8d8d8; }
+/* Cloud */
+.container.cloud   #cloud1 { fill: #f0f0f0; }
+.container.cloud   #cloud2 { fill: #d0d0d0; }
+.container.cloud   #cloud3 { fill: #a8a8a8; }
 
-/* Sonne & Sunburst */
+/* -------- Sonne & Sunburst -------- */
 #sun {
   transition: transform 1s ease, opacity 1s ease;
   transform-origin: center center;
@@ -254,7 +252,7 @@ body {
   transform-origin: center center;
 }
 
-/* -------- Loading / Error Overlay (Unverändert) -------- */
+/* -------- Overlay (Loading / Error) -------- */
 #overlay-container {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -302,7 +300,7 @@ body {
   opacity: 0.7;
 }
 
-/* -------- Keyframes (Unverändert) -------- */
+/* -------- Keyframes -------- */
 @keyframes fa-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
