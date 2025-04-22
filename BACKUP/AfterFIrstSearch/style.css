@@ -22,7 +22,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 30px; /* Mehr Platz oben */
+    /* justify-content: center; */ /* Entfernt, damit Suche oben bleibt */
+    padding-top: 20px; /* Platz für Suche oben */
     margin: 0;
     height: 100%;
     width: 100%;
@@ -30,86 +31,60 @@ body {
     position: relative;
     background: #eee;
     background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0));
-    box-sizing: border-box;
+    box-sizing: border-box; /* Padding einrechnen */
 }
 
-/* *** NEU: Stile für Überschrift *** */
-#app-title {
-    display: flex;
-    align-items: center;
-    font-size: 24px;
-    font-weight: 300; /* Leichter */
-    color: #555;
-    margin-bottom: 20px; /* Abstand zur Suche */
-}
-#app-title i {
-    font-size: 30px; /* Icon etwas größer */
-    margin-right: 10px;
-    color: #777; /* Icon Farbe */
-}
-
-/* *** NEU/ANGEPASST: Stile für Ortssuche (gemäß Screenshot) *** */
+/* *** NEU: Stile für Ortssuche *** */
 #location-search-container {
     display: flex;
     align-items: center;
-    margin-bottom: 20px; /* Abstand zur Nav */
-    position: relative;
-    width: 320px; /* Etwas breiter als Karte? */
-    background-color: #f0f0f0; /* Heller Hintergrund für die Leiste */
-    border-radius: 25px; /* Stark abgerundete Ecken */
-    padding: 5px 10px 5px 15px; /* Innenabstand (links mehr) */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Leichter Innenschatten */
+    margin-bottom: 15px; /* Abstand zur Nav */
+    position: relative; /* Für absolute Positionierung der Vorschläge */
+    width: 300px; /* Gleiche Breite wie Karte */
 }
 #location-search-input {
-    flex-grow: 1;
-    padding: 8px 0; /* Vertikaler Abstand, horizontal 0 */
-    border: none; /* Kein eigener Rand */
-    background: transparent; /* Transparenter Hintergrund */
+    flex-grow: 1; /* Nimmt verfügbaren Platz ein */
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     font-size: 16px;
     font-family: 'Lato', sans-serif;
     outline: none;
-    color: #333; /* Dunklere Schrift */
+    transition: border-color 0.3s ease;
 }
-#location-search-input::placeholder { /* Placeholder Styling */
-    color: #999;
-    font-weight: 300;
+#location-search-input:focus {
+    border-color: #44f;
 }
 #geolocation-button {
-    background-color: #e0e0e0; /* Hintergrund für den Kreis */
+    background: none;
     border: none;
-    color: #666; /* Icon Farbe */
+    font-size: 24px; /* Icon-Größe */
+    color: #aaa;
     cursor: pointer;
-    width: 30px; /* Feste Breite/Höhe für Kreis */
-    height: 30px;
-    border-radius: 50%; /* Kreisform */
-    display: flex; /* Icon zentrieren */
-    align-items: center;
-    justify-content: center;
-    font-size: 18px; /* Icon Größe anpassen */
-    margin-left: 8px; /* Abstand zum Input */
-    padding: 0; /* Kein Innenabstand */
-    transition: background-color 0.2s ease;
+    padding: 5px;
+    margin-left: 8px;
+    line-height: 1; /* Verhindert zusätzlichen Platz */
 }
 #geolocation-button:hover {
-    background-color: #d0d0d0; /* Etwas dunkler bei Hover */
-    color: #333;
+    color: #444;
 }
 #location-suggestions {
-    display: none;
+    display: none; /* Standardmäßig versteckt */
     position: absolute;
-    top: calc(100% + 5px); /* Unter der Suchleiste mit Abstand */
+    top: 100%; /* Direkt unter dem Input */
     left: 0;
     right: 0;
     background-color: #fff;
     border: 1px solid #ccc;
-    border-radius: 8px; /* Abgerundete Ecken */
-    max-height: 200px;
+    border-top: none; /* Obere Kante nicht doppelt */
+    border-radius: 0 0 4px 4px;
+    max-height: 200px; /* Maximale Höhe, dann scrollen */
     overflow-y: auto;
-    z-index: 100;
+    z-index: 100; /* Über anderen Elementen */
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 #location-suggestions div {
-    padding: 10px 15px; /* Mehr Padding */
+    padding: 10px 12px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
     font-size: 14px;
@@ -129,7 +104,7 @@ body {
 
 
 nav ul {
-    margin: 0 20px 0 20px;
+    margin: 0 20px 0 20px; /* Angepasst, da Suche darüber */
     list-style-type: none;
     padding: 0;
     display: flex;
@@ -180,18 +155,19 @@ nav li a.active {
 #card .details .right {
     text-align: right;
 }
+/* *** NEU: Stil für Ortsnamen *** */
 #card .details #location-name {
-    font-size: 14px;
-    font-weight: 300;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
+    font-size: 14px; /* Kleinere Schrift */
+    font-weight: 300; /* Leichter */
+    margin-bottom: 2px; /* Kleiner Abstand zum Datum */
+    white-space: nowrap; /* Verhindert Umbruch */
+    overflow: hidden; /* Versteckt Überlauf */
+    text-overflow: ellipsis; /* Fügt ... hinzu, wenn zu lang */
+    max-width: 150px; /* Begrenzt Breite, anpassen nach Bedarf */
 }
 #card .details #date {
     margin: 4px 0;
-    font-size: 12px;
+    font-size: 12px; /* Datum etwas kleiner */
 }
 #card .details #summary {
     font-weight: 600;
