@@ -128,15 +128,14 @@ $(document).ready(function() {
         });
 
         // Sonnenstrahlen-Position und Animation aktualisieren
-        TweenMax.set(sunburst.node, {
+        gsap.set(sunburst.node, { // Verwende gsap.set
             transformOrigin:"50% 50%",
             x: sizes.container.width / 2,
-            // Position relativ zur Karte, nicht zum Container-Zentrum
             y: sizes.offset.top + (sizes.card.height / 2)
         });
         // Nur starten, wenn nicht schon läuft (oder neu starten)
-        if (!TweenMax.isTweening(sunburst.node)) {
-             TweenMax.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: 'none'}); // Power0.easeInOut is default, use linear for constant speed
+        if (!gsap.isTweening(sunburst.node)) { // *** KORRIGIERT ***
+             gsap.fromTo(sunburst.node, 20, {rotation: 0}, {rotation: 360, repeat: -1, ease: 'none'}); // *** KORRIGIERT (gsap statt TweenMax) ***
         }
 
 
@@ -150,19 +149,19 @@ $(document).ready(function() {
 
         // Neuberechnung der Sonnenposition bei 'sun' Wetter
         if (container.hasClass('sun')) {
-            TweenMax.to(sun.node, 0.5, { // Schnelleres Update bei Resize
+            gsap.to(sun.node, 0.5, { // Schnelleres Update bei Resize // *** KORRIGIERT (gsap statt TweenMax) ***
                  x: sizes.card.width / 2,
                  y: sizes.card.height / 2,
                  ease: Power2.easeInOut
             });
-             TweenMax.to(sunburst.node, 0.5, { // Schnelleres Update bei Resize
+             gsap.to(sunburst.node, 0.5, { // Schnelleres Update bei Resize // *** KORRIGIERT (gsap statt TweenMax) ***
                  scale: 1,
                  opacity: 0.8,
                  y: sizes.offset.top + (sizes.card.height / 2), // Update Y position
                  ease: Power2.easeInOut
              });
         } else {
-             TweenMax.to(sunburst.node, 0.5, { // Update Y position even when hidden
+             gsap.to(sunburst.node, 0.5, { // Update Y position even when hidden // *** KORRIGIERT (gsap statt TweenMax) ***
                  y: sizes.offset.top + (sizes.card.height / 2) - 50, // Adjust relative offset
                  ease: Power2.easeInOut
              });
@@ -189,7 +188,6 @@ $(document).ready(function() {
             if (firstSuggestion.length) {
                 selectSuggestion(firstSuggestion.data('lat'), firstSuggestion.data('lon'), firstSuggestion.text());
             } else {
-                 // Optional: Trigger search even without suggestion? Maybe just ignore.
                  suggestionsDiv.hide().empty();
             }
         } else if (e.key === 'Escape') {
@@ -200,10 +198,8 @@ $(document).ready(function() {
     function triggerSearchFromInput() {
          const firstSuggestion = suggestionsDiv.find('div:first-child');
          if (firstSuggestion.length && suggestionsDiv.is(":visible")) {
-             // If suggestions are visible, use the first one
              selectSuggestion(firstSuggestion.data('lat'), firstSuggestion.data('lon'), firstSuggestion.text());
          } else if (locationInput.val().length >= 3) {
-             // If no suggestions visible, but text exists, try fetching suggestions and using the first
              fetchSuggestions(locationInput.val(), true); // Pass flag to auto-select
          }
          suggestionsDiv.hide(); // Hide suggestions after button click
@@ -254,22 +250,22 @@ $(document).ready(function() {
 
     function getCurrentLocationWeather() {
         if (navigator.geolocation) {
+            // Zeige kurz Feedback im Input-Feld
+            locationInput.val("Standort wird ermittelt...");
             navigator.geolocation.getCurrentPosition(position => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                // Versuche, den Namen über Reverse Geocoding zu bekommen
-                fetchReverseGeocode(lat, lon);
+                fetchReverseGeocode(lat, lon); // Versuche Namen zu bekommen
 
             }, error => {
                 console.error("Geolocation error:", error);
-                alert("Standort konnte nicht abgerufen werden. Bitte Berechtigung prüfen.");
-                // Fallback to default if error
-                fetchWeather(currentCoords.lat, currentCoords.lon, currentPlaceName);
+                alert("Standort konnte nicht abgerufen werden. Bitte Berechtigung prüfen. Zeige Standardort.");
+                locationInput.val(""); // Reset input field on error
+                fetchWeather(currentCoords.lat, currentCoords.lon, currentPlaceName); // Fallback to default
             });
         } else {
             alert("Geolocation wird von diesem Browser nicht unterstützt.");
-             // Fallback to default if no geolocation support
-            fetchWeather(currentCoords.lat, currentCoords.lon, currentPlaceName);
+            fetchWeather(currentCoords.lat, currentCoords.lon, currentPlaceName); // Fallback to default
         }
     }
 
@@ -281,11 +277,12 @@ $(document).ready(function() {
                 let placeName = "Aktueller Standort"; // Default
                  if (data.features && data.features.length > 0) {
                      const props = data.features[0].properties;
-                     // Build a reasonable name (e.g., City, Country or Suburb, City)
                      if (props.city && props.country) {
                         placeName = `${props.city}, ${props.country}`;
                      } else if (props.suburb && props.city) {
                          placeName = `${props.suburb}, ${props.city}`;
+                     } else if (props.county && props.country) { // Added county as fallback
+                        placeName = `${props.county}, ${props.country}`;
                      } else if (props.formatted) {
                          placeName = props.formatted;
                      }
@@ -297,8 +294,8 @@ $(document).ready(function() {
             })
             .catch(error => {
                  console.error("Reverse geocoding error:", error);
-                 // Fetch weather with default name if reverse geocoding fails
-                 fetchWeather(lat, lon, "Aktueller Standort");
+                 locationInput.val("Aktueller Standort"); // Show default name in input
+                 fetchWeather(lat, lon, "Aktueller Standort"); // Fetch weather with default name
             });
     }
 
@@ -343,7 +340,6 @@ $(document).ready(function() {
 
         // Datum aktualisieren
         const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
          const formattedDate = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }); // Format: Dienstag, 22. April
         date.text(formattedDate);
 
@@ -358,75 +354,86 @@ $(document).ready(function() {
     function mapWeatherCodeToVisuals(code) {
         let theme = 'sun'; // Default
         let summaryText = 'Unbekannt';
+        let windSpeed = 0.5; // Default wind
+        let rainCount = 0;
+        let snowCount = 0;
+        let leafCount = 0; // Reset leaf count
+
 
         // Mapping basierend auf WMO Weather interpretation codes (Open-Meteo Docs)
         switch (code) {
-            case 0: theme = 'sun'; summaryText = 'Klarer Himmel'; break;
-            case 1: theme = 'sun'; summaryText = 'Meist klar'; break; // Slightly different text, same visual
-            case 2: theme = 'overcast'; summaryText = 'Teilweise bewölkt'; break; // Use overcast visual
-            case 3: theme = 'overcast'; summaryText = 'Bedeckt'; break;
-            case 45: theme = 'overcast'; summaryText = 'Nebel'; break; // Use overcast visual for fog
-            case 48: theme = 'overcast'; summaryText = 'Reifnebel'; break; // Use overcast visual for fog
-            case 51: theme = 'rain'; summaryText = 'Leichter Nieselregen'; settings.rainCount = 5; break; // Less rain
-            case 53: theme = 'rain'; summaryText = 'Mäßiger Nieselregen'; settings.rainCount = 10; break;
-            case 55: theme = 'rain'; summaryText = 'Starker Nieselregen'; settings.rainCount = 20; break;
-            case 56: theme = 'snow'; summaryText = 'Leichter gefrierender Nieselregen'; settings.snowCount = 10; break; // Use snow
-            case 57: theme = 'snow'; summaryText = 'Dichter gefrierender Nieselregen'; settings.snowCount = 20; break; // Use snow
-            case 61: theme = 'rain'; summaryText = 'Leichter Regen'; settings.rainCount = 10; break;
-            case 63: theme = 'rain'; summaryText = 'Mäßiger Regen'; settings.rainCount = 30; break;
-            case 65: theme = 'rain'; summaryText = 'Starker Regen'; settings.rainCount = 60; break;
-            case 66: theme = 'snow'; summaryText = 'Leichter gefrierender Regen'; settings.snowCount = 20; break; // Use snow
-            case 67: theme = 'snow'; summaryText = 'Starker gefrierender Regen'; settings.snowCount = 40; break; // Use snow
-            case 71: theme = 'snow'; summaryText = 'Leichter Schneefall'; settings.snowCount = 15; break;
-            case 73: theme = 'snow'; summaryText = 'Mäßiger Schneefall'; settings.snowCount = 30; break;
-            case 75: theme = 'snow'; summaryText = 'Starker Schneefall'; settings.snowCount = 50; break;
-            case 77: theme = 'snow'; summaryText = 'Schneegriesel'; settings.snowCount = 20; break;
-            case 80: theme = 'rain'; summaryText = 'Leichte Regenschauer'; settings.rainCount = 15; break;
-            case 81: theme = 'rain'; summaryText = 'Mäßige Regenschauer'; settings.rainCount = 35; break;
-            case 82: theme = 'rain'; summaryText = 'Heftige Regenschauer'; settings.rainCount = 60; break;
-            case 85: theme = 'snow'; summaryText = 'Leichte Schneeschauer'; settings.snowCount = 20; break;
-            case 86: theme = 'snow'; summaryText = 'Starke Schneeschauer'; settings.snowCount = 40; break;
-            case 95: theme = 'thunder'; summaryText = 'Gewitter'; settings.rainCount = 40; break; // Thunderstorm + rain
-            case 96: theme = 'thunder'; summaryText = 'Gewitter mit leichtem Hagel'; settings.rainCount = 50; break; // Thunderstorm + rain
-            case 99: theme = 'thunder'; summaryText = 'Gewitter mit starkem Hagel'; settings.rainCount = 60; break; // Thunderstorm + rain
-            default: theme = 'overcast'; summaryText = 'Bedeckt'; break; // Fallback
+            case 0: theme = 'sun'; summaryText = 'Klarer Himmel'; windSpeed = 10; break;
+            case 1: theme = 'sun'; summaryText = 'Meist klar'; windSpeed = 8; break; // Slightly less wind
+            case 2: theme = 'overcast'; summaryText = 'Teilweise bewölkt'; windSpeed = 1; break;
+            case 3: theme = 'overcast'; summaryText = 'Bedeckt'; windSpeed = 0.5; break;
+            case 45: theme = 'overcast'; summaryText = 'Nebel'; windSpeed = 0.2; break; // Fog -> less wind visual
+            case 48: theme = 'overcast'; summaryText = 'Reifnebel'; windSpeed = 0.2; break;
+            case 51: theme = 'rain'; summaryText = 'Leichter Nieselregen'; rainCount = 5; break;
+            case 53: theme = 'rain'; summaryText = 'Mäßiger Nieselregen'; rainCount = 10; break;
+            case 55: theme = 'rain'; summaryText = 'Starker Nieselregen'; rainCount = 20; break;
+            case 56: theme = 'snow'; summaryText = 'Leichter gefrierender Nieselregen'; snowCount = 10; break;
+            case 57: theme = 'snow'; summaryText = 'Dichter gefrierender Nieselregen'; snowCount = 20; break;
+            case 61: theme = 'rain'; summaryText = 'Leichter Regen'; rainCount = 10; windSpeed = 1; break;
+            case 63: theme = 'rain'; summaryText = 'Mäßiger Regen'; rainCount = 30; windSpeed = 1.5; break;
+            case 65: theme = 'rain'; summaryText = 'Starker Regen'; rainCount = 60; windSpeed = 2; break;
+            case 66: theme = 'snow'; summaryText = 'Leichter gefrierender Regen'; snowCount = 20; windSpeed = 1; break;
+            case 67: theme = 'snow'; summaryText = 'Starker gefrierender Regen'; snowCount = 40; windSpeed = 1.5; break;
+            case 71: theme = 'snow'; summaryText = 'Leichter Schneefall'; snowCount = 15; windSpeed = 0.5; break;
+            case 73: theme = 'snow'; summaryText = 'Mäßiger Schneefall'; snowCount = 30; windSpeed = 1; break;
+            case 75: theme = 'snow'; summaryText = 'Starker Schneefall'; snowCount = 50; windSpeed = 1.5; break;
+            case 77: theme = 'snow'; summaryText = 'Schneegriesel'; snowCount = 20; break;
+            case 80: theme = 'rain'; summaryText = 'Leichte Regenschauer'; rainCount = 15; windSpeed = 1.5; break;
+            case 81: theme = 'rain'; summaryText = 'Mäßige Regenschauer'; rainCount = 35; windSpeed = 2; break;
+            case 82: theme = 'rain'; summaryText = 'Heftige Regenschauer'; rainCount = 60; windSpeed = 2.5; break;
+            case 85: theme = 'snow'; summaryText = 'Leichte Schneeschauer'; snowCount = 20; windSpeed = 1.5; break;
+            case 86: theme = 'snow'; summaryText = 'Starke Schneeschauer'; snowCount = 40; windSpeed = 2; break;
+            case 95: theme = 'thunder'; summaryText = 'Gewitter'; rainCount = 40; windSpeed = 2.5; break;
+            case 96: theme = 'thunder'; summaryText = 'Gewitter mit leichtem Hagel'; rainCount = 50; windSpeed = 3; break;
+            case 99: theme = 'thunder'; summaryText = 'Gewitter mit starkem Hagel'; rainCount = 60; windSpeed = 3.5; break;
+            default: theme = 'overcast'; summaryText = 'Bedeckt'; windSpeed = 0.5; break; // Fallback
         }
 
-        // Optional: Wind hinzufügen (Blätter), wenn Windgeschwindigkeit hoch ist (nicht in current_weather standardmäßig)
-        // Man müsste `windspeed_10m` in der API anfordern und hier prüfen.
-        // if (weatherData.windspeed_10m > 15) { // Beispiel: 15 km/h
-        //    settings.leafCount = 5;
-        // } else {
-        //    settings.leafCount = 0;
-        // }
+        // Optional: Wind (Blätter) - Hier könntest du `weatherData.windspeed_10m` prüfen, falls angefordert
+        // Beispiel: if (weatherData.windspeed_10m > 20 && theme !== 'rain' && theme !== 'snow' && theme !== 'thunder') {
+        //    theme = 'wind'; // Change theme to wind visually
+        //    summaryText = 'Windig'; // Update summary text
+        //    leafCount = 5;
+        //    windSpeed = 3; // Set wind speed for wind theme
+        //}
 
-        applyWeatherVisuals(theme, summaryText);
+        // Anwenden der visuellen Änderungen und Animationen
+        applyWeatherVisuals(theme, summaryText, windSpeed, rainCount, snowCount, leafCount);
     }
 
     function resetVisuals() {
         // Alle Klassen entfernen, die das Wetterthema steuern
         container.removeClass('sun rain snow thunder wind overcast');
-        // Alle Animationszähler auf 0 setzen
-        TweenMax.to(settings, 1, { rainCount: 0, snowCount: 0, leafCount: 0, ease: Power2.easeOut });
-        // Sonne ausblenden
-        TweenMax.to(sun.node, 1, { x: sizes.card.width / 2, y: -100, ease: Power2.easeInOut });
-        TweenMax.to(sunburst.node, 1, { scale: 0.4, opacity: 0, y: sizes.offset.top + (sizes.card.height/2) - 50, ease: Power2.easeInOut }); // Update Y pos
+        // Alle Animationszähler auf 0 setzen und laufende Tweens stoppen
+        gsap.killTweensOf(settings); // Wichtig: Laufende Animationen der Settings stoppen
+        gsap.to(settings, 1, { rainCount: 0, snowCount: 0, leafCount: 0, windSpeed: 0.5, ease: Power2.easeOut }); // Reset settings smoothly
+
+        // Sonne ausblenden und Tweens stoppen
+        gsap.killTweensOf(sun.node);
+        gsap.killTweensOf(sunburst.node);
+        gsap.to(sun.node, 1, { x: sizes.card.width / 2, y: -100, ease: Power2.easeInOut });
+        gsap.to(sunburst.node, 1, { scale: 0.4, opacity: 0, y: sizes.offset.top + (sizes.card.height/2) - 50, ease: Power2.easeInOut });
+
          // Blitz-Timer stoppen
          if (lightningTimeout) clearTimeout(lightningTimeout);
     }
 
-    function applyWeatherVisuals(theme, summaryText) {
+    function applyWeatherVisuals(theme, summaryText, windSpeed, rainCount, snowCount, leafCount) {
         resetVisuals(); // Erst alles zurücksetzen
 
         // Summary Text animieren
-        TweenMax.killTweensOf(summary); // Vorherige Animation stoppen
-        TweenMax.to(summary, 0.1, { // Erst schnell ausblenden
+        gsap.killTweensOf(summary); // Vorherige Animation stoppen // *** KORRIGIERT (gsap statt TweenMax) ***
+        gsap.to(summary, 0.1, { // Erst schnell ausblenden // *** KORRIGIERT (gsap statt TweenMax) ***
             opacity: 0,
             x: -30,
             ease: Power4.easeIn,
             onComplete: function() {
                 summary.html(summaryText); // Text aktualisieren
-                TweenMax.to(summary, 1.5, { // Dann einblenden
+                gsap.to(summary, 1.5, { // Dann einblenden // *** KORRIGIERT (gsap statt TweenMax) ***
                      opacity: 1,
                      x: 0,
                      ease: Power4.easeOut
@@ -438,37 +445,31 @@ $(document).ready(function() {
         container.addClass(theme); // Neue Wetterklasse hinzufügen
 
         // Animationseinstellungen basierend auf dem Thema anpassen
-        switch(theme) {
-            case 'rain':
-                // rainCount wurde schon im Mapping gesetzt, hier nur Wind anpassen
-                TweenMax.to(settings, 3, { windSpeed: 0.5, ease: Power2.easeOut });
-                break;
-            case 'snow':
-                 // snowCount wurde schon im Mapping gesetzt, hier nur Wind anpassen
-                TweenMax.to(settings, 3, { windSpeed: 0.3, ease: Power2.easeOut }); // Slower wind for snow
-                break;
-            case 'thunder':
-                // rainCount wurde schon im Mapping gesetzt
-                TweenMax.to(settings, 3, { windSpeed: 1, ease: Power2.easeInOut }); // Slightly higher wind for storm
-                startLightningTimer();
-                break;
-            case 'sun':
-                TweenMax.to(settings, 3, { windSpeed: 10, ease: Power2.easeInOut }); // More wind for sun effect
-                 // Sonne einblenden
-                 TweenMax.to(sun.node, 4, { x: sizes.card.width / 2, y: sizes.card.height / 2, ease: Power2.easeInOut });
-                 TweenMax.to(sunburst.node, 4, { scale: 1, opacity: 0.8, y: sizes.offset.top + (sizes.card.height / 2), ease: Power2.easeInOut });
-                break;
-             case 'wind': // Falls man Wind explizit mappen will
-                 TweenMax.to(settings, 3, { windSpeed: 3, leafCount: 5, ease: Power2.easeInOut });
-                 break;
-            case 'overcast':
-            default: // Default/Overcast/Fog
-                TweenMax.to(settings, 3, { windSpeed: 0.5, ease: Power2.easeOut });
-                break;
+        // Stoppe vorherige Animationen von 'settings' bevor neue gestartet werden
+        gsap.killTweensOf(settings);
+        gsap.to(settings, 3, { // *** KORRIGIERT (gsap statt TweenMax) ***
+             windSpeed: windSpeed,
+             rainCount: rainCount,
+             snowCount: snowCount,
+             leafCount: leafCount, // Add leaf count here
+             ease: Power2.easeInOut // Use consistent easing
+         });
+
+        // Sonne und Blitz speziell behandeln
+        if (theme === 'sun') {
+             // Sonne einblenden
+             gsap.to(sun.node, 4, { x: sizes.card.width / 2, y: sizes.card.height / 2, ease: Power2.easeInOut }); // *** KORRIGIERT (gsap statt TweenMax) ***
+             gsap.to(sunburst.node, 4, { scale: 1, opacity: 0.8, y: sizes.offset.top + (sizes.card.height / 2), ease: Power2.easeInOut }); // *** KORRIGIERT (gsap statt TweenMax) ***
         }
+         // else part for sun/sunburst is handled by resetVisuals
+
+        if (theme === 'thunder') {
+             startLightningTimer();
+        }
+        // else part for lightning is handled by resetVisuals
     }
 
-    // ------------------- CORE ANIMATION LOGIC (aus CodePen, angepasst) -------------------
+    // ------------------- CORE ANIMATION LOGIC (angepasst auf gsap) -------------------
 
     function drawCloud(cloud, i) {
         var space  = settings.cloudSpace * i;
@@ -490,7 +491,7 @@ $(document).ready(function() {
 
         var path = points.join(' ');
         if(!cloud.path) cloud.path = cloud.group.path();
-        cloud.path.attr({ d: path }); // Animate mit 0 Dauer -> attr
+        cloud.path.attr({ d: path });
     }
 
     function makeRain() {
@@ -498,9 +499,11 @@ $(document).ready(function() {
         var lineWidth = Math.random() * 3;
         var lineLength = isThunder ? 35 : 14;
         var x = Math.random() * (sizes.card.width - 40) + 20;
-        var holder = this['innerRainHolder' + (3 - Math.floor(lineWidth))];
-        // Check if holder exists before creating path
-         if (!holder || !holder.path) return;
+        // Dynamically get holder based on width
+        var holderIndex = 3 - Math.floor(lineWidth);
+        var holder = window['innerRainHolder' + holderIndex]; // Access global var
+
+        if (!holder || typeof holder.path !== 'function') return; // Check if holder and path method exist
 
         var line = holder.path('M0,0 0,' + lineLength).attr({
             fill: 'none',
@@ -510,13 +513,13 @@ $(document).ready(function() {
 
         rain.push(line);
 
-        TweenMax.fromTo(line.node, 1, {x: x, y: 0 - lineLength}, {delay: Math.random(), y: sizes.card.height, ease: Power2.easeIn, onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, isThunder]});
+        gsap.fromTo(line.node, 1, {x: x, y: 0 - lineLength}, {delay: Math.random(), y: sizes.card.height, ease: Power2.easeIn, onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, isThunder]}); // *** KORRIGIERT (gsap statt TweenMax) ***
     }
 
     function onRainEnd(line, width, x, isThunder) {
-        if (line && line.remove) line.remove(); // Sicherstellen, dass line existiert
+        if (line && typeof line.remove === 'function') line.remove();
         line = null;
-        rain = rain.filter(item => item && item.paper); // Bereinigen
+        rain = rain.filter(item => item && item.paper);
 
         if(rain.length < settings.rainCount) {
             makeRain();
@@ -524,8 +527,8 @@ $(document).ready(function() {
         }
     }
 
-    function makeSplash(x, isThunder) {
-        var type = isThunder ? 'thunder' : 'rain'; // Use string type
+     function makeSplash(x, isThunder) {
+        var type = isThunder ? 'thunder' : 'rain';
         var splashLength = type === 'thunder' ? 30 : 20;
         var splashBounce = type === 'thunder' ? 120 : 100;
         var splashDistance = 80;
@@ -538,8 +541,7 @@ $(document).ready(function() {
         points.push('Q' + randomX + ',' + splashUp);
         points.push((randomX * 2) + ',' + splashDistance);
 
-        // Check if outerSplashHolder exists
-         if (!outerSplashHolder || !outerSplashHolder.path) return;
+        if (!outerSplashHolder || typeof outerSplashHolder.path !== 'function') return;
 
         var splash = outerSplashHolder.path(points.join(' ')).attr({
             fill: "none",
@@ -547,71 +549,99 @@ $(document).ready(function() {
             strokeWidth: 1
         });
 
-        var pathLength = splash.getTotalLength(); // Use Snap's method directly
-        // Verwende die gespeicherten Offsets
+        var pathLength;
+        try {
+            pathLength = splash.getTotalLength(); // Can throw error if path is degenerate
+        } catch (e) {
+            console.error("Error getting path length for splash:", e);
+            if (splash && typeof splash.remove === 'function') splash.remove();
+            return; // Don't animate if length is invalid
+        }
+
         var xOffset = sizes.offset.left;
         var yOffset = sizes.offset.top + sizes.card.height;
 
-        splash.node.style.strokeDasharray = pathLength + ' ' + pathLength;
+        if (splash.node) { // Ensure node exists
+            splash.node.style.strokeDasharray = pathLength + ' ' + pathLength;
 
-        TweenMax.fromTo(splash.node, speed,
-           { strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength }, // x adjusted for card offset
-           { strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease:  SlowMo.ease.config(0.4, 0.1, false) }
-        );
+             gsap.fromTo(splash.node, speed, // *** KORRIGIERT (gsap statt TweenMax) ***
+               { strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength },
+               { strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease:  SlowMo.ease.config(0.4, 0.1, false) }
+             );
+         } else {
+             // If node doesn't exist somehow, attempt removal
+             if (splash && typeof splash.remove === 'function') splash.remove();
+         }
     }
 
     function onSplashComplete(splash) {
-        if (splash && splash.remove) splash.remove();
+        if (splash && typeof splash.remove === 'function') splash.remove();
         splash = null;
     }
 
-    function makeLeaf() {
+     function makeLeaf() {
         var scale = 0.5 + (Math.random() * 0.5);
         var newLeaf;
         var areaY = sizes.card.height / 2;
         var y = areaY + (Math.random() * areaY);
-        var endY = y - ((Math.random() * (areaY * 2)) - areaY);
+        var endY = y - ((Math.random() * (areaY * 2)) - areaY)
         var x, endX, xBezier;
         var colors = ['#76993E', '#4A5E23', '#6D632F'];
         var color = colors[Math.floor(Math.random() * colors.length)];
 
-        if (scale > 0.8) { // Outside leaf
-             // Check if outerLeafHolder exists
-             if (!outerLeafHolder || !outerLeafHolder.group) return; // Check group existence
-            newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
-            // Verwende die gespeicherten Offsets
+        var targetHolder; // Decide where the leaf goes
+
+        if (scale > 0.8 && outerLeafHolder && typeof outerLeafHolder.group === 'object') { // Outside leaf
+            targetHolder = outerLeafHolder;
             y = y + sizes.offset.top / 2;
             endY = endY + sizes.offset.top / 2;
-            x = sizes.offset.left + sizes.card.width; // Start right of the card
-            xBezier = x + (sizes.container.width - x) / 2; // Bezier point between start and edge
-            endX = sizes.container.width + 50; // Fly off screen right
-
-             // Apply mask
-             newLeaf.attr({'clip-path': leafMask}); // Apply mask to outer leaves
-
-
-        } else { // Inside leaf
-             // Check if innerLeafHolder exists
-             if (!innerLeafHolder || !innerLeafHolder.group) return; // Check group existence
-            newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color });
-            x = -100; // Start left of the card
+            x = sizes.offset.left + sizes.card.width;
+            xBezier = x + (sizes.container.width - x) / 2;
+            endX = sizes.container.width + 50;
+        } else if (innerLeafHolder && typeof innerLeafHolder.group === 'object') { // Inside leaf
+            targetHolder = innerLeafHolder;
+            x = -100;
             xBezier = sizes.card.width / 2;
-            endX = sizes.card.width + 50; // Fly off screen right (relative to card)
+            endX = sizes.card.width + 50;
+        } else {
+            return; // No valid holder found
+        }
+
+         // Clone leaf and append to the chosen holder
+         try {
+            newLeaf = leaf.clone();
+            if (targetHolder && typeof targetHolder.append === 'function') { // Check if append method exists
+                targetHolder.append(newLeaf);
+            } else {
+                 console.error("Target holder cannot append:", targetHolder);
+                 return;
+            }
+            newLeaf.attr({ fill: color }); // Set color after appending
+         } catch (e) {
+             console.error("Error cloning/appending leaf:", e);
+             return;
+         }
+
+
+        // Apply mask if it's an outer leaf
+        if (targetHolder === outerLeafHolder && leafMask) {
+            newLeaf.attr({'clip-path': leafMask});
         }
 
         leafs.push(newLeaf);
 
         var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}];
-        TweenMax.fromTo(newLeaf.node, 2 + Math.random()*2, // Slower leaves
+        gsap.fromTo(newLeaf.node, 2 + Math.random()*2, // *** KORRIGIERT (gsap statt TweenMax) ***
              { rotation: Math.random()* 180, x: x, y: y, scale:scale },
              { rotation: Math.random()* 360, bezier: bezier, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: Power0.easeIn }
         );
     }
 
+
     function onLeafEnd(leafToRemove) {
-        if (leafToRemove && leafToRemove.remove) leafToRemove.remove();
+        if (leafToRemove && typeof leafToRemove.remove === 'function') leafToRemove.remove();
         leafToRemove = null;
-        leafs = leafs.filter(item => item && item.paper); // Bereinigen
+        leafs = leafs.filter(item => item && item.paper);
 
         if(leafs.length < settings.leafCount) {
             makeLeaf();
@@ -622,36 +652,42 @@ $(document).ready(function() {
         var scale = 0.5 + (Math.random() * 0.5);
         var newSnow;
         var x = 20 + (Math.random() * (sizes.card.width - 40));
-        var y = -10; // Start above card
+        var y = -10;
         var endY;
+        var targetHolder;
 
-
-        if (scale > 0.8) { // Outside snow (less frequent)
-            // Check if outerSnowHolder exists
-             if (!outerSnowHolder || !outerSnowHolder.circle) return;
-            newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' });
-            endY = sizes.container.height + 10; // Fall to bottom of screen
-             // Verwende die gespeicherten Offsets
-            y = sizes.offset.top + settings.cloudHeight; // Start near clouds
-            x = x + sizes.offset.left; // Adjust x based on card position
-        } else { // Inside snow
-            // Check if innerSnowHolder exists
-            if (!innerSnowHolder || !innerSnowHolder.circle) return;
-            newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' });
-            endY = sizes.card.height + 10; // Fall to bottom of card
+        if (scale > 0.8 && outerSnowHolder && typeof outerSnowHolder.circle === 'function') { // Outside snow
+            targetHolder = outerSnowHolder;
+            endY = sizes.container.height + 10;
+            y = sizes.offset.top + settings.cloudHeight;
+            x = x + sizes.offset.left;
+        } else if (innerSnowHolder && typeof innerSnowHolder.circle === 'function') { // Inside snow
+            targetHolder = innerSnowHolder;
+            endY = sizes.card.height + 10;
+        } else {
+            return; // No valid holder
         }
+
+        try {
+            newSnow = targetHolder.circle(0, 0, 5).attr({ fill: 'white' });
+        } catch(e) {
+            console.error("Error creating snow circle:", e);
+            return;
+        }
+
 
         snow.push(newSnow);
 
-        TweenMax.fromTo(newSnow.node, 3 + (Math.random() * 5), {x: x, y: y}, {y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn});
-        TweenMax.fromTo(newSnow.node, 1,{scale: 0}, {scale: scale, ease: Power1.easeInOut});
-        TweenMax.to(newSnow.node, 3, {x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: Power1.easeInOut}); // Side to side drift
+        gsap.fromTo(newSnow.node, 3 + (Math.random() * 5), {x: x, y: y}, {y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: Power0.easeIn}); // *** KORRIGIERT (gsap statt TweenMax) ***
+        gsap.fromTo(newSnow.node, 1,{scale: 0}, {scale: scale, ease: Power1.easeInOut}); // *** KORRIGIERT (gsap statt TweenMax) ***
+        gsap.to(newSnow.node, 3, {x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: Power1.easeInOut}); // *** KORRIGIERT (gsap statt TweenMax) ***
     }
 
+
     function onSnowEnd(flake) {
-        if (flake && flake.remove) flake.remove();
+        if (flake && typeof flake.remove === 'function') flake.remove();
         flake = null;
-        snow = snow.filter(item => item && item.paper); // Bereinigen
+        snow = snow.filter(item => item && item.paper);
 
         if(snow.length < settings.snowCount) {
             makeSnow();
@@ -660,15 +696,14 @@ $(document).ready(function() {
 
     function startLightningTimer() {
         if(lightningTimeout) clearTimeout(lightningTimeout);
-        // Only start if container has thunder class
         if(container.hasClass('thunder')) {
-            lightningTimeout = setTimeout(lightning, Math.random()*6000 + 1000); // Wait at least 1 sec
+            lightningTimeout = setTimeout(lightning, Math.random()*6000 + 1000);
         }
     }
 
     function lightning() {
-        startLightningTimer(); // Schedule next one
-        TweenMax.fromTo(card, 0.75, {y: -30}, {y:0, ease:Elastic.easeOut});
+        startLightningTimer();
+        gsap.fromTo(card, 0.75, {y: -30}, {y:0, ease:Elastic.easeOut}); // *** KORRIGIERT (gsap statt TweenMax) ***
 
         var pathX = 30 + Math.random() * (sizes.card.width - 60);
         var yOffset = 20;
@@ -676,21 +711,27 @@ $(document).ready(function() {
         var points = [pathX + ',0'];
         for(var i = 0; i < steps; i++) {
             var x = pathX + (Math.random() * yOffset - (yOffset / 2));
-            var y = (sizes.card.height / steps) * (i + 1);
+            var y = (sizes.card.height / steps) * (i + 1)
             points.push(x + ',' + y);
         }
 
-        // Check if innerLightningHolder exists
-         if (!innerLightningHolder || !innerLightningHolder.path) return;
+        if (!innerLightningHolder || typeof innerLightningHolder.path !== 'function') return;
 
-        var strike = innerLightningHolder.path('M' + points.join(' '))
-        .attr({
-            fill: 'none',
-            stroke: 'white',
-            strokeWidth: 2 + Math.random()
-        });
+        var strike;
+        try {
+             strike = innerLightningHolder.path('M' + points.join(' '))
+             .attr({
+                 fill: 'none',
+                 stroke: 'white',
+                 strokeWidth: 2 + Math.random()
+             });
+        } catch (e) {
+             console.error("Error creating lightning strike path:", e);
+             return;
+        }
 
-        TweenMax.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ if(strike && strike.remove) strike.remove(); strike = null; }});
+
+        gsap.to(strike.node, 1, {opacity: 0, ease:Power4.easeOut, onComplete: function(){ if(strike && typeof strike.remove === 'function') strike.remove(); strike = null; }}); // *** KORRIGIERT (gsap statt TweenMax) ***
     }
 
 
@@ -698,8 +739,7 @@ $(document).ready(function() {
         tickCount++;
         var check = tickCount % settings.renewCheck;
 
-        if (check === 0) { // Make check explicit comparison
-            // Only create if count is > 0 and current number is less than target
+        if (check === 0) {
             if(settings.rainCount > 0 && rain.length < settings.rainCount) makeRain();
             if(settings.leafCount > 0 && leafs.length < settings.leafCount) makeLeaf();
             if(settings.snowCount > 0 && snow.length < settings.snowCount) makeSnow();
@@ -707,33 +747,30 @@ $(document).ready(function() {
 
         // Cloud Animation
         for(var i = 0; i < clouds.length; i++) {
-            if (!clouds[i] || !clouds[i].group) continue; // Skip if cloud group doesn't exist
+            if (!clouds[i] || !clouds[i].group || typeof clouds[i].group.transform !== 'function') continue; // Check if group and transform exist
 
             var cloud = clouds[i];
             var divisor = (i + 1);
             var speed = settings.windSpeed / divisor;
 
-            // Invert direction for sun to match original if needed, or keep consistent
-             // var direction = container.hasClass('sun') ? -1 : 1;
-             // cloud.offset += speed * direction;
-             cloud.offset += speed; // Consistent direction
+            cloud.offset += speed;
 
-
-            // Cloud looping logic
-             var cloudWidth = sizes.card.width * 2; // Estimated width of the drawable cloud path part
+            var cloudWidth = sizes.card.width * 2;
              if (settings.windSpeed > 0 && cloud.offset > sizes.card.width + cloudWidth / 2) {
-                  // Moved past the right edge, wrap around to the left
                   cloud.offset -= (cloudWidth + sizes.card.width);
               } else if (settings.windSpeed < 0 && cloud.offset < -(cloudWidth / 2)) {
-                  // Moved past the left edge (if wind reversed), wrap around to the right
                   cloud.offset += (cloudWidth + sizes.card.width);
               }
 
-
-            cloud.group.transform('t' + cloud.offset + ',' + 0);
+             // Apply transformation using Snap SVG's transform method
+             try {
+                 clouds[i].group.transform('t' + cloud.offset + ',' + 0);
+             } catch (e) {
+                 console.error("Error transforming cloud:", e, clouds[i].group);
+             }
         }
 
-        requestAnimationFrame(tick); // Continue the loop
+        requestAnimationFrame(tick);
     }
 
     // App initialisieren
