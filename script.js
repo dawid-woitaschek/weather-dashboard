@@ -9,9 +9,6 @@ var date = $('#date');
 var temp = $('.temp');
 var locationNameElement = $('#location-name'); // Referenz Ortsname
 
-// *** NEU: Schalter für Wetter-Buttons ***
-const showWeatherButtons = true; // Auf 'false' setzen, um die Buttons auszublenden
-
 // *** NEU: Referenzen für Suche ***
 var searchContainer = $('#location-search-container');
 var searchInput = $('#location-search-input');
@@ -163,18 +160,6 @@ function updateDate() { const now = new Date(); const options = { weekday: 'long
 // ⚙ initialize app (aus Ur-Fassung, angepasst für fetchWeatherData)
 function init() {
     console.log("0. init() called"); // Log 0
-
-    // *** NEU: Logik zum Ausblenden der Buttons ***
-    if (!showWeatherButtons) {
-        container.addClass('weather-buttons-hidden'); // Füge Klasse zum Container hinzu
-        console.log("Weather buttons hidden via class.");
-    } else {
-        // Optional: Sicherstellen, dass die Klasse nicht vorhanden ist (falls Zustand dynamisch geändert werden soll)
-        // container.removeClass('weather-buttons-hidden');
-        console.log("Weather buttons shown.");
-    }
-    // *** Ende NEU ***
-
     onResize();
     console.log("0a. onResize finished.");
     for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
@@ -213,7 +198,7 @@ function onResize() {
 	if (outerSVG) outerSVG.attr({ width: sizes.container.width, height: sizes.container.height });
 	if (backSVG) backSVG.attr({ width: sizes.container.width, height: sizes.container.height });
 	if (sunburst && sunburst.node) {
-        gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0)}); // Offset Check
+        gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
         if (!gsap.isTweening(sunburst.node)) { gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"}); }
     }
     if (leafMask && sizes.card.offset) { // Sicherstellen, dass offset existiert
@@ -279,6 +264,14 @@ function changeWeather(weatherData) {
     var newWeather = weatherData.data ? weatherData.data : weatherData;
     if (!newWeather || !newWeather.type) { console.error("changeWeather called with invalid data:", weatherData); return; } // Added check
 
+    // Optional: Check if already changing to this weather to prevent issues
+    // if (container.hasClass(newWeather.type)) {
+    //     console.log("Already changing to or is:", newWeather.type);
+    //     // Potentially just update text if needed
+    //     if (summary.html() !== newWeather.name) { updateSummaryText(); }
+    //     return;
+    // }
+
 	reset();
 	currentWeather = newWeather;
 
@@ -316,4 +309,4 @@ function changeWeather(weatherData) {
 }
 
 // Initialisierung starten, wenn das Dokument bereit ist
-$(document).ready(init);
+$(document).ready(init); // Sicherstellen, dass init erst aufgerufen wird, wenn DOM bereit ist

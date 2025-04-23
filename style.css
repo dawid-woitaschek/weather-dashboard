@@ -88,6 +88,8 @@ body {
     justify-content: center;
     margin-left: 8px; /* Abstand zum Input */
     padding: 0; /* Kein Innenabstand */
+    /* Übergang für Hover-Effekt (optional, falls Button selbst Effekte hätte) */
+    /* transition: background-color 0.2s ease; */
 }
 
 /* *** NEU: Stile für das SVG im Geolocation Button *** */
@@ -102,6 +104,12 @@ body {
 #geolocation-button:hover svg {
     fill: #333; /* Dunklere Farbe bei Hover */
 }
+/* Alte Hover-Regel entfernt/auskommentiert:
+#geolocation-button:hover {
+    background-color: #d0d0d0;
+    color: #333;
+}
+*/
 
 #location-suggestions {
     display: none;
@@ -136,15 +144,9 @@ body {
 }
 /* *** Ende Stile Ortssuche *** */
 
-/* *** NEU: Regel zum Ausblenden der Wetter-Buttons *** */
-.container.weather-buttons-hidden nav {
-    display: none; /* Blendet das Element aus und entfernt es aus dem Layoutfluss */
-}
-/* *** Ende NEU *** */
-
 
 nav ul {
-    margin: 0 20px 20px 20px; /* Margin unten hinzugefügt für Abstand zur Karte */
+    margin: 0 20px 0 20px;
     list-style-type: none;
     padding: 0;
     display: flex;
@@ -170,7 +172,7 @@ nav li a.active {
     padding: 0;
     height: 400px;
     min-height: 300px;
-    margin: 0 20px 20px 20px; /* Oben Margin entfernt, da Abstand von nav oder Suche kommt */
+    margin: 20px;
     border-radius: 5px;
     position: relative;
 }
@@ -202,7 +204,7 @@ nav li a.active {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px; /* Breite begrenzen */
+    max-width: 150px;
 }
 #card .details #date {
     margin: 4px 0;
@@ -242,9 +244,6 @@ nav li a.active {
 .cloudy .weather {
     background-color: #b0b8c9;
 }
-/* Wind/Fog hat keine eigene Klasse, nutzt Standard oder cloudy? */
-/* Schnee hat keine eigene Klasse, nutzt Standard oder cloudy? */
-
 
 .weather #inner {
     background-color: rgba(255, 255, 255, 1);
@@ -291,7 +290,6 @@ nav li a.active {
 .cloudy .weather #cloud3 {
     fill: #88909f;
 }
-/* Farben für andere Zustände könnten hier hinzugefügt werden */
 
 
 #outer, #back {
