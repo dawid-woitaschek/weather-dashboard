@@ -12,7 +12,7 @@ var navElement = $('nav'); // *** NEU: Referenz für Navigationsleiste ***
 
 // *** NEU: Schalter zum Ein-/Ausblenden der Wetter-Buttons ***
 // Setze auf true, um die Buttons anzuzeigen, auf false, um sie auszublenden.
-const showWeatherButtons = true;
+const showWeatherButtons = false;
 
 // *** NEU: Referenzen für Suche ***
 var searchContainer = $('#location-search-container');
