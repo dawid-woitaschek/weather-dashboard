@@ -55,9 +55,9 @@ var sizes = {
 
 // grab cloud groups
 var clouds = [
-	{group: Snap.select('#cloud1')},
-	{group: Snap.select('#cloud2')},
-	{group: Snap.select('#cloud3')}
+	{group: Snap.select('#cloud1'), offset: 0}, // Offset hier initialisieren
+	{group: Snap.select('#cloud2'), offset: 0},
+	{group: Snap.select('#cloud3'), offset: 0}
 ]
 
 // set weather types ☁️ 🌬 🌧 ⛈ ☀️
@@ -77,13 +77,13 @@ var currentLocationName = "Dortmund"; // Default Name
 // 🛠 app settings
 var settings = {
 	windSpeed: 2,
-	rainCount: 0,
+	rainCount: 0, // Wird eher als Wahrscheinlichkeit/Intensität genutzt
 	leafCount: 0,
 	snowCount: 0,
 	cloudHeight: 100,
 	cloudSpace: 30,
 	cloudArch: 50,
-	renewCheck: 10,
+	renewCheck: 10, // Intervall für Partikel-Check in Ticks
 	splashBounce: 80
 };
 
@@ -160,7 +160,7 @@ function displaySuggestions(results) {
         return scoreB - scoreA;
     });
 
-    console.log("Sorted Geocoding Data:", results);
+    // console.log("Sorted Geocoding Data:", results); // Optional für Debugging
 
     // --- Deduplizierung ---
     const uniqueLocations = [];
@@ -176,11 +176,11 @@ function displaySuggestions(results) {
             uniqueLocations.push(location);
             seenKeys.add(key);
         } else {
-            console.log("Duplicate removed:", location.name, location.country_code);
+            // console.log("Duplicate removed:", location.name, location.country_code); // Optional für Debugging
         }
     });
 
-    console.log("Unique Geocoding Data:", uniqueLocations);
+    // console.log("Unique Geocoding Data:", uniqueLocations); // Optional für Debugging
 
 
     // --- Vorschläge anzeigen (max 10) ---
@@ -218,8 +218,7 @@ function displaySuggestions(results) {
 
             fetchWeatherData(lat, lon, name); // Wetter für gewählten Ort holen
 
-            searchInput.val(name); // Input mit gewähltem Namen füllen (optional)
-            // searchInput.val(''); // Oder Input leeren
+            searchInput.val(name); // Input mit gewähltem Namen füllen
             suggestionsContainer.empty().hide(); // Vorschläge ausblenden
         });
 
@@ -231,7 +230,7 @@ function displaySuggestions(results) {
 // *** MODIFIZIERT: Funktion zum Abrufen der Wetterdaten (akzeptiert Parameter) ***
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
     // API URL dynamisch bauen
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
     console.log("Requesting Weather URL:", weatherApiUrl);
 
     // Ortsnamen im UI aktualisieren
@@ -260,7 +259,7 @@ function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standor
                     changeWeather(targetWeather); // Wetteranzeige aktualisieren
                 } else {
                     console.warn("Unbekannter Wettercode:", weatherCode);
-                    changeWeather(weather.find(w => w.type === 'sun')); // Fallback
+                    changeWeather(weather.find(w => w.type === 'cloudy')); // Sicherer Fallback: Bewölkt
                 }
 
             } else {
@@ -424,11 +423,14 @@ function init()
 		b.bind('click', w, changeWeather);
 	}
 
-	// ☁️ draw clouds
+	// ☁️ draw clouds and set initial offset
 	for(var i = 0; i < clouds.length; i++)
 	{
-		clouds[i].offset = Math.random() * sizes.card.width;
-		drawCloud(clouds[i], i);
+        if (clouds[i] && clouds[i].group) { // Sicherstellen, dass die Gruppe existiert
+		    clouds[i].offset = Math.random() * sizes.card.width; // Start-Offset
+		    drawCloud(clouds[i], i);
+            gsap.set(clouds[i].group.node, { x: clouds[i].offset }); // Initiale Position setzen
+        }
 	}
 
     // *** MODIFIZIERT: Wetter für Default-Ort holen ***
@@ -439,46 +441,57 @@ function init()
 
 function onResize()
 {
+    // Update sizes
 	sizes.container.width = container.width();
 	sizes.container.height = container.height();
 	sizes.card.width = card.width();
 	sizes.card.height = card.height();
 	sizes.card.offset = card.offset();
 
+    // Update SVG dimensions
 	innerSVG.attr({
 		width: sizes.card.width,
 		height: sizes.card.height
 	})
-
 	outerSVG.attr({
 		width: sizes.container.width,
 		height: sizes.container.height
 	})
-
 	backSVG.attr({
 		width: sizes.container.width,
 		height: sizes.container.height
 	})
 
+    // Update Sunburst position and animation
 	gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
-	gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"});
+	// Nur neu starten, wenn noch keine Animation läuft oder Parameter sich ändern
+    if (!gsap.isTweening(sunburst.node)) {
+	    gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"});
+    }
 
-	// LeafMask muss die gesamte Breite abdecken, beginnend links von der Karte
-    // Korrektur: Die Maske sollte links von der Karte beginnen und den Rest des Containers abdecken
-    var maskX = sizes.card.offset.left + sizes.card.width; // Start rechts von der Karte
-    var maskWidth = sizes.container.width - maskX; // Breite bis zum rechten Rand
-    if (maskWidth < 0) maskWidth = 0; // Sicherstellen, dass die Breite nicht negativ ist
-
+	// Update LeafMask position and dimensions
+    var maskX = sizes.card.offset.left + sizes.card.width;
+    var maskWidth = sizes.container.width - maskX;
+    if (maskWidth < 0) maskWidth = 0;
     leafMask.attr({
         x: maskX,
-        y: 0, // Oben beginnen
+        y: 0,
         width: maskWidth,
-        height: sizes.container.height // Volle Höhe
+        height: sizes.container.height
     });
+
+    // Redraw clouds with new dimensions (optional, usually not needed unless card size changes drastically)
+    // for(var i = 0; i < clouds.length; i++) {
+    //     if (clouds[i] && clouds[i].group) {
+    //         drawCloud(clouds[i], i);
+    //     }
+    // }
 }
 
 function drawCloud(cloud, i)
 {
+    if (!cloud || !cloud.group) return; // Abbruch, wenn ungültig
+
 	var space  = settings.cloudSpace * i;
 	var height = space + settings.cloudHeight;
 	var arch = height + settings.cloudArch + (Math.random() * settings.cloudArch);
@@ -497,10 +510,8 @@ function drawCloud(cloud, i)
 	points.push([-(width), 0].join(','));
 
 	var path = points.join(' ');
-	if(!cloud.path) cloud.path = cloud.group.path();
-	cloud.path.animate({
-  		d: path
-	}, 0)
+	if(!cloud.path) cloud.path = cloud.group.path(); // Pfad erstellen, wenn nicht vorhanden
+	cloud.path.attr({ d: path }); // Pfad aktualisieren (keine Animation hier nötig)
 }
 
 function makeRain()
@@ -520,22 +531,27 @@ function makeRain()
     else if (lineWidth < 2) holder = innerRainHolder2;
     else holder = innerRainHolder3;
 
+    if (!holder) return; // Sicherheitshalber
+
 	var line = holder.path('M0,0 0,' + lineLength).attr({
 		fill: 'none',
 		stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff', // Farbe anpassen?
 		strokeWidth: lineWidth,
-        transform: 't' + x + ',' + y // Startposition setzen
+        // Startposition direkt via GSAP setzen
 	});
 
 	rain.push(line);
-	gsap.to(line.node, {
-        duration: 1,
-        delay: Math.random() * 0.5, // Leichte Verzögerung
-        y: sizes.card.height + lineLength, // Endposition unterhalb der Karte
-        ease: "power1.in", // Beschleunigen
-        onComplete: onRainEnd,
-        onCompleteParams: [line, lineWidth, x, currentWeather.type]
-    });
+	gsap.fromTo(line.node,
+        { x: x, y: y }, // Startposition
+        {
+            duration: 1,
+            delay: Math.random() * 0.5, // Leichte Verzögerung
+            y: sizes.card.height + lineLength, // Endposition unterhalb der Karte
+            ease: "power1.in", // Beschleunigen
+            onComplete: onRainEnd,
+            onCompleteParams: [line, lineWidth, x, currentWeather.type]
+        }
+    );
 }
 
 function onRainEnd(line, width, x, type)
@@ -548,12 +564,7 @@ function onRainEnd(line, width, x, type)
     // Array säubern (effizienter als splice in loop)
     rain = rain.filter(item => item !== null && item.paper); // Behalte nur gültige Elemente
 
-	// Nur wenn nötig, neuen Regen erzeugen (wird jetzt in tick() gesteuert)
-	// if(rain.length < settings.rainCount) {
-	// 	makeRain();
-	// 	if(width > 2) makeSplash(x, type);
-	// }
-    // Stattdessen: Splash hier auslösen, wenn die Breite passt
+    // Splash hier auslösen, wenn die Breite passt
     if (width > 2) {
         makeSplash(x, type);
     }
@@ -598,7 +609,6 @@ function makeSplash(x, type)
         strokeWidth: 0, // Gleichzeitig dünner werden
         opacity: 0, // Ausblenden am Ende
         transformOrigin: "50% 100%", // Skalierung vom Boden aus (optional)
-        // scaleY: 0.5, // Optional: Flacher werden
         x: xOffset + x, // Positionieren an der Aufprallstelle
         y: yOffset,
         ease: "power1.out", // Verlangsamen am Ende
@@ -621,10 +631,7 @@ function makeLeaf()
 
 	var scale = 0.5 + (Math.random() * 0.5);
 	var newLeaf;
-	var areaY = sizes.card.height / 2; // Bereich für Start-Y
-	var startY = areaY + (Math.random() * areaY); // Start eher unten
-	var endY = Math.random() * sizes.card.height; // End-Y irgendwo auf der Karte
-	var startX, endX, xBezier;
+	var startY, endY, startX, endX, xBezier;
 
 	var colors = ['#76993E', '#4A5E23', '#6D632F', '#B4A94F']; // Mehr Farben
 	var color = colors[Math.floor(Math.random() * colors.length)];
@@ -632,8 +639,8 @@ function makeLeaf()
 	// Entscheiden, ob Blatt innerhalb oder außerhalb der Karte animiert
 	if (Math.random() > 0.5) { // Außerhalb (von links nach rechts)
 		newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
-		startY = sizes.card.offset.top + Math.random() * sizes.container.height; // Start irgendwo links
-		endY = sizes.card.offset.top + Math.random() * sizes.container.height; // Ende irgendwo rechts
+		startY = sizes.card.offset.top + Math.random() * sizes.container.height; // Start irgendwo links vertikal
+		endY = sizes.card.offset.top + Math.random() * sizes.container.height; // Ende irgendwo rechts vertikal
 		startX = sizes.card.offset.left - 40; // Start links außerhalb
 		endX = sizes.container.width + 40; // Ende rechts außerhalb
         xBezier = startX + (endX - startX) * (0.3 + Math.random() * 0.4); // Bezier-Punkt irgendwo dazwischen
@@ -653,14 +660,15 @@ function makeLeaf()
     gsap.fromTo(newLeaf.node, {
         rotation: Math.random() * 360, // Startrotation
         scale: scale,
-        x: startX, // GSAP braucht Startwerte hier, wenn nicht über MotionPath gesetzt
+        x: startX,
         y: startY
     }, {
         duration: 5 + Math.random() * 5, // Langsamere, variablere Dauer
         rotation: "+=" + (Math.random() * 720 - 360), // Weiterdrehen
         motionPath: {
             path: bezierPath,
-            curviness: 1.5 // Mehr Kurve
+            curviness: 1.5, // Mehr Kurve
+            autoRotate: true // Blatt dreht sich entlang des Pfades
         },
         onComplete: onLeafEnd,
         onCompleteParams: [newLeaf],
@@ -676,8 +684,6 @@ function onLeafEnd(leaf)
     }
 	leaf = null;
     leafs = leafs.filter(item => item !== null && item.paper); // Array säubern
-	// Wird in tick() gesteuert
-    // if(leafs.length < settings.leafCount) { makeLeaf(); }
 }
 
 function makeSnow()
@@ -690,7 +696,7 @@ function makeSnow()
 	var startY = -10; // Start oben
 	var endY;
 
-	// Entscheiden, ob innen oder außen (basierend auf Skalierung -> größere Flocken eher außen?)
+	// Entscheiden, ob innen oder außen
 	if (scale > 0.7 && Math.random() > 0.5) { // Größere Flocke, außen
 		newSnow = outerSnowHolder.circle(0, 0, 4 * scale).attr({ fill: 'white', opacity: 0.8 }); // Größe an scale binden, leicht transparent
 		startY = sizes.card.offset.top - 10; // Start über der Karte
@@ -731,71 +737,78 @@ function onSnowEnd(flake)
     }
 	flake = null;
     snow = snow.filter(item => item !== null && item.paper); // Array säubern
-	// Wird in tick() gesteuert
-    // if(snow.length < settings.snowCount) { makeSnow(); }
 }
 
+// *** ÜBERARBEITET: Tick-Funktion ***
 function tick()
 {
-    if (!currentWeather) {
-        requestAnimationFrame(tick);
+    // Nächsten Frame anfordern
+	requestAnimationFrame(tick);
+
+    // Nur fortfahren, wenn Wetterdaten und Größen vorhanden sind
+    if (!currentWeather || !sizes.card.width) {
         return;
     }
 
 	tickCount++;
-	var check = tickCount % settings.renewCheck; // Prüfintervall
 
     // Erzeuge Partikel basierend auf Wahrscheinlichkeit/Anzahl
-    // Diese Logik stellt sicher, dass nicht bei jedem Tick geprüft wird,
-    // sondern nur, wenn die Anzahl unter dem Ziel liegt UND eine gewisse Wahrscheinlichkeit erfüllt ist.
-    if (rain.length < settings.rainCount && Math.random() < 0.5) makeRain(); // 50% Chance pro Tick, wenn < rainCount
-    if (leafs.length < settings.leafCount && Math.random() < 0.2) makeLeaf(); // 20% Chance pro Tick, wenn < leafCount
-    if (snow.length < settings.snowCount && Math.random() < 0.3) makeSnow(); // 30% Chance pro Tick, wenn < snowCount
+    if (rain.length < settings.rainCount && Math.random() < 0.5) makeRain();
+    if (leafs.length < settings.leafCount && Math.random() < 0.2) makeLeaf();
+    if (snow.length < settings.snowCount && Math.random() < 0.3) makeSnow();
 
 
-	// Wolkenbewegung
+	// Wolkenbewegung (Vereinfacht: Standard-Loop für alle Wettertypen)
 	for(var i = 0; i < clouds.length; i++)
 	{
-        var cloudGroup = clouds[i].group;
-        if (!cloudGroup) continue; // Sicherheitshalber prüfen
+        var cloud = clouds[i];
+        if (!cloud || !cloud.group || !cloud.group.node) continue; // Sicherheitshalber prüfen
 
         var cloudSpeed = settings.windSpeed / (i + 1); // Unterschiedliche Geschwindigkeit pro Wolkenschicht
 
-		if(currentWeather.type == 'sun')
-		{
-            // Bei Sonne: Wolken bewegen sich langsam raus und kommen von der anderen Seite wieder rein
-            // Diese Logik war etwas komplex, vereinfachen wir sie:
-            clouds[i].offset += cloudSpeed * 0.5; // Langsamer bei Sonne
-            if (clouds[i].offset > sizes.card.width * 1.5) { // Wenn weit genug rechts raus
-                 clouds[i].offset = -(sizes.card.width * 1.5); // Ganz links wieder reinsetzen
-            }
-		}
-		else
-		{
-            // Bei anderem Wetter: Normale Bewegung
-			clouds[i].offset += cloudSpeed;
-			if(clouds[i].offset > sizes.card.width) { // Wenn rechts raus
-                clouds[i].offset -= sizes.card.width; // Links wieder rein (nahtloser Loop)
-            }
-		}
-        // Transformation anwenden
-        cloudGroup.transform('t' + clouds[i].offset + ',' + 0);
-	}
+        // Offset aktualisieren
+        cloud.offset += cloudSpeed;
 
-	requestAnimationFrame(tick); // Nächsten Frame anfordern
+        // Loop-Logik: Wenn Wolke rechts aus dem Bild ist, links wieder reinsetzen
+        // Die Breite der Wolke selbst muss berücksichtigt werden (angenommen ca. 2*card.width breit gezeichnet)
+        if (cloud.offset > sizes.card.width + sizes.card.width) { // Wenn der *Anfang* der Wolke weit rechts ist
+             cloud.offset -= (sizes.card.width * 3); // Setze sie weit links zurück (3x Breite)
+        }
+
+        // Transformation anwenden (nur wenn nicht gerade von changeWeather animiert?)
+        // Prüfen, ob eine Animation auf X läuft. Wenn ja, Tick-Update überspringen.
+        if (!gsap.isTweening(cloud.group.node, "x")) {
+            gsap.set(cloud.group.node, { x: cloud.offset });
+        }
+	}
 }
 
-
+// *** ÜBERARBEITET: Reset-Funktion ***
 function reset()
 {
-	for(var i = 0; i < weather.length; i++) {
+	// Alte Wetterklassen entfernen
+    for(var i = 0; i < weather.length; i++) {
 		container.removeClass(weather[i].type);
 		if (weather[i].button) {
 		    weather[i].button.removeClass('active');
 		}
 	}
-    // Aktiven Button auch entfernen, falls er nicht im Array war (z.B. bei API-Wechsel)
+    // Generell aktive Buttons entfernen
     $('nav li a.active').removeClass('active');
+
+    // *** NEU: Wolken-Reset ***
+    // Stoppt laufende Animationen (wichtig für den Wechsel von 'sun')
+    // und setzt sie auf ihre aktuelle Offset-Position zurück.
+    for(var i = 0; i < clouds.length; i++) {
+        var cloud = clouds[i];
+        if (cloud && cloud.group && cloud.group.node) {
+            gsap.killTweensOf(cloud.group.node, "x"); // Nur X-Animation stoppen
+            gsap.set(cloud.group.node, { x: cloud.offset }); // Auf aktuelle Offset-Position setzen
+        }
+    }
+
+    // Blitz-Timer stoppen
+    if(lightningTimeout) clearTimeout(lightningTimeout);
 }
 
 function updateSummaryText()
@@ -852,23 +865,23 @@ function lightning()
     });
 }
 
+// *** ÜBERARBEITET: changeWeather Funktion ***
 function changeWeather(weatherData)
 {
+    var newWeather = weatherData.data ? weatherData.data : weatherData; // Entpacken, falls in data-Objekt
+
     // Verhindert unnötige Animationen, wenn sich nichts ändert
-    if (currentWeather && currentWeather.type === weatherData.type) {
-         // Nur Text aktualisieren, falls nötig
-         if (summary.html() !== weatherData.name) {
+    if (currentWeather && currentWeather.type === newWeather.type) {
+         if (summary.html() !== newWeather.name) {
              gsap.to(summary, {duration: 0.5, opacity: 0, x: -20, onComplete: function() {
-                 summary.html(weatherData.name);
+                 summary.html(newWeather.name);
                  gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power2.out"});
              }, ease: "power2.in"});
          }
         return; // Nichts weiter tun
     }
 
-    var newWeather = weatherData.data ? weatherData.data : weatherData; // Entpacken, falls in data-Objekt
-
-	reset(); // Alte Klassen und aktive Buttons entfernen
+	reset(); // Alte Zustände zurücksetzen (inkl. Wolken-Position/Animation)
 	currentWeather = newWeather; // Globalen Wetterzustand aktualisieren
 
     // Summary Text animieren
@@ -886,35 +899,37 @@ function changeWeather(weatherData)
     // Zielwerte für Animationen basierend auf Wettertyp setzen
 	let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
+    let animateCloudsOut = false; // Flag für Wolken-Animation
 
 	switch(currentWeather.type) {
 		case 'wind':
-            windTarget = 5; rainTarget = 0; leafTarget = 15; snowTarget = 0; // Mehr Wind, mehr Blätter
-            sunXTarget = sizes.card.width / 2; sunYTarget = -150; // Sonne weit weg
+            windTarget = 5; rainTarget = 0; leafTarget = 15; snowTarget = 0;
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
             sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
 			break;
 		case 'sun':
-            windTarget = 2; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Leichter Wind
-            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height * 0.3; // Sonne sichtbar, aber nicht mittig
-            sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height * 0.3) + sizes.card.offset.top; // Sunburst bei der Sonne
+            windTarget = 3; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Normaler Windspeed
+            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height * 0.3;
+            sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height * 0.3) + sizes.card.offset.top;
+            animateCloudsOut = true; // *** NEU: Flag setzen ***
 			break;
         case 'rain':
-            windTarget = 1; rainTarget = 40; leafTarget = 0; snowTarget = 0; // Wenig Wind, viel Regen (rainCount ist eher Wahrscheinlichkeit)
+            windTarget = 1; rainTarget = 40; leafTarget = 0; snowTarget = 0;
             sunXTarget = sizes.card.width / 2; sunYTarget = -150;
             sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'thunder':
-            windTarget = 2; rainTarget = 80; leafTarget = 0; snowTarget = 0; // Mehr Wind, sehr viel Regen
+            windTarget = 2; rainTarget = 80; leafTarget = 0; snowTarget = 0;
             sunXTarget = sizes.card.width / 2; sunYTarget = -150;
             sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'snow':
-            windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 60; // Wenig Wind, viel Schnee
+            windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 60;
             sunXTarget = sizes.card.width / 2; sunYTarget = -150;
             sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'cloudy':
-            windTarget = 1; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Leichter Wind
+            windTarget = 1; rainTarget = 0; leafTarget = 0; snowTarget = 0;
             sunXTarget = sizes.card.width / 2; sunYTarget = -150;
             sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
@@ -934,6 +949,21 @@ function changeWeather(weatherData)
     // GSAP Animationen für Sonne und Sunburst
     gsap.to(sun.node, { duration: 3, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" });
     gsap.to(sunburst.node, { duration: 3, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" });
+
+    // *** NEU: Wolken aus dem Bild animieren, wenn 'sun' ***
+    if (animateCloudsOut) {
+        for(var i = 0; i < clouds.length; i++) {
+            var cloud = clouds[i];
+            if (cloud && cloud.group && cloud.group.node) {
+                gsap.to(cloud.group.node, {
+                    duration: 3, // Dauer der Ausblend-Animation
+                    x: sizes.card.width * 1.5, // Zielposition weit rechts außerhalb
+                    ease: "power2.in" // Beschleunigen am Ende
+                });
+            }
+        }
+    }
+    // Wenn nicht 'sun', werden die Wolken durch reset() und tick() normal positioniert/bewegt.
 
     // Blitz-Timer starten/stoppen
 	startLightningTimer();
