@@ -99,12 +99,13 @@ const WEATHER_API_URL_BASE = "https://api.open-meteo.com/v1/forecast";
 
 // *** NEU: Funktion für Geocoding API Aufruf ***
 function fetchGeocodingData(query) {
-    const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=10&language=de&format=json`;
+    // API-Parameter: name, count, language, format
+    const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=20&language=de&format=json`; // Mehr Ergebnisse holen (count=20) für bessere Filterung/Sortierung
     console.log("Requesting Geocoding URL:", url);
 
     $.get(url)
         .done(function(data) {
-            console.log("Geocoding Data:", data);
+            console.log("Geocoding Data Raw:", data);
             if (data && data.results) {
                 displaySuggestions(data.results);
             } else {
@@ -117,7 +118,7 @@ function fetchGeocodingData(query) {
         });
 }
 
-// *** NEU: Funktion zum Anzeigen der Vorschläge ***
+// *** NEU & STARK ÜBERARBEITET: Funktion zum Anzeigen der Vorschläge mit Sortierung und Deduplizierung ***
 function displaySuggestions(results) {
     suggestionsContainer.empty().hide(); // Erst leeren und verstecken
 
@@ -125,22 +126,73 @@ function displaySuggestions(results) {
         return; // Nichts zu tun, wenn keine Ergebnisse
     }
 
-    // Deutschland priorisieren
+    // --- Erweiterte Sortierlogik ---
+    const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE']; // Erweiterte Liste
+    const featureCodeBonus = {
+        'PPLC': 10000, // Capital of a political entity
+        'PPLA': 5000,  // Seat of a first-order administrative division
+        // Weitere Codes könnten hinzugefügt werden, siehe Open-Meteo Doku
+    };
+
     results.sort((a, b) => {
-        const scoreA = a.country_code === 'DE' ? 1000 + (a.admin1 === 'Nordrhein-Westfalen' ? 10 : 0) : (a.population || 0); // NRW leicht bevorzugen
-        const scoreB = b.country_code === 'DE' ? 1000 + (b.admin1 === 'Nordrhein-Westfalen' ? 10 : 0) : (b.population || 0);
-        // Sortiere primär nach DE, dann nach Population (absteigend)
-        if (a.country_code === 'DE' && b.country_code !== 'DE') return -1;
-        if (a.country_code !== 'DE' && b.country_code === 'DE') return 1;
-        return scoreB - scoreA; // Höhere Population zuerst
+        // 1. Geografischer Bonus berechnen
+        let scoreA = 0;
+        let scoreB = 0;
+
+        if (a.country_code === 'DE') scoreA += 100000;
+        else if (europeanCountries.includes(a.country_code)) scoreA += 50000;
+        else if (a.country_code === 'US') scoreA += 25000;
+
+        if (b.country_code === 'DE') scoreB += 100000;
+        else if (europeanCountries.includes(b.country_code)) scoreB += 50000;
+        else if (b.country_code === 'US') scoreB += 25000;
+
+        // 2. Feature Code Bonus hinzufügen
+        scoreA += featureCodeBonus[a.feature_code] || 0;
+        scoreB += featureCodeBonus[b.feature_code] || 0;
+
+        // 3. Populations-Score hinzufügen (wichtig für "Miami-Problem")
+        // Verwende || 0 falls Population fehlt
+        scoreA += (a.population || 0);
+        scoreB += (b.population || 0);
+
+        // Absteigend sortieren (höchster Score zuerst)
+        return scoreB - scoreA;
     });
 
+    console.log("Sorted Geocoding Data:", results);
+
+    // --- Deduplizierung ---
+    const uniqueLocations = [];
+    const seenKeys = new Set();
 
     results.forEach(location => {
+        // Eindeutigen Schlüssel generieren (Name + Land + gerundete Koordinaten)
+        const latRounded = Math.round(location.latitude * 100); // Auf 2 Nachkommastellen runden
+        const lonRounded = Math.round(location.longitude * 100);
+        const key = `${location.name.toLowerCase()}_${location.country_code}_${latRounded}_${lonRounded}`;
+
+        if (!seenKeys.has(key)) {
+            uniqueLocations.push(location);
+            seenKeys.add(key);
+        } else {
+            console.log("Duplicate removed:", location.name, location.country_code);
+        }
+    });
+
+    console.log("Unique Geocoding Data:", uniqueLocations);
+
+
+    // --- Vorschläge anzeigen (max 10) ---
+    const maxSuggestions = 10;
+    uniqueLocations.slice(0, maxSuggestions).forEach(location => {
         // Zusätzliche Details für die Anzeige (Bundesland/Region, Land)
         let details = [];
-        if (location.admin1) details.push(location.admin1);
-        if (location.country && location.country_code !== 'DE') details.push(location.country); // Land nur anzeigen, wenn nicht DE
+        if (location.admin1 && location.admin1 !== location.name) details.push(location.admin1); // admin1 nur wenn nicht gleich Name
+        if (location.country) details.push(location.country); // Land immer anzeigen
+
+        // Nur eindeutige Details anzeigen
+        details = [...new Set(details)]; // Entfernt Duplikate falls admin1 == country
 
         const suggestionHTML = `
             <div data-lat="${location.latitude}" data-lon="${location.longitude}" data-name="${location.name}">
@@ -151,32 +203,35 @@ function displaySuggestions(results) {
         suggestionsContainer.append(suggestionHTML);
     });
 
-    // Event Listener für Klicks auf Vorschläge hinzufügen
-    $('#location-suggestions div').on('click', function() {
-        const lat = $(this).data('lat');
-        const lon = $(this).data('lon');
-        const name = $(this).data('name');
+    // Event Listener für Klicks auf Vorschläge hinzufügen (nur wenn Vorschläge existieren)
+    if (uniqueLocations.length > 0) {
+        $('#location-suggestions div').on('click', function() {
+            const lat = $(this).data('lat');
+            const lon = $(this).data('lon');
+            const name = $(this).data('name');
 
-        console.log(`Suggestion selected: ${name} (${lat}, ${lon})`);
+            console.log(`Suggestion selected: ${name} (${lat}, ${lon})`);
 
-        currentLat = lat; // Globale Koordinaten aktualisieren
-        currentLon = lon;
-        currentLocationName = name; // Globalen Namen aktualisieren
+            currentLat = lat; // Globale Koordinaten aktualisieren
+            currentLon = lon;
+            currentLocationName = name; // Globalen Namen aktualisieren
 
-        fetchWeatherData(lat, lon, name); // Wetter für gewählten Ort holen
+            fetchWeatherData(lat, lon, name); // Wetter für gewählten Ort holen
 
-        searchInput.val(''); // Input leeren
-        suggestionsContainer.empty().hide(); // Vorschläge ausblenden
-    });
+            searchInput.val(name); // Input mit gewähltem Namen füllen (optional)
+            // searchInput.val(''); // Oder Input leeren
+            suggestionsContainer.empty().hide(); // Vorschläge ausblenden
+        });
 
-    suggestionsContainer.show(); // Vorschläge anzeigen
+        suggestionsContainer.show(); // Vorschläge anzeigen
+    }
 }
 
 
 // *** MODIFIZIERT: Funktion zum Abrufen der Wetterdaten (akzeptiert Parameter) ***
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
     // API URL dynamisch bauen
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
     console.log("Requesting Weather URL:", weatherApiUrl);
 
     // Ortsnamen im UI aktualisieren
@@ -229,17 +284,19 @@ function handleApiError(errorMsg) {
 
 // Funktion zum Übersetzen des WMO Weather Codes in Widget-Typen
 function getWeatherTypeFromCode(code) {
-    if ([0, 1].includes(code)) return 'sun';
-    if ([2, 3].includes(code)) return 'cloudy';
-    if ([45, 48].includes(code)) return 'wind'; // Nebel -> Windig
-    if ([51, 53, 55, 56, 57].includes(code)) return 'rain';
-    if ([61, 63, 65, 66, 67].includes(code)) return 'rain';
-    if ([71, 73, 75, 77].includes(code)) return 'snow';
-    if ([80, 81, 82].includes(code)) return 'rain';
-    if ([85, 86].includes(code)) return 'snow';
-    if ([95, 96, 99].includes(code)) return 'thunder';
-    console.warn("Unbekannter Wettercode erhalten:", code);
-    return 'sun';
+    // Mapping basierend auf WMO Code Tabelle (vereinfacht)
+    if ([0, 1].includes(code)) return 'sun';        // Clear sky, Mainly clear
+    if ([2, 3].includes(code)) return 'cloudy';     // Partly cloudy, Overcast
+    if ([45, 48].includes(code)) return 'wind';     // Fog and depositing rime fog -> Visualisierung als "windig" / diesig
+    if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; // Drizzle (light, moderate, dense), Freezing Drizzle
+    if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; // Rain (slight, moderate, heavy), Freezing Rain
+    if ([71, 73, 75, 77].includes(code)) return 'snow'; // Snow fall (slight, moderate, heavy), Snow grains
+    if ([80, 81, 82].includes(code)) return 'rain'; // Rain showers (slight, moderate, violent)
+    if ([85, 86].includes(code)) return 'snow'; // Snow showers (slight, heavy)
+    if ([95, 96, 99].includes(code)) return 'thunder';// Thunderstorm (slight/moderate, with slight/heavy hail)
+    console.warn("Unbekannter oder nicht explizit gemappter Wettercode erhalten:", code);
+    // Fallback für unbekannte oder nicht direkt gemappte Codes (z.B. 5, 10-12, 30-35 etc.)
+    return 'cloudy'; // Ein neutraler Fallback
 }
 
 // Funktion zum Formatieren und Anzeigen des aktuellen Datums
@@ -283,6 +340,13 @@ $(document).ready(function() {
             const firstSuggestion = $('#location-suggestions div:first-child');
             if (firstSuggestion.length > 0) {
                 firstSuggestion.trigger('click'); // Klick auf ersten Vorschlag simulieren
+            } else {
+                 // Wenn keine Vorschläge da sind, aber Enter gedrückt wird,
+                 // versuchen wir trotzdem, mit der Eingabe zu suchen
+                 const query = $(this).val();
+                 if (query.length >= 3) {
+                     fetchGeocodingData(query); // Erneute Suche auslösen
+                 }
             }
         }
     });
@@ -295,6 +359,8 @@ $(document).ready(function() {
             locationNameElement.text("Suche Standort...");
             summary.text("");
             temp.html("--<span>c</span>");
+            searchInput.val(''); // Suchfeld leeren
+            suggestionsContainer.empty().hide(); // Vorschläge ausblenden
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -333,7 +399,9 @@ $(document).ready(function() {
 
     // Klick außerhalb der Suche schließt Vorschläge
     $(document).on('click', function(event) {
-        if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0) {
+        // Prüfen, ob der Klick außerhalb des Such-Containers UND außerhalb der Vorschlagsliste erfolgte
+        if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0 &&
+            !suggestionsContainer.is(event.target) && suggestionsContainer.has(event.target).length === 0) {
             suggestionsContainer.hide();
         }
     });
@@ -395,7 +463,18 @@ function onResize()
 	gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
 	gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"});
 
-	leafMask.attr({x: sizes.card.offset.left, y: 0, width: sizes.container.width - sizes.card.offset.left,  height: sizes.container.height});
+	// LeafMask muss die gesamte Breite abdecken, beginnend links von der Karte
+    // Korrektur: Die Maske sollte links von der Karte beginnen und den Rest des Containers abdecken
+    var maskX = sizes.card.offset.left + sizes.card.width; // Start rechts von der Karte
+    var maskWidth = sizes.container.width - maskX; // Breite bis zum rechten Rand
+    if (maskWidth < 0) maskWidth = 0; // Sicherstellen, dass die Breite nicht negativ ist
+
+    leafMask.attr({
+        x: maskX,
+        y: 0, // Oben beginnen
+        width: maskWidth,
+        height: sizes.container.height // Volle Höhe
+    });
 }
 
 function drawCloud(cloud, i)
@@ -427,148 +506,233 @@ function drawCloud(cloud, i)
 function makeRain()
 {
     if (!currentWeather) return;
+	// probability of rain drops
+	if(Math.random() > settings.rainCount / 100) return; // Anpassung: rainCount als Wahrscheinlichkeit nutzen
+
 	var lineWidth = Math.random() * 3;
 	var lineLength = currentWeather.type == 'thunder' ? 35 : 14;
-	var x = Math.random() * (sizes.card.width - 40) + 20;
-	var line = this['innerRainHolder' + (3 - Math.floor(lineWidth))].path('M0,0 0,' + lineLength).attr({
+	var x = Math.random() * (sizes.card.width - 40) + 20; // Innerhalb der Karte
+    var y = 0 - lineLength; // Start oberhalb
+
+    // Wähle den richtigen Holder basierend auf der Liniendicke
+    var holder;
+    if (lineWidth < 1) holder = innerRainHolder1;
+    else if (lineWidth < 2) holder = innerRainHolder2;
+    else holder = innerRainHolder3;
+
+	var line = holder.path('M0,0 0,' + lineLength).attr({
 		fill: 'none',
-		stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff',
-		strokeWidth: lineWidth
+		stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff', // Farbe anpassen?
+		strokeWidth: lineWidth,
+        transform: 't' + x + ',' + y // Startposition setzen
 	});
 
 	rain.push(line);
-	gsap.fromTo(line.node, {x: x, y: 0- lineLength}, {duration: 1, delay: Math.random(), y: sizes.card.height, ease: "power2.in", onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]});
+	gsap.to(line.node, {
+        duration: 1,
+        delay: Math.random() * 0.5, // Leichte Verzögerung
+        y: sizes.card.height + lineLength, // Endposition unterhalb der Karte
+        ease: "power1.in", // Beschleunigen
+        onComplete: onRainEnd,
+        onCompleteParams: [line, lineWidth, x, currentWeather.type]
+    });
 }
 
 function onRainEnd(line, width, x, type)
 {
-	line.remove();
-	line = null;
-	for(var i in rain) { if(!rain[i].paper) rain.splice(i, 1); }
-	if(rain.length < settings.rainCount) {
-		makeRain();
-		if(width > 2) makeSplash(x, type);
-	}
+    if (line && line.remove) { // Sicherstellen, dass line existiert und eine remove-Methode hat
+	    line.remove();
+    }
+	line = null; // Referenz entfernen
+
+    // Array säubern (effizienter als splice in loop)
+    rain = rain.filter(item => item !== null && item.paper); // Behalte nur gültige Elemente
+
+	// Nur wenn nötig, neuen Regen erzeugen (wird jetzt in tick() gesteuert)
+	// if(rain.length < settings.rainCount) {
+	// 	makeRain();
+	// 	if(width > 2) makeSplash(x, type);
+	// }
+    // Stattdessen: Splash hier auslösen, wenn die Breite passt
+    if (width > 2) {
+        makeSplash(x, type);
+    }
 }
 
 function makeSplash(x, type)
 {
-    if (!currentWeather) return;
+    if (!currentWeather || !outerSplashHolder) return; // Sicherstellen, dass alles da ist
+
 	var splashLength = type == 'thunder' ? 30 : 20;
-	var splashBounce = type == 'thunder' ? 120 : 100;
-	var splashDistance = 80;
+	var splashBounce = type == 'thunder' ? 120 : 100; // Höhe des Spritzers
+	var splashDistance = 80; // Horizontale Ausbreitung
 	var speed = type == 'thunder' ? 0.7 : 0.5;
-	var splashUp = 0 - (Math.random() * splashBounce);
-	var randomX = ((Math.random() * splashDistance) - (splashDistance / 2));
+
+	// Zufällige Spritzer-Parameter
+	var randomX = ((Math.random() * splashDistance) - (splashDistance / 2)); // Horizontale Abweichung
+	var randomY = 0 - (Math.random() * splashBounce); // Negative Y-Richtung (nach oben)
+
 	var points = [];
-	points.push('M' + 0 + ',' + 0);
-    points.push('Q' + randomX + ',' + splashUp);
-    points.push((randomX * 2) + ',' + splashDistance);
+	points.push('M' + 0 + ',' + 0); // Start am Boden
+    points.push('Q' + randomX + ',' + randomY); // Kontrollpunkt (bestimmt Höhe und seitl. Ausbreitung)
+    points.push((randomX * 2) + ',' + 0); // Endpunkt wieder am Boden (doppelte horiz. Abweichung)
 
 	var splash = outerSplashHolder.path(points.join(' ')).attr({
       	fill: "none",
-      	stroke: type == 'thunder' ? '#777' : '#0000ff',
-      	strokeWidth: 1
+      	stroke: type == 'thunder' ? '#aaa' : '#88f', // Farben etwas heller?
+      	strokeWidth: Math.random() * 1 + 0.5 // Dünnere Linien
     });
 
-	var pathLength = Snap.path.getTotalLength(splash);
-	var xOffset = sizes.card.offset.left;
-	var yOffset = sizes.card.offset.top + sizes.card.height;
-    splash.node.style.strokeDasharray = splashLength + ' ' + pathLength;
+	var pathLength = splash.getTotalLength(); // Gesamtlänge des Pfades
+	var xOffset = sizes.card.offset.left; // X-Position der Karte
+	var yOffset = sizes.card.offset.top + sizes.card.height; // Y-Position des Kartenbodens
 
-	gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: splashLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"})
+    // Startzustand für Animation
+    splash.node.style.strokeDasharray = pathLength;
+    splash.node.style.strokeDashoffset = pathLength; // Beginnt unsichtbar
+
+    // Animation
+	gsap.to(splash.node, {
+        duration: speed,
+        strokeDashoffset: 0, // Pfad "zeichnen"
+        strokeWidth: 0, // Gleichzeitig dünner werden
+        opacity: 0, // Ausblenden am Ende
+        transformOrigin: "50% 100%", // Skalierung vom Boden aus (optional)
+        // scaleY: 0.5, // Optional: Flacher werden
+        x: xOffset + x, // Positionieren an der Aufprallstelle
+        y: yOffset,
+        ease: "power1.out", // Verlangsamen am Ende
+        onComplete: onSplashComplete,
+        onCompleteParams: [splash]
+    });
 }
 
 function onSplashComplete(splash)
 {
-	splash.remove();
+    if (splash && splash.remove) {
+	    splash.remove();
+    }
 	splash = null;
 }
 
 function makeLeaf()
 {
+    if (!currentWeather || !outerLeafHolder || !innerLeafHolder) return; // Sicherstellen
+
 	var scale = 0.5 + (Math.random() * 0.5);
 	var newLeaf;
-	var areaY = sizes.card.height/2;
-	var y = areaY + (Math.random() * areaY);
-	var endY = y - ((Math.random() * (areaY * 2)) - areaY)
-	var x;
-	var endX;
-	var colors = ['#76993E', '#4A5E23', '#6D632F'];
-	var color = colors[Math.floor(Math.random() * colors.length)];
-	var xBezier;
+	var areaY = sizes.card.height / 2; // Bereich für Start-Y
+	var startY = areaY + (Math.random() * areaY); // Start eher unten
+	var endY = Math.random() * sizes.card.height; // End-Y irgendwo auf der Karte
+	var startX, endX, xBezier;
 
-	if(scale > 0.8) {
+	var colors = ['#76993E', '#4A5E23', '#6D632F', '#B4A94F']; // Mehr Farben
+	var color = colors[Math.floor(Math.random() * colors.length)];
+
+	// Entscheiden, ob Blatt innerhalb oder außerhalb der Karte animiert
+	if (Math.random() > 0.5) { // Außerhalb (von links nach rechts)
 		newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
-		y = y + sizes.card.offset.top / 2;
-		endY = endY + sizes.card.offset.top / 2;
-		x = sizes.card.offset.left - 100;
-		xBezier = x + (sizes.container.width - sizes.card.offset.left) / 2;
-		endX = sizes.container.width + 50;
-	} else {
+		startY = sizes.card.offset.top + Math.random() * sizes.container.height; // Start irgendwo links
+		endY = sizes.card.offset.top + Math.random() * sizes.container.height; // Ende irgendwo rechts
+		startX = sizes.card.offset.left - 40; // Start links außerhalb
+		endX = sizes.container.width + 40; // Ende rechts außerhalb
+        xBezier = startX + (endX - startX) * (0.3 + Math.random() * 0.4); // Bezier-Punkt irgendwo dazwischen
+	} else { // Innerhalb (von oben nach unten/seitlich)
 		newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color });
-		x = -100;
-		xBezier = sizes.card.width / 2;
-		endX = sizes.card.width + 50;
+        startY = -40; // Start oben außerhalb der Karte
+        endY = sizes.card.height + 40; // Ende unten außerhalb
+        startX = Math.random() * sizes.card.width; // Start irgendwo horizontal
+        endX = Math.random() * sizes.card.width; // Ende irgendwo horizontal
+        xBezier = startX + (Math.random() - 0.5) * sizes.card.width * 0.5; // Bezier seitlich
 	}
 
 	leafs.push(newLeaf);
 
-	var bezier = [{x:x, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}];
+	var bezierPath = [{x:startX, y:startY}, {x: xBezier, y: startY + (endY - startY) * (0.3 + Math.random() * 0.4)}, {x: endX, y:endY}];
+
     gsap.fromTo(newLeaf.node, {
-        rotation: Math.random()* 180,
-        scale: scale
+        rotation: Math.random() * 360, // Startrotation
+        scale: scale,
+        x: startX, // GSAP braucht Startwerte hier, wenn nicht über MotionPath gesetzt
+        y: startY
     }, {
-        duration: 4, // Langsamere Blattgeschwindigkeit
-        rotation: Math.random()* 360,
+        duration: 5 + Math.random() * 5, // Langsamere, variablere Dauer
+        rotation: "+=" + (Math.random() * 720 - 360), // Weiterdrehen
         motionPath: {
-            path: bezier,
-            curviness: 1.25
+            path: bezierPath,
+            curviness: 1.5 // Mehr Kurve
         },
         onComplete: onLeafEnd,
         onCompleteParams: [newLeaf],
-        ease: "none"
+        ease: "power1.inOut" // Sanfter Start/Ende
     });
 }
 
+
 function onLeafEnd(leaf)
 {
-	leaf.remove();
+    if (leaf && leaf.remove) {
+	    leaf.remove();
+    }
 	leaf = null;
-	for(var i in leafs) { if(!leafs[i].paper) leafs.splice(i, 1); }
-	if(leafs.length < settings.leafCount) { makeLeaf(); }
+    leafs = leafs.filter(item => item !== null && item.paper); // Array säubern
+	// Wird in tick() gesteuert
+    // if(leafs.length < settings.leafCount) { makeLeaf(); }
 }
 
 function makeSnow()
 {
-	var scale = 0.5 + (Math.random() * 0.5);
+    if (!currentWeather || !outerSnowHolder || !innerSnowHolder) return;
+
+	var scale = 0.3 + (Math.random() * 0.7); // Kleinere Flocken möglich
 	var newSnow;
-	var x = 20 + (Math.random() * (sizes.card.width - 40));
-	var y = -10;
+	var startX = Math.random() * sizes.card.width;
+	var startY = -10; // Start oben
 	var endY;
 
-	if(scale > 0.8) {
-		newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' });
-		endY = sizes.container.height + 10;
-		y = sizes.card.offset.top + settings.cloudHeight;
-		x =  x + sizes.card.offset.left;
-	} else {
-		newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' });
-		endY = sizes.card.height + 10;
+	// Entscheiden, ob innen oder außen (basierend auf Skalierung -> größere Flocken eher außen?)
+	if (scale > 0.7 && Math.random() > 0.5) { // Größere Flocke, außen
+		newSnow = outerSnowHolder.circle(0, 0, 4 * scale).attr({ fill: 'white', opacity: 0.8 }); // Größe an scale binden, leicht transparent
+		startY = sizes.card.offset.top - 10; // Start über der Karte
+        startX = sizes.card.offset.left + Math.random() * sizes.card.width; // Start über der Karte horizontal
+		endY = sizes.container.height + 10; // Ende unter dem Container
+	} else { // Kleinere Flocke oder innen
+		newSnow = innerSnowHolder.circle(0, 0 , 4 * scale).attr({ fill: 'white', opacity: 0.9 });
+		endY = sizes.card.height + 10; // Ende unter der Karte
 	}
 
 	snow.push(newSnow);
-	gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"})
-	gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"})
-	gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"})
+
+    // Fallanimation
+	gsap.to(newSnow.node, {
+        duration: 4 + Math.random() * 6, // Langsamere, variablere Dauer
+        x: startX + (Math.random() * 100 - 50), // Leichte horizontale Drift
+        y: endY,
+        ease: "none", // Konstanter Fall
+        onComplete: onSnowEnd,
+        onCompleteParams: [newSnow]
+    });
+
+    // Einblenden und leichte horizontale Pendelbewegung
+    gsap.from(newSnow.node, { duration: 1, scale: 0, opacity: 0, ease: "power1.out"});
+	gsap.to(newSnow.node, {
+        duration: 3 + Math.random() * 2,
+        x: "+=" + (Math.random() * 60 - 30), // Pendelbewegung
+        repeat: -1, // Endlos
+        yoyo: true, // Hin und her
+        ease: "sine.inOut" // Sanfte Pendelbewegung
+    });
 }
 
 function onSnowEnd(flake)
 {
-	flake.remove();
+    if (flake && flake.remove) {
+	    flake.remove();
+    }
 	flake = null;
-	for(var i in snow) { if(!snow[i].paper) snow.splice(i, 1); }
-	if(snow.length < settings.snowCount) { makeSnow(); }
+    snow = snow.filter(item => item !== null && item.paper); // Array säubern
+	// Wird in tick() gesteuert
+    // if(snow.length < settings.snowCount) { makeSnow(); }
 }
 
 function tick()
@@ -579,31 +743,46 @@ function tick()
     }
 
 	tickCount++;
-	var check = tickCount % settings.renewCheck;
+	var check = tickCount % settings.renewCheck; // Prüfintervall
 
-	if(check) {
-		if(rain.length < settings.rainCount) makeRain();
-		if(leafs.length < settings.leafCount) makeLeaf();
-		if(snow.length < settings.snowCount) makeSnow();
-	}
+    // Erzeuge Partikel basierend auf Wahrscheinlichkeit/Anzahl
+    // Diese Logik stellt sicher, dass nicht bei jedem Tick geprüft wird,
+    // sondern nur, wenn die Anzahl unter dem Ziel liegt UND eine gewisse Wahrscheinlichkeit erfüllt ist.
+    if (rain.length < settings.rainCount && Math.random() < 0.5) makeRain(); // 50% Chance pro Tick, wenn < rainCount
+    if (leafs.length < settings.leafCount && Math.random() < 0.2) makeLeaf(); // 20% Chance pro Tick, wenn < leafCount
+    if (snow.length < settings.snowCount && Math.random() < 0.3) makeSnow(); // 30% Chance pro Tick, wenn < snowCount
 
+
+	// Wolkenbewegung
 	for(var i = 0; i < clouds.length; i++)
 	{
+        var cloudGroup = clouds[i].group;
+        if (!cloudGroup) continue; // Sicherheitshalber prüfen
+
+        var cloudSpeed = settings.windSpeed / (i + 1); // Unterschiedliche Geschwindigkeit pro Wolkenschicht
+
 		if(currentWeather.type == 'sun')
 		{
-			if(clouds[i].offset > -(sizes.card.width * 1.5)) clouds[i].offset += settings.windSpeed / (i + 1);
-			if(clouds[i].offset > sizes.card.width * 2.5) clouds[i].offset = -(sizes.card.width * 1.5);
-			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
+            // Bei Sonne: Wolken bewegen sich langsam raus und kommen von der anderen Seite wieder rein
+            // Diese Logik war etwas komplex, vereinfachen wir sie:
+            clouds[i].offset += cloudSpeed * 0.5; // Langsamer bei Sonne
+            if (clouds[i].offset > sizes.card.width * 1.5) { // Wenn weit genug rechts raus
+                 clouds[i].offset = -(sizes.card.width * 1.5); // Ganz links wieder reinsetzen
+            }
 		}
 		else
 		{
-			clouds[i].offset += settings.windSpeed / (i + 1);
-			if(clouds[i].offset > sizes.card.width) clouds[i].offset = 0 + (clouds[i].offset - sizes.card.width);
-			clouds[i].group.transform('t' + clouds[i].offset + ',' + 0);
+            // Bei anderem Wetter: Normale Bewegung
+			clouds[i].offset += cloudSpeed;
+			if(clouds[i].offset > sizes.card.width) { // Wenn rechts raus
+                clouds[i].offset -= sizes.card.width; // Links wieder rein (nahtloser Loop)
+            }
 		}
+        // Transformation anwenden
+        cloudGroup.transform('t' + clouds[i].offset + ',' + 0);
 	}
 
-	requestAnimationFrame(tick);
+	requestAnimationFrame(tick); // Nächsten Frame anfordern
 }
 
 
@@ -615,134 +794,147 @@ function reset()
 		    weather[i].button.removeClass('active');
 		}
 	}
+    // Aktiven Button auch entfernen, falls er nicht im Array war (z.B. bei API-Wechsel)
+    $('nav li a.active').removeClass('active');
 }
 
 function updateSummaryText()
 {
     if (!currentWeather) return;
 	summary.html(currentWeather.name);
-	gsap.fromTo(summary, {x: 30}, {duration: 1.5, opacity: 1, x: 0, ease: "power4.out"});
+	// Sanftere Einblendung
+    gsap.fromTo(summary, { opacity: 0, x: 20 }, { duration: 1, opacity: 1, x: 0, ease: "power2.out" });
 }
 
 function startLightningTimer()
 {
 	if(lightningTimeout) clearTimeout(lightningTimeout);
 	if(currentWeather && currentWeather.type == 'thunder') {
-		lightningTimeout = setTimeout(lightning, Math.random()*6000);
+		lightningTimeout = setTimeout(lightning, 2000 + Math.random() * 6000); // Längere, variablere Pause
 	}
 }
 
 function lightning()
 {
-	startLightningTimer();
-	gsap.fromTo(card, {y: -30}, {duration: 0.75, y:0, ease:"elastic.out"});
+    if (!currentWeather || currentWeather.type !== 'thunder' || !weatherContainer1) return; // Nur bei Gewitter
 
-	var pathX = 30 + Math.random() * (sizes.card.width - 60);
-	var yOffset = 20;
-	var steps = 20;
-	var points = [pathX + ',0'];
+	startLightningTimer(); // Nächsten Blitz planen
+
+    // Kurzes Aufhellen des Hintergrunds
+    gsap.to(card, { duration: 0.05, backgroundColor: '#d0d0e0', yoyo: true, repeat: 1 }); // Heller Hintergrundblitz
+
+    // Blitz-Pfad generieren
+	var pathX = 30 + Math.random() * (sizes.card.width - 60); // Start-X
+	var yOffset = 20; // Maximale seitliche Abweichung pro Segment
+	var segmentHeight = 15 + Math.random() * 10; // Höhe eines Blitzsegments
+    var steps = Math.floor(sizes.card.height / segmentHeight); // Anzahl der Segmente
+	var points = [pathX + ',0']; // Startpunkt oben
+
 	for(var i = 0; i < steps; i++) {
-		var x = pathX + (Math.random() * yOffset - (yOffset / 2));
-		var y = (sizes.card.height / steps) * (i + 1)
+		var x = pathX + (Math.random() * yOffset - (yOffset / 2)); // Zufällige X-Abweichung
+		var y = segmentHeight * (i + 1);
 		points.push(x + ',' + y);
+        pathX = x; // Nächstes Segment startet beim X des vorherigen Endpunkts
 	}
 
 	var strike = weatherContainer1.path('M' + points.join(' ')).attr({
 		fill: 'none',
 		stroke: 'white',
-		strokeWidth: 2 + Math.random()
-	})
+		strokeWidth: 1 + Math.random() * 2 // Variable Dicke
+	});
 
-	gsap.to(strike.node, {duration: 1, opacity: 0, ease:"power4.out", onComplete: function(){ strike.remove(); strike = null}})
+    // Blitz-Animation (schnelles Ein- und Ausblenden)
+	gsap.fromTo(strike.node, { opacity: 1 }, {
+        duration: 0.7, // Dauer des Blitzes
+        opacity: 0,
+        ease: "expo.out", // Schnelles Ausblenden
+        onComplete: function(){ if (strike && strike.remove) strike.remove(); strike = null; }
+    });
 }
 
 function changeWeather(weatherData)
 {
-    var newWeather = weatherData.data ? weatherData.data : weatherData;
-
-    // Verhindert unnötige Animationen, wenn sich nichts ändert (wichtig bei API-Updates)
-    // if (currentWeather && currentWeather.type === newWeather.type) {
-    //      // Nur Text aktualisieren, falls nötig (z.B. wenn Name sich ändern könnte)
-    //      if (summary.html() !== newWeather.name) {
-    //          gsap.killTweensOf(summary);
-    //          gsap.to(summary, {duration: 0.5, opacity: 0, x: -30, onComplete: function() {
-    //              summary.html(newWeather.name);
-    //              gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power4.out"});
-    //          }, ease: "power4.in"});
-    //      }
-    //     return;
-    // }
-    // ^^^ Auskommentiert: Erlaubt "Neuladen" des gleichen Zustands, falls gewünscht
-
-	reset();
-	currentWeather = newWeather; // Globalen Wetterzustand aktualisieren
-
-	gsap.killTweensOf(summary);
-	gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"})
-
-	container.addClass(currentWeather.type);
-    if (currentWeather.button) {
-	    currentWeather.button.addClass('active');
-    } else {
-        // Finde den Button, falls er nicht direkt übergeben wurde (z.B. bei API-Aufruf)
-        const matchingButton = $('#button-' + currentWeather.type);
-        if (matchingButton.length) {
-            matchingButton.addClass('active');
-        }
+    // Verhindert unnötige Animationen, wenn sich nichts ändert
+    if (currentWeather && currentWeather.type === weatherData.type) {
+         // Nur Text aktualisieren, falls nötig
+         if (summary.html() !== weatherData.name) {
+             gsap.to(summary, {duration: 0.5, opacity: 0, x: -20, onComplete: function() {
+                 summary.html(weatherData.name);
+                 gsap.to(summary, {duration: 0.5, opacity: 1, x: 0, ease: "power2.out"});
+             }, ease: "power2.in"});
+         }
+        return; // Nichts weiter tun
     }
 
+    var newWeather = weatherData.data ? weatherData.data : weatherData; // Entpacken, falls in data-Objekt
 
+	reset(); // Alte Klassen und aktive Buttons entfernen
+	currentWeather = newWeather; // Globalen Wetterzustand aktualisieren
+
+    // Summary Text animieren
+	gsap.to(summary, {duration: 0.8, opacity: 0, x: -20, onComplete: updateSummaryText, ease: "power2.in"});
+
+    // CSS-Klasse für den Container setzen (steuert Hintergrund etc.)
+	container.addClass(currentWeather.type);
+
+    // Zugehörigen Button aktivieren
+    const matchingButton = $('#button-' + currentWeather.type);
+    if (matchingButton.length) {
+        matchingButton.addClass('active');
+    }
+
+    // Zielwerte für Animationen basierend auf Wettertyp setzen
 	let windTarget, rainTarget, leafTarget, snowTarget;
     let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 
 	switch(currentWeather.type) {
 		case 'wind':
-            windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+            windTarget = 5; rainTarget = 0; leafTarget = 15; snowTarget = 0; // Mehr Wind, mehr Blätter
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150; // Sonne weit weg
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
 			break;
 		case 'sun':
-            windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2;
-            sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height/2) + (sizes.card.offset.top);
+            windTarget = 2; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Leichter Wind
+            sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height * 0.3; // Sonne sichtbar, aber nicht mittig
+            sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height * 0.3) + sizes.card.offset.top; // Sunburst bei der Sonne
 			break;
         case 'rain':
-            windTarget = 0.5; rainTarget = 10; leafTarget = 0; snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+            windTarget = 1; rainTarget = 40; leafTarget = 0; snowTarget = 0; // Wenig Wind, viel Regen (rainCount ist eher Wahrscheinlichkeit)
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'thunder':
-            windTarget = 0.5; rainTarget = 60; leafTarget = 0; snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+            windTarget = 2; rainTarget = 80; leafTarget = 0; snowTarget = 0; // Mehr Wind, sehr viel Regen
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'snow':
-            windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 40;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+            windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 60; // Wenig Wind, viel Schnee
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
         case 'cloudy':
-            windTarget = 0.5;
-            rainTarget = 0;
-            leafTarget = 0;
-            snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+            windTarget = 1; rainTarget = 0; leafTarget = 0; snowTarget = 0; // Leichter Wind
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
             break;
-		default:
-            windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0;
-            sunXTarget = sizes.card.width / 2; sunYTarget = -100;
-            sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
+		default: // Fallback
+            windTarget = 1; rainTarget = 0; leafTarget = 0; snowTarget = 0;
+            sunXTarget = sizes.card.width / 2; sunYTarget = -150;
+            sunburstScaleTarget = 0.3; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50;
 			break;
 	}
 
-    gsap.to(settings, { duration: 3, windSpeed: windTarget, ease: "power2.inOut" });
-    gsap.to(settings, { duration: currentWeather.type === 'rain' || currentWeather.type === 'thunder' ? 3 : 1, rainCount: rainTarget, ease: "power2.inOut" });
-    gsap.to(settings, { duration: currentWeather.type === 'wind' ? 3 : 1, leafCount: leafTarget, ease: "power2.inOut" });
-    gsap.to(settings, { duration: currentWeather.type === 'snow' ? 3 : 1, snowCount: snowTarget, ease: "power2.inOut" });
+    // GSAP Animationen für die Einstellungsänderungen
+    gsap.to(settings, { duration: 2, windSpeed: windTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: 2, rainCount: rainTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: 2, leafCount: leafTarget, ease: "power2.inOut" });
+    gsap.to(settings, { duration: 2, snowCount: snowTarget, ease: "power2.inOut" });
 
-    gsap.to(sun.node, { duration: currentWeather.type === 'sun' ? 4 : 2, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" });
-    gsap.to(sunburst.node, { duration: currentWeather.type === 'sun' ? 4 : 2, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" });
+    // GSAP Animationen für Sonne und Sunburst
+    gsap.to(sun.node, { duration: 3, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" });
+    gsap.to(sunburst.node, { duration: 3, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" });
 
+    // Blitz-Timer starten/stoppen
 	startLightningTimer();
 }
