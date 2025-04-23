@@ -12,7 +12,7 @@ var navElement = $('nav'); // *** NEU: Referenz für Navigationsleiste ***
 
 // *** NEU: Schalter zum Ein-/Ausblenden der Wetter-Buttons ***
 // Setze auf true, um die Buttons anzuzeigen, auf false, um sie auszublenden.
-const showWeatherButtons = false;
+const showWeatherButtons = true;
 
 // *** NEU: Referenzen für Suche ***
 var searchContainer = $('#location-search-container');
@@ -107,12 +107,11 @@ function fetchGeocodingData(query) {
     const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=20&language=de&format=json`;
     console.log("Requesting Geocoding URL:", url);
     $.get(url)
-        .done(function(data) { /* ... (displaySuggestions logic) ... */ displaySuggestions(data.results); })
+        .done(function(data) { displaySuggestions(data.results); })
         .fail(function(jqXHR, textStatus, errorThrown) { console.error("Geocoding API Failed:", textStatus, errorThrown); suggestionsContainer.empty().hide(); });
 }
 
 function displaySuggestions(results) {
-    // ... (komplette Logik aus vorheriger Version für Sortierung, Deduplizierung, Anzeige) ...
     suggestionsContainer.empty().hide(); if (!results || results.length === 0) return;
     const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE']; const featureCodeBonus = { 'PPLC': 10000, 'PPLA': 5000 };
     results.sort((a, b) => { let scoreA = 0, scoreB = 0; if (a.country_code === 'DE') scoreA += 100000; else if (europeanCountries.includes(a.country_code)) scoreA += 50000; else if (a.country_code === 'US') scoreA += 25000; if (b.country_code === 'DE') scoreB += 100000; else if (europeanCountries.includes(b.country_code)) scoreB += 50000; else if (b.country_code === 'US') scoreB += 25000; scoreA += featureCodeBonus[a.feature_code] || 0; scoreB += featureCodeBonus[b.feature_code] || 0; scoreA += (a.population || 0); scoreB += (b.population || 0); return scoreB - scoreA; });
@@ -120,78 +119,61 @@ function displaySuggestions(results) {
     results.forEach(location => { const latRounded = Math.round(location.latitude * 100); const lonRounded = Math.round(location.longitude * 100); const key = `${location.name.toLowerCase()}_${location.country_code}_${latRounded}_${lonRounded}`; if (!seenKeys.has(key)) { uniqueLocations.push(location); seenKeys.add(key); } });
     const maxSuggestions = 10;
     uniqueLocations.slice(0, maxSuggestions).forEach(location => { let details = []; if (location.admin1 && location.admin1 !== location.name) details.push(location.admin1); if (location.country) details.push(location.country); details = [...new Set(details)]; const suggestionHTML = `<div data-lat="${location.latitude}" data-lon="${location.longitude}" data-name="${location.name}">${location.name}${details.length > 0 ? `<span class="suggestion-details">(${details.join(', ')})</span>` : ''}</div>`; suggestionsContainer.append(suggestionHTML); });
-    if (uniqueLocations.length > 0) { $('#location-suggestions div').on('click', function() { const lat = $(this).data('lat'); const lon = $(this).data('lon'); const name = $(this).data('name'); console.log(`Suggestion selected: ${name} (${lat}, ${lon})`); currentLat = lat; currentLon = lon; currentLocationName = name; fetchWeatherData(lat, lon, name); searchInput.val(name); suggestionsContainer.empty().hide(); }); suggestionsContainer.show(); }
+    if (uniqueLocations.length > 0) { $('#location-suggestions div').off('click').on('click', function() { const lat = $(this).data('lat'); const lon = $(this).data('lon'); const name = $(this).data('name'); console.log(`Suggestion selected: ${name} (${lat}, ${lon})`); currentLat = lat; currentLon = lon; currentLocationName = name; fetchWeatherData(lat, lon, name); searchInput.val(name); suggestionsContainer.empty().hide(); }); suggestionsContainer.show(); }
 }
 
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
     const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
-    console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl); // Log 1 + URL
+    console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl);
     locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
-
     $.get(weatherApiUrl)
         .done(function(data) {
-            console.log("2. API Call Success. Data:", data); // Log 2
+            console.log("2. API Call Success. Data:", data);
             if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
                 const current = data.current; const tempValue = Math.round(current.temperature_2m); const weatherCode = current.weather_code;
-                console.log("3. Weather data parsed. Temp:", tempValue, "Code:", weatherCode); // Log 3
+                console.log("3. Weather data parsed. Temp:", tempValue, "Code:", weatherCode);
                 temp.html(tempValue + '<span>c</span>'); updateDate();
                 const weatherType = getWeatherTypeFromCode(weatherCode);
                 const targetWeather = weather.find(w => w.type === weatherType);
-                if (targetWeather) {
-                    console.log("4. Calling changeWeather with:", targetWeather); // Log 4
-                    changeWeather(targetWeather);
-                } else {
-                    console.warn("Unbekannter Wettercode:", weatherCode);
-                    const fallbackWeather = weather.find(w => w.type === 'cloudy');
-                    console.log("4b. Calling changeWeather with fallback:", fallbackWeather); // Log 4b
-                    changeWeather(fallbackWeather);
-                }
-            } else {
-                console.error("API response structure invalid."); // Log Error
-                handleApiError("Ungültige Wetter-API-Antwortstruktur.");
-            }
+                if (targetWeather) { console.log("4. Calling changeWeather with:", targetWeather); changeWeather(targetWeather); }
+                else { console.warn("Unbekannter Wettercode:", weatherCode); const fallbackWeather = weather.find(w => w.type === 'cloudy'); console.log("4b. Calling changeWeather with fallback:", fallbackWeather); changeWeather(fallbackWeather); }
+            } else { console.error("API response structure invalid."); handleApiError("Ungültige Wetter-API-Antwortstruktur."); }
         })
-        .fail(function(jqXHR, textStatus, errorThrown) {
-            console.error("5. API Call Failed:", textStatus, errorThrown); // Log 5
-            handleApiError(`Wetterdaten konnten nicht geladen werden (${textStatus})`);
-        });
+        .fail(function(jqXHR, textStatus, errorThrown) { console.error("5. API Call Failed:", textStatus, errorThrown); handleApiError(`Wetterdaten konnten nicht geladen werden (${textStatus})`); });
 }
 
 function handleApiError(errorMsg) { console.error("Fehler:", errorMsg); temp.html("--<span>c</span>"); summary.text("Fehler"); date.text("Keine Daten"); locationNameElement.text("Ort unbekannt"); }
-function getWeatherTypeFromCode(code) { /* ... (Mapping wie gehabt) ... */ if ([0, 1].includes(code)) return 'sun'; if ([2, 3].includes(code)) return 'cloudy'; if ([45, 48].includes(code)) return 'wind'; if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; if ([71, 73, 75, 77].includes(code)) return 'snow'; if ([80, 81, 82].includes(code)) return 'rain'; if ([85, 86].includes(code)) return 'snow'; if ([95, 96, 99].includes(code)) return 'thunder'; console.warn("Unbekannter Wettercode:", code); return 'cloudy'; }
+function getWeatherTypeFromCode(code) { if ([0, 1].includes(code)) return 'sun'; if ([2, 3].includes(code)) return 'cloudy'; if ([45, 48].includes(code)) return 'wind'; if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; if ([71, 73, 75, 77].includes(code)) return 'snow'; if ([80, 81, 82].includes(code)) return 'rain'; if ([85, 86].includes(code)) return 'snow'; if ([95, 96, 99].includes(code)) return 'thunder'; console.warn("Unbekannter Wettercode:", code); return 'cloudy'; }
 function updateDate() { const now = new Date(); const options = { weekday: 'long', day: 'numeric', month: 'long' }; const formattedDate = now.toLocaleDateString('de-DE', options); date.text(formattedDate); }
 // --- Ende API / Suche Logik ---
 
 // ⚙ initialize app (aus Ur-Fassung, angepasst für fetchWeatherData)
 function init() {
-    console.log("0. init() called"); // Log 0
-    onResize();
-    console.log("0a. onResize finished.");
+    console.log("0. init() called");
 
     // *** NEU: Wetter-Buttons ein-/ausblenden basierend auf Variable ***
-    if (navElement && navElement.length > 0) { // Prüfen ob navElement existiert
+    if (navElement && navElement.length > 0) {
         if (!showWeatherButtons) {
             console.log("Hiding weather buttons.");
             navElement.addClass('nav-hidden');
         } else {
             console.log("Showing weather buttons.");
-            navElement.removeClass('nav-hidden'); // Sicherstellen, dass sie sichtbar sind
+            navElement.removeClass('nav-hidden');
         }
     } else {
         console.warn("Navigation element not found for hiding/showing.");
     }
 
+    // *** GEÄNDERT: onResize() NACH dem Nav-Handling aufrufen ***
+    onResize();
+    console.log("0a. onResize finished.");
+
     // Event Listener für Wetter-Buttons nur binden, wenn sie angezeigt werden sollen
     if (showWeatherButtons) {
         for(var i = 0; i < weather.length; i++) {
-            var w = weather[i];
-            var b = $('#button-' + w.type);
-            if (b.length === 0) {
-                console.warn("Button not found for:", w.type);
-                continue;
-            }
-            w.button = b;
-            b.bind('click', w, changeWeather);
+            var w = weather[i]; var b = $('#button-' + w.type);
+            if (b.length === 0) { console.warn("Button not found for:", w.type); continue; }
+            w.button = b; b.unbind('click').bind('click', w, changeWeather); // Sicherstellen, dass Listener nicht mehrfach gebunden werden
         }
         console.log("0b. Weather buttons bound.");
     } else {
@@ -203,7 +185,7 @@ function init() {
     fetchWeatherData(currentLat, currentLon, currentLocationName); // Initiale Wetterdaten laden
     console.log("0d. Initial fetchWeatherData called.");
     requestAnimationFrame(tick);
-    console.log("0e. init() finished, first tick requested."); // Log 0e
+    console.log("0e. init() finished, first tick requested.");
 }
 
 // 👁 watch for window resize (aus Ur-Fassung)
@@ -212,50 +194,46 @@ $(window).resize(onResize);
 // --- Event Listener für Suche & Geolocation (Neue Logik) ---
 $(document).ready(function() {
     console.log("Document ready. Binding search listeners.");
-    // ... (Listener wie gehabt) ...
     searchInput.on('input', function() { clearTimeout(geocodeTimeout); const query = $(this).val(); if (query.length >= 3) { geocodeTimeout = setTimeout(() => { fetchGeocodingData(query); }, 300); } else { suggestionsContainer.empty().hide(); } });
     searchInput.on('keydown', function(event) { if (event.key === 'Enter') { event.preventDefault(); const firstSuggestion = $('#location-suggestions div:first-child'); if (firstSuggestion.length > 0) { firstSuggestion.trigger('click'); } else { const query = $(this).val(); if (query.length >= 3) { fetchGeocodingData(query); } } } });
     geolocationButton.on('click', function() { if (navigator.geolocation) { console.log("Requesting geolocation..."); locationNameElement.text("Suche Standort..."); summary.text(""); temp.html("--<span>c</span>"); searchInput.val(''); suggestionsContainer.empty().hide(); navigator.geolocation.getCurrentPosition( (position) => { console.log("Geolocation success:", position.coords); const lat = position.coords.latitude; const lon = position.coords.longitude; currentLat = lat; currentLon = lon; currentLocationName = "Aktueller Standort"; fetchWeatherData(lat, lon, currentLocationName); }, (error) => { console.error("Geolocation error:", error); let errorMsg = "Standort konnte nicht ermittelt werden."; if (error.code === error.PERMISSION_DENIED) errorMsg = "Standortzugriff verweigert."; else if (error.code === error.POSITION_UNAVAILABLE) errorMsg = "Standortinformationen nicht verfügbar."; else if (error.code === error.TIMEOUT) errorMsg = "Standortabfrage Zeitüberschreitung."; handleApiError(errorMsg); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 } ); } else { console.error("Geolocation is not supported by this browser."); handleApiError("Geolocation wird nicht unterstützt."); } });
     $(document).on('click', function(event) { if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0 && !suggestionsContainer.is(event.target) && suggestionsContainer.has(event.target).length === 0) { suggestionsContainer.hide(); } });
-
-    // Initialisierung starten, wenn das Dokument bereit ist
-    init(); // init hier aufrufen, nachdem alle Listener gebunden sind
+    init(); // Initialisierung starten
 });
 
 // --- Animationsfunktionen (aus Ur-Fassung, mit Checks) ---
 function onResize() {
-    // console.log("onResize called"); // Optional: Log resize
 	sizes.container.width = container.width(); sizes.container.height = container.height();
-	sizes.card.width = card.width(); sizes.card.height = card.height(); sizes.card.offset = card.offset();
-    if (!sizes.card.width || !sizes.container.width) {
-        console.warn("onResize: Card or container width is zero.");
+	sizes.card.width = card.width(); sizes.card.height = card.height();
+    // WICHTIG: Offset erst holen, wenn Breite/Höhe bekannt und > 0 sind
+    if (sizes.card.width > 0 && sizes.card.height > 0) {
+	    sizes.card.offset = card.offset();
+        console.log("onResize - Card Offset calculated:", sizes.card.offset);
+    } else {
+        console.warn("onResize: Card dimensions are zero, offset not calculated yet.");
+        sizes.card.offset = { top: 0, left: 0 }; // Fallback
     }
+    if (!sizes.card.width || !sizes.container.width) { console.warn("onResize: Card or container width is zero."); }
 	if (innerSVG) innerSVG.attr({ width: sizes.card.width, height: sizes.card.height });
 	if (outerSVG) outerSVG.attr({ width: sizes.container.width, height: sizes.container.height });
 	if (backSVG) backSVG.attr({ width: sizes.container.width, height: sizes.container.height });
-	if (sunburst && sunburst.node) {
-        gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0)}); // Check offset
-        if (!gsap.isTweening(sunburst.node)) { gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"}); }
-    }
-    if (leafMask && sizes.card.offset) { // Sicherstellen, dass offset existiert
-        var maskX = sizes.card.offset.left + sizes.card.width; var maskWidth = sizes.container.width - maskX; if (maskWidth < 0) maskWidth = 0;
-        leafMask.attr({ x: maskX, y: 0, width: maskWidth, height: sizes.container.height });
-    }
+	if (sunburst && sunburst.node && sizes.card.offset) { gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top}); if (!gsap.isTweening(sunburst.node)) { gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"}); } }
+    if (leafMask && sizes.card.offset) { var maskX = sizes.card.offset.left + sizes.card.width; var maskWidth = sizes.container.width - maskX; if (maskWidth < 0) maskWidth = 0; leafMask.attr({ x: maskX, y: 0, width: maskWidth, height: sizes.container.height }); }
 }
 
-function drawCloud(cloud, i) { /* ... (Original-Logik) ... */ if (!cloud || !cloud.group) return; var space  = settings.cloudSpace * i; var height = space + settings.cloudHeight; var arch = height + settings.cloudArch + (Math.random() * settings.cloudArch); var width = sizes.card.width; var points = []; points.push('M' + [-(width), 0].join(',')); points.push([width, 0].join(',')); points.push('Q' + [width * 2, height / 2].join(',')); points.push([width, height].join(',')); points.push('Q' + [width * 0.5, arch].join(',')); points.push([0, height].join(',')); points.push('Q' + [width * -0.5, arch].join(',')); points.push([-width, height].join(',')); points.push('Q' + [- (width * 2), height/2].join(',')); points.push([-(width), 0].join(',')); var path = points.join(' '); if(!cloud.path) cloud.path = cloud.group.path(); cloud.path.attr({ d: path }); }
-function makeRain() { /* ... (Original-Logik) ... */ if (!currentWeather) return; var lineWidth = Math.random() * 3; var lineLength = currentWeather.type == 'thunder' ? 35 : 14; var x = Math.random() * (sizes.card.width - 40) + 20; var holder; if (lineWidth < 1) holder = innerRainHolder1; else if (lineWidth < 2) holder = innerRainHolder2; else holder = innerRainHolder3; if (!holder) { console.warn("makeRain: Rain holder not found for lineWidth", lineWidth); return; } var line = holder.path('M0,0 0,' + lineLength).attr({ fill: 'none', stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff', strokeWidth: lineWidth }); rain.push(line); gsap.fromTo(line.node, {x: x, y: 0- lineLength}, {duration: 1, delay: Math.random(), y: sizes.card.height, ease: "power2.in", onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]}); }
-function onRainEnd(line, width, x, type) { /* ... (Original-Logik) ... */ if (line && line.remove) { line.remove(); } line = null; rain = rain.filter(item => item !== null && item.paper); if(rain.length < settings.rainCount) { makeRain(); if(width > 2) makeSplash(x, type); } }
-function makeSplash(x, type) { /* ... (Original-Logik, korrigierter Pfad) ... */ if (!currentWeather || !outerSplashHolder || !sizes.card.offset) return; var splashLength = type == 'thunder' ? 30 : 20; var splashBounce = type == 'thunder' ? 120 : 100; var splashDistance = 80; var speed = type == 'thunder' ? 0.7 : 0.5; var splashUp = 0 - (Math.random() * splashBounce); var randomX = ((Math.random() * splashDistance) - (splashDistance / 2)); var points = []; points.push('M' + 0 + ',' + 0); points.push('Q' + randomX + ',' + splashUp); points.push((randomX * 2) + ',' + 0); var splash = outerSplashHolder.path(points.join(' ')).attr({ fill: "none", stroke: type == 'thunder' ? '#777' : '#0000ff', strokeWidth: 1 }); var pathLength = splash.getTotalLength(); var xOffset = sizes.card.offset.left; var yOffset = sizes.card.offset.top + sizes.card.height; splash.node.style.strokeDasharray = pathLength + ' ' + pathLength; gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"}); }
-function onSplashComplete(splash) { /* ... (Original-Logik) ... */ if (splash && splash.remove) { splash.remove(); } splash = null; }
-function makeLeaf() { /* ... (Original-Logik, korrigierter innerer Pfad) ... */ if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset) return; var scale = 0.5 + (Math.random() * 0.5); var newLeaf; var y, endY, startX, endX, xBezier; var colors = ['#76993E', '#4A5E23', '#6D632F']; var color = colors[Math.floor(Math.random() * colors.length)]; if(scale > 0.8) { newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color }); y = sizes.card.offset.top + Math.random() * sizes.container.height; endY = sizes.card.offset.top + Math.random() * sizes.container.height; startX = sizes.card.offset.left - 100; xBezier = startX + (sizes.container.width - sizes.card.offset.left) / 2; endX = sizes.container.width + 50; } else { newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color }); y = -40; endY = sizes.card.height + 40; startX = Math.random() * sizes.card.width; endX = Math.random() * sizes.card.width; xBezier = startX + (Math.random() - 0.5) * sizes.card.width; } leafs.push(newLeaf); var bezier = [{x:startX, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}]; gsap.fromTo(newLeaf.node, { rotation: Math.random()* 180, scale: scale, x: startX, y: y }, { duration: 4 + Math.random() * 4, rotation: "+=" + (Math.random()* 360 - 180), motionPath: { path: bezier, curviness: 1.25, autoRotate: true }, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: "none" }); }
-function onLeafEnd(leaf) { /* ... (Original-Logik) ... */ if (leaf && leaf.remove) { leaf.remove(); } leaf = null; leafs = leafs.filter(item => item !== null && item.paper); if(leafs.length < settings.leafCount) { makeLeaf(); } }
-function makeSnow() { /* ... (Original-Logik) ... */ if (!currentWeather || !outerSnowHolder || !innerSnowHolder || !sizes.card.offset) return; var scale = 0.5 + (Math.random() * 0.5); var newSnow; var x = 20 + (Math.random() * (sizes.card.width - 40)); var y = -10; var endY; if(scale > 0.8) { newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' }); endY = sizes.container.height + 10; y = sizes.card.offset.top + settings.cloudHeight; x =  x + sizes.card.offset.left; } else { newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' }); endY = sizes.card.height + 10; } snow.push(newSnow); gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"}); gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"}); gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"}); }
-function onSnowEnd(flake) { /* ... (Original-Logik) ... */ if (flake && flake.remove) { flake.remove(); } flake = null; snow = snow.filter(item => item !== null && item.paper); if(snow.length < settings.snowCount) { makeSnow(); } }
+function drawCloud(cloud, i) { if (!cloud || !cloud.group || !sizes.card.width) return; var space  = settings.cloudSpace * i; var height = space + settings.cloudHeight; var arch = height + settings.cloudArch + (Math.random() * settings.cloudArch); var width = sizes.card.width; var points = []; points.push('M' + [-(width), 0].join(',')); points.push([width, 0].join(',')); points.push('Q' + [width * 2, height / 2].join(',')); points.push([width, height].join(',')); points.push('Q' + [width * 0.5, arch].join(',')); points.push([0, height].join(',')); points.push('Q' + [width * -0.5, arch].join(',')); points.push([-width, height].join(',')); points.push('Q' + [- (width * 2), height/2].join(',')); points.push([-(width), 0].join(',')); var path = points.join(' '); if(!cloud.path) cloud.path = cloud.group.path(); cloud.path.attr({ d: path }); }
+function makeRain() { if (!currentWeather || !sizes.card.width) return; var lineWidth = Math.random() * 3; var lineLength = currentWeather.type == 'thunder' ? 35 : 14; var x = Math.random() * (sizes.card.width - 40) + 20; var holder; if (lineWidth < 1) holder = innerRainHolder1; else if (lineWidth < 2) holder = innerRainHolder2; else holder = innerRainHolder3; if (!holder) { console.warn("makeRain: Rain holder not found for lineWidth", lineWidth); return; } var line = holder.path('M0,0 0,' + lineLength).attr({ fill: 'none', stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff', strokeWidth: lineWidth }); rain.push(line); gsap.fromTo(line.node, {x: x, y: 0- lineLength}, {duration: 1, delay: Math.random(), y: sizes.card.height, ease: "power2.in", onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]}); }
+function onRainEnd(line, width, x, type) { if (line && line.remove) { line.remove(); } line = null; rain = rain.filter(item => item !== null && item.paper); if(rain.length < settings.rainCount) { makeRain(); if(width > 2) makeSplash(x, type); } }
+function makeSplash(x, type) { if (!currentWeather || !outerSplashHolder || !sizes.card.offset || !sizes.card.height) { console.warn("makeSplash aborted: Missing data", currentWeather, outerSplashHolder, sizes.card.offset, sizes.card.height); return; } var splashLength = type == 'thunder' ? 30 : 20; var splashBounce = type == 'thunder' ? 120 : 100; var splashDistance = 80; var speed = type == 'thunder' ? 0.7 : 0.5; var splashUp = 0 - (Math.random() * splashBounce); var randomX = ((Math.random() * splashDistance) - (splashDistance / 2)); var points = []; points.push('M' + 0 + ',' + 0); points.push('Q' + randomX + ',' + splashUp); points.push((randomX * 2) + ',' + 0); var splash = outerSplashHolder.path(points.join(' ')).attr({ fill: "none", stroke: type == 'thunder' ? '#777' : '#0000ff', strokeWidth: 1 }); var pathLength = splash.getTotalLength(); var xOffset = sizes.card.offset.left; var yOffset = sizes.card.offset.top + sizes.card.height; console.log("makeSplash at yOffset:", yOffset, " (Top:", sizes.card.offset.top, "Height:", sizes.card.height, ")"); splash.node.style.strokeDasharray = pathLength + ' ' + pathLength; gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"}); }
+function onSplashComplete(splash) { if (splash && splash.remove) { splash.remove(); } splash = null; }
+function makeLeaf() { if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset || !sizes.card.height) return; var scale = 0.5 + (Math.random() * 0.5); var newLeaf; var y, endY, startX, endX, xBezier; var colors = ['#76993E', '#4A5E23', '#6D632F']; var color = colors[Math.floor(Math.random() * colors.length)]; if(scale > 0.8) { newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color }); y = sizes.card.offset.top + Math.random() * sizes.container.height; endY = sizes.card.offset.top + Math.random() * sizes.container.height; startX = sizes.card.offset.left - 100; xBezier = startX + (sizes.container.width - sizes.card.offset.left) / 2; endX = sizes.container.width + 50; } else { newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color }); y = -40; endY = sizes.card.height + 40; startX = Math.random() * sizes.card.width; endX = Math.random() * sizes.card.width; xBezier = startX + (Math.random() - 0.5) * sizes.card.width; } leafs.push(newLeaf); var bezier = [{x:startX, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}]; gsap.fromTo(newLeaf.node, { rotation: Math.random()* 180, scale: scale, x: startX, y: y }, { duration: 4 + Math.random() * 4, rotation: "+=" + (Math.random()* 360 - 180), motionPath: { path: bezier, curviness: 1.25, autoRotate: true }, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: "none" }); }
+function onLeafEnd(leaf) { if (leaf && leaf.remove) { leaf.remove(); } leaf = null; leafs = leafs.filter(item => item !== null && item.paper); if(leafs.length < settings.leafCount) { makeLeaf(); } }
+function makeSnow() { if (!currentWeather || !outerSnowHolder || !innerSnowHolder || !sizes.card.offset || !sizes.card.height) return; var scale = 0.5 + (Math.random() * 0.5); var newSnow; var x = 20 + (Math.random() * (sizes.card.width - 40)); var y = -10; var endY; if(scale > 0.8) { newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' }); endY = sizes.container.height + 10; y = sizes.card.offset.top + settings.cloudHeight; x =  x + sizes.card.offset.left; } else { newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' }); endY = sizes.card.height + 10; } snow.push(newSnow); gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"}); gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"}); gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"}); }
+function onSnowEnd(flake) { if (flake && flake.remove) { flake.remove(); } flake = null; snow = snow.filter(item => item !== null && item.paper); if(snow.length < settings.snowCount) { makeSnow(); } }
 
 // Originale Tick-Funktion
 function tick() {
-    requestAnimationFrame(tick); // Request next frame immediately
+    requestAnimationFrame(tick);
     if (!currentWeather || !sizes.card.width || sizes.card.width === 0) { return; }
 	tickCount++;
 	var check = tickCount % settings.renewCheck;
@@ -270,23 +248,20 @@ function updateSummaryText() { if (!currentWeather) return; console.log("updateS
 // Originale startLightningTimer Funktion
 function startLightningTimer() { if(lightningTimeout) clearTimeout(lightningTimeout); if(currentWeather && currentWeather.type == 'thunder') { console.log("Starting lightning timer"); lightningTimeout = setTimeout(lightning, Math.random()*6000); } }
 // Originale lightning Funktion (mit Bounce!)
-function lightning() { console.log("⚡ lightning triggered!"); if (!currentWeather || currentWeather.type !== 'thunder' || !innerLightningHolder) { console.warn("lightning aborted: wrong weather or holder missing"); return; } startLightningTimer(); gsap.fromTo(card, {y: -30}, {duration: 0.75, y:0, ease:"elastic.out"}); var pathX = 30 + Math.random() * (sizes.card.width - 60); var yOffset = 20; var steps = 20; var points = [pathX + ',0']; for(var i = 0; i < steps; i++) { var x = pathX + (Math.random() * yOffset - (yOffset / 2)); var y = (sizes.card.height / steps) * (i + 1); points.push(x + ',' + y); } var strike = innerLightningHolder.path('M' + points.join(' ')).attr({ fill: 'none', stroke: 'white', strokeWidth: 2 + Math.random() }); gsap.to(strike.node, {duration: 1, opacity: 0, ease:"power4.out", onComplete: function(){ if (strike && strike.remove) strike.remove(); strike = null}}); }
+function lightning() { console.log("⚡ lightning triggered!"); if (!currentWeather || currentWeather.type !== 'thunder' || !innerLightningHolder || !sizes.card.height) { console.warn("lightning aborted: wrong weather, holder missing, or card height zero"); return; } startLightningTimer(); gsap.fromTo(card, {y: -30}, {duration: 0.75, y:0, ease:"elastic.out"}); var pathX = 30 + Math.random() * (sizes.card.width - 60); var yOffset = 20; var steps = 20; var points = [pathX + ',0']; for(var i = 0; i < steps; i++) { var x = pathX + (Math.random() * yOffset - (yOffset / 2)); var y = (sizes.card.height / steps) * (i + 1); points.push(x + ',' + y); } var strike = innerLightningHolder.path('M' + points.join(' ')).attr({ fill: 'none', stroke: 'white', strokeWidth: 2 + Math.random() }); gsap.to(strike.node, {duration: 1, opacity: 0, ease:"power4.out", onComplete: function(){ if (strike && strike.remove) strike.remove(); strike = null}}); }
 
 // Originale changeWeather Funktion
 function changeWeather(weatherData) {
-    console.log("6. changeWeather called with type:", weatherData ? weatherData.type : "null"); // Log 6
+    console.log("6. changeWeather called with type:", weatherData ? weatherData.type : "null");
     var newWeather = weatherData.data ? weatherData.data : weatherData;
-    if (!newWeather || !newWeather.type) { console.error("changeWeather called with invalid data:", weatherData); return; } // Added check
-	reset();
-	currentWeather = newWeather;
-	gsap.killTweensOf(summary);
-	gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"});
-	container.addClass(currentWeather.type);
-    if (currentWeather.button) { currentWeather.button.addClass('active'); } else { const matchingButton = $('#button-' + currentWeather.type); if (matchingButton.length) { matchingButton.addClass('active'); } }
+    if (!newWeather || !newWeather.type) { console.error("changeWeather called with invalid data:", weatherData); return; }
+	reset(); currentWeather = newWeather;
+	gsap.killTweensOf(summary); gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"});
+	container.addClass(currentWeather.type); if (currentWeather.button) { currentWeather.button.addClass('active'); } else { const matchingButton = $('#button-' + currentWeather.type); if (matchingButton.length) { matchingButton.addClass('active'); } }
 	let windTarget, rainTarget, leafTarget, snowTarget; let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
-	switch(currentWeather.type) { /* ... (Original-Werte wie im letzten Code) ... */
+	switch(currentWeather.type) {
         case 'wind': windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
-		case 'sun': windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2; sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0); break; // Added offset check
+		case 'sun': windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2; sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0); break;
         case 'rain': windTarget = 0.5; rainTarget = 10; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
         case 'thunder': windTarget = 0.5; rainTarget = 60; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
         case 'snow': windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 40; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
@@ -301,8 +276,5 @@ function changeWeather(weatherData) {
     if (sun && sun.node) gsap.to(sun.node, { duration: currentWeather.type === 'sun' ? 4 : 2, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" }); else console.warn("Sun node not found for animation.");
     if (sunburst && sunburst.node) gsap.to(sunburst.node, { duration: currentWeather.type === 'sun' ? 4 : 2, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" }); else console.warn("Sunburst node not found for animation.");
 	startLightningTimer();
-    console.log("7. changeWeather finished for type:", currentWeather.type); // Log 7
+    console.log("7. changeWeather finished for type:", currentWeather.type);
 }
-
-// Initialisierung starten, wenn das Dokument bereit ist
-// $(document).ready(init); // init wird jetzt im ready-Handler der Suche aufgerufen
