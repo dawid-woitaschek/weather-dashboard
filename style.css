@@ -74,26 +74,43 @@ body {
     color: #999;
     font-weight: 300;
 }
+
+/* *** GEÄNDERT: Stile für Geolocation Button (jetzt mit SVG) *** */
 #geolocation-button {
-    background-color: #e0e0e0; /* Hintergrund für den Kreis */
+    background-color: transparent; /* Kein eigener Hintergrund mehr */
     border: none;
-    color: #666; /* Icon Farbe */
     cursor: pointer;
-    width: 30px; /* Feste Breite/Höhe für Kreis */
+    width: 30px; /* Klickfläche beibehalten */
     height: 30px;
-    border-radius: 50%; /* Kreisform */
-    display: flex; /* Icon zentrieren */
+    border-radius: 0; /* Keine Kreisform mehr */
+    display: flex; /* SVG zentrieren */
     align-items: center;
     justify-content: center;
-    font-size: 18px; /* Icon Größe anpassen */
     margin-left: 8px; /* Abstand zum Input */
     padding: 0; /* Kein Innenabstand */
-    transition: background-color 0.2s ease;
+    /* Übergang für Hover-Effekt (optional, falls Button selbst Effekte hätte) */
+    /* transition: background-color 0.2s ease; */
 }
+
+/* *** NEU: Stile für das SVG im Geolocation Button *** */
+#geolocation-button svg {
+    width: 20px;  /* Größe des SVG Icons */
+    height: 20px; /* Größe des SVG Icons */
+    fill: #888; /* Standardfarbe des Icons (ähnlich dem Original-Grau) */
+    transition: fill 0.2s ease; /* Übergang für Hover-Effekt */
+}
+
+/* *** GEÄNDERT: Hover-Effekt für Geolocation Button (wirkt auf SVG) *** */
+#geolocation-button:hover svg {
+    fill: #333; /* Dunklere Farbe bei Hover */
+}
+/* Alte Hover-Regel entfernt/auskommentiert:
 #geolocation-button:hover {
-    background-color: #d0d0d0; /* Etwas dunkler bei Hover */
+    background-color: #d0d0d0;
     color: #333;
 }
+*/
+
 #location-suggestions {
     display: none;
     position: absolute;

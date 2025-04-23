@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animiertes Wetter-Widget</title> <!-- Titel vereinfacht -->
+    <title>Open-Meteo Wetter</title> <!-- Titel angepasst -->
 
     <!-- CSS Verlinkung -->
     <link rel="stylesheet" href="style.css">
@@ -32,15 +32,19 @@
             c37.2,6.4,72.7,19.2,105.4,38L22-40.9z"/>
             </svg>
 
-            <!-- *** NEU: Ortssuche *** -->
+            <!-- *** NEU: Überschrift *** -->
+            <h2 id="app-title">
+                <i class="wi wi-day-cloudy"></i> Open-Meteo Wetter
+            </h2>
+
+            <!-- Ortssuche (Struktur bleibt, Styling ändert sich) -->
             <div id="location-search-container">
-                <input type="text" id="location-search-input" placeholder="Ort suchen...">
+                <input type="text" id="location-search-input" placeholder="Standort suchen...">
+                <!-- Button für Geolocation (Icon bleibt, Styling ändert sich) -->
                 <button id="geolocation-button" title="Aktuellen Standort verwenden">
-                    <i class="wi wi-crosshairs"></i>
+                    <i class="wi wi-crosshairs"></i> <!-- Oder anderes Pin-Icon, falls gewünscht z.B. wi-pin -->
                 </button>
-                <div id="location-suggestions">
-                    <!-- Vorschläge werden hier per JS eingefügt -->
-                </div>
+                <div id="location-suggestions"></div>
             </div>
 
             <nav>
@@ -69,7 +73,6 @@
                 <div class="details">
                     <div class="temp">--<span>c</span></div>
                     <div class="right">
-                        <!-- *** NEU: Element für Ortsnamen *** -->
                         <div id="location-name">Dortmund</div>
                         <div id="date">Lädt...</div>
                         <div id="summary">Lädt...</div>

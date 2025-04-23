@@ -10,6 +10,7 @@
 
     <!-- Externe Schriften/Icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300">
+    <!-- Weather Icons werden nicht mehr für Geolocation-Button benötigt, aber für andere Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css">
 
 </head>
@@ -40,9 +41,11 @@
             <!-- Ortssuche (Struktur bleibt, Styling ändert sich) -->
             <div id="location-search-container">
                 <input type="text" id="location-search-input" placeholder="Standort suchen...">
-                <!-- Button für Geolocation (Icon bleibt, Styling ändert sich) -->
+                <!-- Button für Geolocation mit SVG Icon -->
                 <button id="geolocation-button" title="Aktuellen Standort verwenden">
-                    <i class="wi wi-crosshairs"></i> <!-- Oder anderes Pin-Icon, falls gewünscht z.B. wi-pin -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="4 0 24 32" fill="currentColor" aria-hidden="true" focusable="false">
+                      <path d="M 15.514 -0.501 c -6.165 0 -11.18 5.015 -11.18 11.18 c 0 1.715 0.378 3.36 1.13 4.901 c 1.034 2.075 4.06 7.191 7.264 12.608 l 1.56 2.64 c 0.256 0.433 0.722 0.7 1.226 0.7 s 0.97 -0.266 1.226 -0.7 l 1.559 -2.638 c 3.182 -5.379 6.189 -10.463 7.243 -12.565 c 0.01 -0.018 0.02 -0.037 0.028 -0.055 c 0.746 -1.531 1.123 -3.177 1.123 -4.89 C 26.694 4.515 21.678 -0.501 15.514 -0.501 z M 15.514 14.734 c -2.453 0 -4.448 -1.995 -4.448 -4.448 s 1.996 -4.448 4.448 -4.448 s 4.448 1.996 4.448 4.448 S 17.966 14.734 15.514 14.734 z"/>
+                    </svg>
                 </button>
                 <div id="location-suggestions"></div>
             </div>
