@@ -124,7 +124,7 @@ function displaySuggestions(results) {
 }
 
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
     console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl); // Log 1 + URL
     locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
 
