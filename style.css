@@ -88,8 +88,6 @@ body {
     justify-content: center;
     margin-left: 8px; /* Abstand zum Input */
     padding: 0; /* Kein Innenabstand */
-    /* Übergang für Hover-Effekt (optional, falls Button selbst Effekte hätte) */
-    /* transition: background-color 0.2s ease; */
 }
 
 /* *** NEU: Stile für das SVG im Geolocation Button *** */
@@ -104,12 +102,6 @@ body {
 #geolocation-button:hover svg {
     fill: #333; /* Dunklere Farbe bei Hover */
 }
-/* Alte Hover-Regel entfernt/auskommentiert:
-#geolocation-button:hover {
-    background-color: #d0d0d0;
-    color: #333;
-}
-*/
 
 #location-suggestions {
     display: none;
@@ -146,7 +138,7 @@ body {
 
 
 nav ul {
-    margin: 0 20px 0 20px;
+    margin: 0 20px 0 20px; /* Originaler Margin */
     list-style-type: none;
     padding: 0;
     display: flex;
@@ -165,6 +157,12 @@ nav li a:hover {
 nav li a.active {
     color: #44f;
 }
+
+/* *** NEU: Klasse zum Ausblenden der Navigationsleiste *** */
+.nav-hidden {
+    display: none;
+}
+
 #card {
     box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.25);
     overflow: hidden;
@@ -172,7 +170,7 @@ nav li a.active {
     padding: 0;
     height: 400px;
     min-height: 300px;
-    margin: 20px;
+    margin: 20px; /* Originaler Margin */
     border-radius: 5px;
     position: relative;
 }

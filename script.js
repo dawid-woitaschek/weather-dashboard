@@ -8,6 +8,11 @@ var summary = $('#summary');
 var date = $('#date');
 var temp = $('.temp');
 var locationNameElement = $('#location-name'); // Referenz Ortsname
+var navElement = $('nav'); // *** NEU: Referenz für Navigationsleiste ***
+
+// *** NEU: Schalter zum Ein-/Ausblenden der Wetter-Buttons ***
+// Setze auf true, um die Buttons anzuzeigen, auf false, um sie auszublenden.
+const showWeatherButtons = true;
 
 // *** NEU: Referenzen für Suche ***
 var searchContainer = $('#location-search-container');
@@ -119,7 +124,7 @@ function displaySuggestions(results) {
 }
 
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
     console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl); // Log 1 + URL
     locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
 
@@ -162,8 +167,37 @@ function init() {
     console.log("0. init() called"); // Log 0
     onResize();
     console.log("0a. onResize finished.");
-    for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
-    console.log("0b. Buttons bound.");
+
+    // *** NEU: Wetter-Buttons ein-/ausblenden basierend auf Variable ***
+    if (navElement && navElement.length > 0) { // Prüfen ob navElement existiert
+        if (!showWeatherButtons) {
+            console.log("Hiding weather buttons.");
+            navElement.addClass('nav-hidden');
+        } else {
+            console.log("Showing weather buttons.");
+            navElement.removeClass('nav-hidden'); // Sicherstellen, dass sie sichtbar sind
+        }
+    } else {
+        console.warn("Navigation element not found for hiding/showing.");
+    }
+
+    // Event Listener für Wetter-Buttons nur binden, wenn sie angezeigt werden sollen
+    if (showWeatherButtons) {
+        for(var i = 0; i < weather.length; i++) {
+            var w = weather[i];
+            var b = $('#button-' + w.type);
+            if (b.length === 0) {
+                console.warn("Button not found for:", w.type);
+                continue;
+            }
+            w.button = b;
+            b.bind('click', w, changeWeather);
+        }
+        console.log("0b. Weather buttons bound.");
+    } else {
+        console.log("0b. Weather buttons skipped (hidden).");
+    }
+
     for(var i = 0; i < clouds.length; i++) { if (clouds[i] && clouds[i].group) { clouds[i].offset = Math.random() * sizes.card.width; drawCloud(clouds[i], i); gsap.set(clouds[i].group.node, { x: clouds[i].offset }); } else { console.warn("Cloud group missing for index:", i); } }
     console.log("0c. Clouds drawn.");
     fetchWeatherData(currentLat, currentLon, currentLocationName); // Initiale Wetterdaten laden
@@ -183,6 +217,9 @@ $(document).ready(function() {
     searchInput.on('keydown', function(event) { if (event.key === 'Enter') { event.preventDefault(); const firstSuggestion = $('#location-suggestions div:first-child'); if (firstSuggestion.length > 0) { firstSuggestion.trigger('click'); } else { const query = $(this).val(); if (query.length >= 3) { fetchGeocodingData(query); } } } });
     geolocationButton.on('click', function() { if (navigator.geolocation) { console.log("Requesting geolocation..."); locationNameElement.text("Suche Standort..."); summary.text(""); temp.html("--<span>c</span>"); searchInput.val(''); suggestionsContainer.empty().hide(); navigator.geolocation.getCurrentPosition( (position) => { console.log("Geolocation success:", position.coords); const lat = position.coords.latitude; const lon = position.coords.longitude; currentLat = lat; currentLon = lon; currentLocationName = "Aktueller Standort"; fetchWeatherData(lat, lon, currentLocationName); }, (error) => { console.error("Geolocation error:", error); let errorMsg = "Standort konnte nicht ermittelt werden."; if (error.code === error.PERMISSION_DENIED) errorMsg = "Standortzugriff verweigert."; else if (error.code === error.POSITION_UNAVAILABLE) errorMsg = "Standortinformationen nicht verfügbar."; else if (error.code === error.TIMEOUT) errorMsg = "Standortabfrage Zeitüberschreitung."; handleApiError(errorMsg); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 } ); } else { console.error("Geolocation is not supported by this browser."); handleApiError("Geolocation wird nicht unterstützt."); } });
     $(document).on('click', function(event) { if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0 && !suggestionsContainer.is(event.target) && suggestionsContainer.has(event.target).length === 0) { suggestionsContainer.hide(); } });
+
+    // Initialisierung starten, wenn das Dokument bereit ist
+    init(); // init hier aufrufen, nachdem alle Listener gebunden sind
 });
 
 // --- Animationsfunktionen (aus Ur-Fassung, mit Checks) ---
@@ -192,13 +229,12 @@ function onResize() {
 	sizes.card.width = card.width(); sizes.card.height = card.height(); sizes.card.offset = card.offset();
     if (!sizes.card.width || !sizes.container.width) {
         console.warn("onResize: Card or container width is zero.");
-        // return; // Frühzeitiger Ausstieg könnte Probleme verursachen, wenn später initialisiert wird
     }
 	if (innerSVG) innerSVG.attr({ width: sizes.card.width, height: sizes.card.height });
 	if (outerSVG) outerSVG.attr({ width: sizes.container.width, height: sizes.container.height });
 	if (backSVG) backSVG.attr({ width: sizes.container.width, height: sizes.container.height });
 	if (sunburst && sunburst.node) {
-        gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + sizes.card.offset.top});
+        gsap.set(sunburst.node, {transformOrigin:"50% 50%", x: sizes.container.width / 2, y: (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0)}); // Check offset
         if (!gsap.isTweening(sunburst.node)) { gsap.fromTo(sunburst.node, {rotation: 0}, {duration: 20, rotation: 360, repeat: -1, ease: "none"}); }
     }
     if (leafMask && sizes.card.offset) { // Sicherstellen, dass offset existiert
@@ -220,33 +256,11 @@ function onSnowEnd(flake) { /* ... (Original-Logik) ... */ if (flake && flake.re
 // Originale Tick-Funktion
 function tick() {
     requestAnimationFrame(tick); // Request next frame immediately
-    // console.log("tick running - CW:", currentWeather ? currentWeather.type : "null", " Width:", sizes.card.width); // Verbose tick log
-
-    if (!currentWeather || !sizes.card.width || sizes.card.width === 0) { // Added width check
-        // console.log("tick exit - no current weather or card width is zero"); // Log exit reason
-        return;
-    }
+    if (!currentWeather || !sizes.card.width || sizes.card.width === 0) { return; }
 	tickCount++;
 	var check = tickCount % settings.renewCheck;
-
-	if(check) {
-		if(rain.length < settings.rainCount) makeRain();
-		if(leafs.length < settings.leafCount) makeLeaf();
-		if(snow.length < settings.snowCount) makeSnow();
-	}
-
-	for(var i = 0; i < clouds.length; i++) {
-        var cloud = clouds[i]; if (!cloud || !cloud.group || !cloud.group.node) continue;
-		if(currentWeather.type == 'sun') {
-			if(cloud.offset > -(sizes.card.width * 1.5)) cloud.offset += settings.windSpeed / (i + 1);
-			if(cloud.offset > sizes.card.width * 2.5) cloud.offset = -(sizes.card.width * 1.5);
-			cloud.group.transform('t' + cloud.offset + ',' + 0);
-		} else {
-			cloud.offset += settings.windSpeed / (i + 1);
-			if(cloud.offset > sizes.card.width) cloud.offset = 0 + (cloud.offset - sizes.card.width);
-			cloud.group.transform('t' + cloud.offset + ',' + 0);
-		}
-	}
+	if(check) { if(rain.length < settings.rainCount) makeRain(); if(leafs.length < settings.leafCount) makeLeaf(); if(snow.length < settings.snowCount) makeSnow(); }
+	for(var i = 0; i < clouds.length; i++) { var cloud = clouds[i]; if (!cloud || !cloud.group || !cloud.group.node) continue; if(currentWeather.type == 'sun') { if(cloud.offset > -(sizes.card.width * 1.5)) cloud.offset += settings.windSpeed / (i + 1); if(cloud.offset > sizes.card.width * 2.5) cloud.offset = -(sizes.card.width * 1.5); cloud.group.transform('t' + cloud.offset + ',' + 0); } else { cloud.offset += settings.windSpeed / (i + 1); if(cloud.offset > sizes.card.width) cloud.offset = 0 + (cloud.offset - sizes.card.width); cloud.group.transform('t' + cloud.offset + ',' + 0); } }
 }
 
 // Originale Reset-Funktion
@@ -263,28 +277,13 @@ function changeWeather(weatherData) {
     console.log("6. changeWeather called with type:", weatherData ? weatherData.type : "null"); // Log 6
     var newWeather = weatherData.data ? weatherData.data : weatherData;
     if (!newWeather || !newWeather.type) { console.error("changeWeather called with invalid data:", weatherData); return; } // Added check
-
-    // Optional: Check if already changing to this weather to prevent issues
-    // if (container.hasClass(newWeather.type)) {
-    //     console.log("Already changing to or is:", newWeather.type);
-    //     // Potentially just update text if needed
-    //     if (summary.html() !== newWeather.name) { updateSummaryText(); }
-    //     return;
-    // }
-
 	reset();
 	currentWeather = newWeather;
-
 	gsap.killTweensOf(summary);
 	gsap.to(summary, {duration: 1, opacity: 0, x: -30, onComplete: updateSummaryText, ease: "power4.in"});
-
 	container.addClass(currentWeather.type);
-    if (currentWeather.button) { currentWeather.button.addClass('active'); }
-    else { const matchingButton = $('#button-' + currentWeather.type); if (matchingButton.length) { matchingButton.addClass('active'); } }
-
-	let windTarget, rainTarget, leafTarget, snowTarget;
-    let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
-
+    if (currentWeather.button) { currentWeather.button.addClass('active'); } else { const matchingButton = $('#button-' + currentWeather.type); if (matchingButton.length) { matchingButton.addClass('active'); } }
+	let windTarget, rainTarget, leafTarget, snowTarget; let sunXTarget, sunYTarget, sunburstScaleTarget, sunburstOpacityTarget, sunburstYTarget;
 	switch(currentWeather.type) { /* ... (Original-Werte wie im letzten Code) ... */
         case 'wind': windTarget = 3; rainTarget = 0; leafTarget = 5; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
 		case 'sun': windTarget = 20; rainTarget = 0; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = sizes.card.height / 2; sunburstScaleTarget = 1; sunburstOpacityTarget = 0.8; sunburstYTarget = (sizes.card.height/2) + (sizes.card.offset ? sizes.card.offset.top : 0); break; // Added offset check
@@ -294,19 +293,16 @@ function changeWeather(weatherData) {
         case 'cloudy': windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
 		default: windTarget = 0.5; rainTarget = 0; leafTarget = 0; snowTarget = 0; sunXTarget = sizes.card.width / 2; sunYTarget = -100; sunburstScaleTarget = 0.4; sunburstOpacityTarget = 0; sunburstYTarget = (sizes.container.height/2)-50; break;
     }
-
     console.log(`Setting targets for ${currentWeather.type}: wind=${windTarget}, rain=${rainTarget}, leaf=${leafTarget}, snow=${snowTarget}`);
-
     gsap.to(settings, { duration: 3, windSpeed: windTarget, ease: "power2.inOut" });
     gsap.to(settings, { duration: currentWeather.type === 'rain' || currentWeather.type === 'thunder' ? 3 : 1, rainCount: rainTarget, ease: "power2.inOut" });
     gsap.to(settings, { duration: currentWeather.type === 'wind' ? 3 : 1, leafCount: leafTarget, ease: "power2.inOut" });
     gsap.to(settings, { duration: currentWeather.type === 'snow' ? 3 : 1, snowCount: snowTarget, ease: "power2.inOut" });
     if (sun && sun.node) gsap.to(sun.node, { duration: currentWeather.type === 'sun' ? 4 : 2, x: sunXTarget, y: sunYTarget, ease: "power2.inOut" }); else console.warn("Sun node not found for animation.");
     if (sunburst && sunburst.node) gsap.to(sunburst.node, { duration: currentWeather.type === 'sun' ? 4 : 2, scale: sunburstScaleTarget, opacity: sunburstOpacityTarget, y: sunburstYTarget, ease: "power2.inOut" }); else console.warn("Sunburst node not found for animation.");
-
 	startLightningTimer();
     console.log("7. changeWeather finished for type:", currentWeather.type); // Log 7
 }
 
 // Initialisierung starten, wenn das Dokument bereit ist
-$(document).ready(init); // Sicherstellen, dass init erst aufgerufen wird, wenn DOM bereit ist
+// $(document).ready(init); // init wird jetzt im ready-Handler der Suche aufgerufen
