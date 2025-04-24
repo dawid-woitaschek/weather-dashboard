@@ -113,8 +113,42 @@ function fetchGeocodingData(query) {
 
 function displaySuggestions(results) {
     suggestionsContainer.empty().hide(); if (!results || results.length === 0) return;
-    const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE']; const featureCodeBonus = { 'PPLC': 10000, 'PPLA': 5000 };
-    results.sort((a, b) => { let scoreA = 0, scoreB = 0; if (a.country_code === 'DE') scoreA += 100000; else if (europeanCountries.includes(a.country_code)) scoreA += 50000; else if (a.country_code === 'US') scoreA += 25000; if (b.country_code === 'DE') scoreB += 100000; else if (europeanCountries.includes(b.country_code)) scoreB += 50000; else if (b.country_code === 'US') scoreB += 25000; scoreA += featureCodeBonus[a.feature_code] || 0; scoreB += featureCodeBonus[b.feature_code] || 0; scoreA += (a.population || 0); scoreB += (b.population || 0); return scoreB - scoreA; });
+
+    // --- Erweiterte Sortierlogik (ANGEPASST) ---
+    const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE'];
+    const featureCodeBonus = {
+        'PPLC': 20000,  // Capital of a political entity (Bonus erhöht)
+        'PPLA': 10000,  // Seat of a first-order administrative division (Bonus erhöht)
+        'ADM1': 50000,  // *** NEU: Starker Bonus für Bundesstaaten/Regionen ***
+        // Weitere Codes könnten hinzugefügt werden
+    };
+
+    results.sort((a, b) => {
+        // 1. Geografischer Bonus berechnen (ANGEPASST: Höhere Boni)
+        let scoreA = 0;
+        let scoreB = 0;
+
+        if (a.country_code === 'DE') scoreA += 500000; // Stark erhöht
+        else if (europeanCountries.includes(a.country_code)) scoreA += 250000; // Erhöht
+        else if (a.country_code === 'US') scoreA += 200000; // Deutlich erhöht
+
+        if (b.country_code === 'DE') scoreB += 500000; // Stark erhöht
+        else if (europeanCountries.includes(b.country_code)) scoreB += 250000; // Erhöht
+        else if (b.country_code === 'US') scoreB += 200000; // Deutlich erhöht
+
+        // 2. Feature Code Bonus hinzufügen (mit neuem ADM1 Bonus)
+        scoreA += featureCodeBonus[a.feature_code] || 0;
+        scoreB += featureCodeBonus[b.feature_code] || 0;
+
+        // 3. Populations-Score hinzufügen (bleibt gleich)
+        scoreA += (a.population || 0);
+        scoreB += (b.population || 0);
+
+        // Absteigend sortieren (höchster Score zuerst)
+        return scoreB - scoreA;
+    });
+    // --- Ende der angepassten Sortierlogik ---
+
     const uniqueLocations = []; const seenKeys = new Set();
     results.forEach(location => { const latRounded = Math.round(location.latitude * 100); const lonRounded = Math.round(location.longitude * 100); const key = `${location.name.toLowerCase()}_${location.country_code}_${latRounded}_${lonRounded}`; if (!seenKeys.has(key)) { uniqueLocations.push(location); seenKeys.add(key); } });
     const maxSuggestions = 10;
