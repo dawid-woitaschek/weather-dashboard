@@ -149,7 +149,7 @@ function onRainEnd(line, width, x, type) { if (line && line.remove) { line.remov
 function makeSplash(x, type) { if (!currentWeather || !outerSplashHolder || !sizes.card.offset || !sizes.card.height) { console.warn("makeSplash aborted: Missing data", currentWeather, outerSplashHolder, sizes.card.offset, sizes.card.height); return; } var splashLength = type == 'thunder' ? 30 : 20; var splashBounce = type == 'thunder' ? 120 : 100; var splashDistance = 80; var speed = type == 'thunder' ? 0.7 : 0.5; var splashUp = 0 - (Math.random() * splashBounce); var randomX = ((Math.random() * splashDistance) - (splashDistance / 2)); var points = []; points.push('M' + 0 + ',' + 0); points.push('Q' + randomX + ',' + splashUp); points.push((randomX * 2) + ',' + 0); var splash = outerSplashHolder.path(points.join(' ')).attr({ fill: "none", stroke: type == 'thunder' ? '#777' : '#0000ff', strokeWidth: 1 }); var pathLength = splash.getTotalLength(); var xOffset = sizes.card.offset.left; var yOffset = sizes.card.offset.top + sizes.card.height; console.log("makeSplash at yOffset:", yOffset, " (Top:", sizes.card.offset.top, "Height:", sizes.card.height, ")"); splash.node.style.strokeDasharray = pathLength + ' ' + pathLength; gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"}); }
 function onSplashComplete(splash) { if (splash && splash.remove) { splash.remove(); } splash = null; }
 
-// *** KORRIGIERTE makeLeaf Funktion ***
+// *** ERNEUT KORRIGIERTE makeLeaf Funktion ***
 function makeLeaf() {
     if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset || !sizes.card.height || !sizes.container.width) {
         console.warn("makeLeaf aborted: Missing data");
@@ -162,27 +162,44 @@ function makeLeaf() {
 	var color = colors[Math.floor(Math.random() * colors.length)];
     var duration = 5 + Math.random() * 5; // Langsamere, variablere Dauer
 
-    // Logik, um Blätter von links nach rechts wehen zu lassen
-    startY = Math.random() * sizes.container.height; // Start irgendwo vertikal im Container
-    startX = -50; // Start links außerhalb des Bildschirms
-    endX = sizes.container.width + 50; // Ende rechts außerhalb des Bildschirms
-    endY = startY + (Math.random() * 200 - 100); // Leichte vertikale Abweichung am Ende
-    if (endY < 0) endY = 0; // Sicherstellen, dass es nicht zu weit nach oben geht
-    if (endY > sizes.container.height) endY = sizes.container.height; // Sicherstellen, dass es nicht zu weit nach unten geht
+    // Zufällig entscheiden, ob das Blatt innen oder außen startet/fliegt
+    if (Math.random() > 0.4) { // 60% Chance für äußeres Blatt (fliegt rechts vorbei)
+        console.log("makeLeaf: Creating outer leaf");
+        newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
 
-    // Bezier-Kontrollpunkte für eine wehende Bewegung
-    xBezier = startX + (endX - startX) * (0.3 + Math.random() * 0.4); // Irgendwo horizontal dazwischen
-    yBezier = startY + (Math.random() * 150 - 75); // Vertikaler Bogen
+        // Start links außerhalb des Bildschirms, zufällige Höhe
+        startX = -50;
+        startY = Math.random() * sizes.container.height;
 
-    // Entscheiden, ob das Blatt *innerhalb* der Karte (innerLeafHolder) oder *außerhalb* (outerLeafHolder) animiert wird
-    // Dies war im Original etwas unklar/fehlerhaft. Wir lassen jetzt alle Blätter im outerHolder animieren,
-    // aber die Maske (`leafMask`) sorgt dafür, dass sie nur rechts von der Karte sichtbar sind, wenn sie dort vorbeifliegen.
-    // Das entspricht dem "aus der Karte rausgeweht werden"-Effekt.
-    // Wenn Blätter *innerhalb* der Karte sichtbar sein sollen, müssten wir sie an innerLeafHolder anhängen
-    // und die Pfade relativ zu 0,0 der Karte berechnen.
-    // Für den "Wind weht Blätter raus"-Effekt ist outerLeafHolder + Maske besser.
+        // Ende rechts außerhalb des Bildschirms
+        endX = sizes.container.width + 50;
+        endY = startY + (Math.random() * 200 - 100); // Leichte vertikale Abweichung
+        if (endY < 0) endY = 10;
+        if (endY > sizes.container.height) endY = sizes.container.height - 10;
 
-    newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
+        // Bezier-Kontrollpunkte für wehende Bewegung über den ganzen Bildschirm
+        xBezier = startX + (endX - startX) * (0.3 + Math.random() * 0.4);
+        yBezier = startY + (Math.random() * 150 - 75); // Vertikaler Bogen
+
+    } else { // 40% Chance für inneres Blatt (fliegt innerhalb der Karte)
+        console.log("makeLeaf: Creating inner leaf");
+        newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color });
+
+        // Start links innerhalb oder knapp außerhalb der Karte, zufällige Höhe
+        startX = Math.random() * (sizes.card.width / 2) - 30; // Start eher links in der Karte
+        startY = Math.random() * sizes.card.height;
+
+        // Ende rechts innerhalb oder knapp außerhalb der Karte
+        endX = sizes.card.width + 30; // Ziel ist rechts aus der Karte raus
+        endY = startY + (Math.random() * 100 - 50); // Leichte vertikale Abweichung
+        if (endY < 0) endY = 10;
+        if (endY > sizes.card.height) endY = sizes.card.height - 10;
+
+        // Bezier-Kontrollpunkte für wehende Bewegung innerhalb der Karte
+        xBezier = startX + (endX - startX) * (0.3 + Math.random() * 0.4);
+        yBezier = startY + (Math.random() * 80 - 40); // Kleinerer vertikaler Bogen
+    }
+
 	leafs.push(newLeaf);
 
 	var bezierPath = [{x:startX, y:startY}, {x: xBezier, y: yBezier}, {x: endX, y:endY}];
@@ -197,7 +214,7 @@ function makeLeaf() {
         rotation: "+=" + (Math.random() * 720 - 360),
         motionPath: {
             path: bezierPath,
-            curviness: 1.5, // Mehr Kurve für Windeffekt
+            curviness: 1.5,
             autoRotate: true
         },
         onComplete: onLeafEnd,
@@ -205,7 +222,7 @@ function makeLeaf() {
         ease: "none" // Gleichmäßige Bewegung
     });
 }
-// *** ENDE KORRIGIERTE makeLeaf Funktion ***
+// *** ENDE ERNEUT KORRIGIERTE makeLeaf Funktion ***
 
 function onLeafEnd(leaf) { if (leaf && leaf.remove) { leaf.remove(); } leaf = null; leafs = leafs.filter(item => item !== null && item.paper); if(leafs.length < settings.leafCount) { makeLeaf(); } }
 function makeSnow() { if (!currentWeather || !outerSnowHolder || !innerSnowHolder || !sizes.card.offset || !sizes.card.height) return; var scale = 0.5 + (Math.random() * 0.5); var newSnow; var x = 20 + (Math.random() * (sizes.card.width - 40)); var y = -10; var endY; if(scale > 0.8) { newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' }); endY = sizes.container.height + 10; y = sizes.card.offset.top + settings.cloudHeight; x =  x + sizes.card.offset.left; } else { newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' }); endY = sizes.card.height + 10; } snow.push(newSnow); gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"}); gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"}); gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"}); }
