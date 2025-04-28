@@ -210,12 +210,108 @@ function onResize() {
 function drawCloud(cloud, i) { /* ... (Original-Logik) ... */ if (!cloud || !cloud.group) return; var space  = settings.cloudSpace * i; var height = space + settings.cloudHeight; var arch = height + settings.cloudArch + (Math.random() * settings.cloudArch); var width = sizes.card.width; var points = []; points.push('M' + [-(width), 0].join(',')); points.push([width, 0].join(',')); points.push('Q' + [width * 2, height / 2].join(',')); points.push([width, height].join(',')); points.push('Q' + [width * 0.5, arch].join(',')); points.push([0, height].join(',')); points.push('Q' + [width * -0.5, arch].join(',')); points.push([-width, height].join(',')); points.push('Q' + [- (width * 2), height/2].join(',')); points.push([-(width), 0].join(',')); var path = points.join(' '); if(!cloud.path) cloud.path = cloud.group.path(); cloud.path.attr({ d: path }); }
 function makeRain() { /* ... (Original-Logik) ... */ if (!currentWeather) return; var lineWidth = Math.random() * 3; var lineLength = currentWeather.type == 'thunder' ? 35 : 14; var x = Math.random() * (sizes.card.width - 40) + 20; var holder; if (lineWidth < 1) holder = innerRainHolder1; else if (lineWidth < 2) holder = innerRainHolder2; else holder = innerRainHolder3; if (!holder) { console.warn("makeRain: Rain holder not found for lineWidth", lineWidth); return; } var line = holder.path('M0,0 0,' + lineLength).attr({ fill: 'none', stroke: currentWeather.type == 'thunder' ? '#777' : '#0000ff', strokeWidth: lineWidth }); rain.push(line); gsap.fromTo(line.node, {x: x, y: 0- lineLength}, {duration: 1, delay: Math.random(), y: sizes.card.height, ease: "power2.in", onComplete: onRainEnd, onCompleteParams: [line, lineWidth, x, currentWeather.type]}); }
 function onRainEnd(line, width, x, type) { /* ... (Original-Logik) ... */ if (line && line.remove) { line.remove(); } line = null; rain = rain.filter(item => item !== null && item.paper); if(rain.length < settings.rainCount) { makeRain(); if(width > 2) makeSplash(x, type); } }
-function makeSplash(x, type) { /* ... (Original-Logik, korrigierter Pfad) ... */ if (!currentWeather || !outerSplashHolder || !sizes.card.offset) return; var splashLength = type == 'thunder' ? 30 : 20; var splashBounce = type == 'thunder' ? 120 : 100; var splashDistance = 80; var speed = type == 'thunder' ? 0.7 : 0.5; var splashUp = 0 - (Math.random() * splashBounce); var randomX = ((Math.random() * splashDistance) - (splashDistance / 2)); var points = []; points.push('M' + 0 + ',' + 0); points.push('Q' + randomX + ',' + splashUp); points.push((randomX * 2) + ',' + 0); var splash = outerSplashHolder.path(points.join(' ')).attr({ fill: "none", stroke: type == 'thunder' ? '#777' : '#0000ff', strokeWidth: 1 }); var pathLength = splash.getTotalLength(); var xOffset = sizes.card.offset.left; var yOffset = sizes.card.offset.top + sizes.card.height; splash.node.style.strokeDasharray = pathLength + ' ' + pathLength; gsap.fromTo(splash.node, {strokeWidth: 2, y: yOffset, x: xOffset + x, opacity: 1, strokeDashoffset: pathLength}, {duration: speed, strokeWidth: 0, strokeDashoffset: - pathLength, opacity: 1, onComplete: onSplashComplete, onCompleteParams: [splash], ease: "power1.easeOut"}); }
 function onSplashComplete(splash) { /* ... (Original-Logik) ... */ if (splash && splash.remove) { splash.remove(); } splash = null; }
-function makeLeaf() { /* ... (Original-Logik, korrigierter innerer Pfad) ... */ if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset) return; var scale = 0.5 + (Math.random() * 0.5); var newLeaf; var y, endY, startX, endX, xBezier; var colors = ['#76993E', '#4A5E23', '#6D632F']; var color = colors[Math.floor(Math.random() * colors.length)]; if(scale > 0.8) { newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color }); y = sizes.card.offset.top + Math.random() * sizes.container.height; endY = sizes.card.offset.top + Math.random() * sizes.container.height; startX = sizes.card.offset.left - 100; xBezier = startX + (sizes.container.width - sizes.card.offset.left) / 2; endX = sizes.container.width + 50; } else { newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color }); y = -40; endY = sizes.card.height + 40; startX = Math.random() * sizes.card.width; endX = Math.random() * sizes.card.width; xBezier = startX + (Math.random() - 0.5) * sizes.card.width; } leafs.push(newLeaf); var bezier = [{x:startX, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}]; gsap.fromTo(newLeaf.node, { rotation: Math.random()* 180, scale: scale, x: startX, y: y }, { duration: 4 + Math.random() * 4, rotation: "+=" + (Math.random()* 360 - 180), motionPath: { path: bezier, curviness: 1.25, autoRotate: true }, onComplete: onLeafEnd, onCompleteParams: [newLeaf], ease: "none" }); }
 function onLeafEnd(leaf) { /* ... (Original-Logik) ... */ if (leaf && leaf.remove) { leaf.remove(); } leaf = null; leafs = leafs.filter(item => item !== null && item.paper); if(leafs.length < settings.leafCount) { makeLeaf(); } }
 function makeSnow() { /* ... (Original-Logik) ... */ if (!currentWeather || !outerSnowHolder || !innerSnowHolder || !sizes.card.offset) return; var scale = 0.5 + (Math.random() * 0.5); var newSnow; var x = 20 + (Math.random() * (sizes.card.width - 40)); var y = -10; var endY; if(scale > 0.8) { newSnow = outerSnowHolder.circle(0, 0, 5).attr({ fill: 'white' }); endY = sizes.container.height + 10; y = sizes.card.offset.top + settings.cloudHeight; x =  x + sizes.card.offset.left; } else { newSnow = innerSnowHolder.circle(0, 0 ,5).attr({ fill: 'white' }); endY = sizes.card.height + 10; } snow.push(newSnow); gsap.fromTo(newSnow.node, {x: x, y: y}, {duration: 3 + (Math.random() * 5), y: endY, onComplete: onSnowEnd, onCompleteParams: [newSnow], ease: "none"}); gsap.fromTo(newSnow.node, {scale: 0}, {duration: 1, scale: scale, ease: "power1.inOut"}); gsap.to(newSnow.node, {duration: 3, x: x+((Math.random() * 150)-75), repeat: -1, yoyo: true, ease: "power1.inOut"}); }
 function onSnowEnd(flake) { /* ... (Original-Logik) ... */ if (flake && flake.remove) { flake.remove(); } flake = null; snow = snow.filter(item => item !== null && item.paper); if(snow.length < settings.snowCount) { makeSnow(); } }
+
+function makeSplash(x, type) {
+    // Grundlegende Checks und Variablen (wie in deiner Version)
+    if (!currentWeather || !outerSplashHolder || !sizes.card.offset) return;
+    var splashLength = type == 'thunder' ? 30 : 20;
+    var splashBounce = type == 'thunder' ? 120 : 100;
+    var splashDistance = 80;
+    var speed = type == 'thunder' ? 0.7 : 0.5;
+    var splashUp = 0 - (Math.random() * splashBounce);
+    var randomX = ((Math.random() * splashDistance) - (splashDistance / 2));
+    var points = [];
+    points.push('M' + 0 + ',' + 0);
+    points.push('Q' + randomX + ',' + splashUp);
+    points.push((randomX * 2) + ',' + splashDistance);
+    var splash = outerSplashHolder.path(points.join(' ')).attr({ fill: "none", stroke: type == 'thunder' ? '#777' : '#0000ff', strokeWidth: 1 });
+    var pathLength = splash.getTotalLength();
+    var xOffset = sizes.card.offset.left;
+    var yOffset = sizes.card.offset.top + sizes.card.height;
+    splash.node.style.strokeDasharray = pathLength + ' ' + pathLength;
+
+    // GSAP Animation - angepasst an CodePen (Start-X, Easing)
+    gsap.fromTo(splash.node, {
+        strokeWidth: 2,
+        y: yOffset,
+        x: xOffset + 20 + x, // Start-X wie im CodePen (+20)
+        opacity: 1,
+        strokeDashoffset: pathLength
+    }, {
+        duration: speed,
+        strokeWidth: 0,
+        strokeDashoffset: - pathLength,
+        opacity: 1,
+        onComplete: onSplashComplete,
+        onCompleteParams: [splash],
+        ease: "back.out(1.7)" // Easing geändert zu "back.out" für Bounce-Effekt
+        // Alternativ testen: "elastic.out(1, 0.5)"
+    });
+}
+
+function makeLeaf() {
+    // Grundlegende Checks und Variablen (wie in deiner Version)
+    if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset) return;
+    var scale = 0.5 + (Math.random() * 0.5);
+    var newLeaf;
+    var y, endY, startX, endX, xBezier;
+    var colors = ['#76993E', '#4A5E23', '#6D632F'];
+    var color = colors[Math.floor(Math.random() * colors.length)];
+
+    if(scale > 0.8) {
+        // Große Blätter (außen) - Logik bleibt wie im Original CodePen
+        newLeaf = leaf.clone().appendTo(outerLeafHolder).attr({ fill: color });
+        // Vertikale Positionierung wie im Original CodePen (areaY-Berechnung war dort etwas anders,
+        // aber die Logik mit offset.top ist robuster, wir behalten deine Y-Logik bei)
+        var areaY = sizes.card.height / 2; // Behalte deine areaY Logik bei
+        y = sizes.card.offset.top + areaY + (Math.random() * areaY); // Angepasst an deine Logik
+        endY = y - ((Math.random() * (areaY * 2)) - areaY); // Angepasst an deine Logik
+
+        startX = sizes.card.offset.left - 100;
+        xBezier = startX + (sizes.container.width - sizes.card.offset.left) / 2;
+        endX = sizes.container.width + 50;
+    } else {
+        // Kleine Blätter (innen) - Logik angepasst an CodePen
+        newLeaf = leaf.clone().appendTo(innerLeafHolder).attr({ fill: color });
+        // Vertikale Positionierung wie im Original CodePen (war dort etwas anders berechnet,
+        // deine Logik mit -40 und card.height + 40 ist klarer, wir behalten sie bei)
+        y = -40; // Start oben (wie bei dir)
+        endY = sizes.card.height + 40; // Ende unten (wie bei dir)
+
+        // Horizontale Positionierung wie im Original CodePen (QUER DURCH)
+        startX = -100; // Startet links außerhalb
+        xBezier = sizes.card.width / 2; // Kontrollpunkt in der Mitte
+        endX = sizes.card.width + 50; // Endet rechts außerhalb
+    }
+
+    leafs.push(newLeaf);
+
+    // Bezier-Pfad definieren
+    var bezier = [{x:startX, y:y}, {x: xBezier, y:(Math.random() * endY) + (endY / 3)}, {x: endX, y:endY}];
+
+    // GSAP Animation - angepasst an CodePen (Dauer, kein autoRotate)
+    gsap.fromTo(newLeaf.node, {
+        rotation: Math.random()* 180,
+        scale: scale,
+        x: startX,
+        y: y
+    }, {
+        duration: 2, // Dauer wie im CodePen
+        rotation: "+=" + (Math.random()* 360 - 180), // Behalte deine Rotation bei
+        motionPath: { // Verwende motionPath (GSAP v3) statt bezier (GSAP v2)
+            path: bezier,
+            curviness: 1.25 // Behalte deine Curviness bei
+            // autoRotate: true entfernt!
+        },
+        onComplete: onLeafEnd,
+        onCompleteParams: [newLeaf],
+        ease: "none" // Lineares Easing (wie Power0.easeIn / "none")
+    });
+}
 
 // Originale Tick-Funktion
 function tick() {
