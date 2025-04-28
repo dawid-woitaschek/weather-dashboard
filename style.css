@@ -22,131 +22,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 30px; /* Mehr Platz oben */
+    justify-content: center;
     margin: 0;
+    padding: 0;
     height: 100%;
     width: 100%;
     overflow: auto;
     position: relative;
     background: #eee;
     background: linear-gradient(240deg, rgba(150, 50, 50, 0.3), rgba(0, 0, 200, 0));
-    box-sizing: border-box;
 }
-
-/* *** NEU: Stile für Überschrift *** */
-#app-title {
-    display: flex;
-    align-items: center;
-    font-size: 24px;
-    font-weight: 300; /* Leichter */
-    color: #555;
-    margin-bottom: 20px; /* Abstand zur Suche */
-}
-#app-title i {
-    font-size: 30px; /* Icon etwas größer */
-    margin-right: 10px;
-    color: #777; /* Icon Farbe */
-}
-
-/* *** NEU/ANGEPASST: Stile für Ortssuche (gemäß Screenshot) *** */
-#location-search-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px; /* Abstand zur Nav */
-    position: relative;
-    width: 320px; /* Etwas breiter als Karte? */
-    background-color: #f0f0f0; /* Heller Hintergrund für die Leiste */
-    border-radius: 25px; /* Stark abgerundete Ecken */
-    padding: 5px 10px 5px 15px; /* Innenabstand (links mehr) */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Leichter Innenschatten */
-}
-#location-search-input {
-    flex-grow: 1;
-    padding: 8px 0; /* Vertikaler Abstand, horizontal 0 */
-    border: none; /* Kein eigener Rand */
-    background: transparent; /* Transparenter Hintergrund */
-    font-size: 16px;
-    font-family: 'Lato', sans-serif;
-    outline: none;
-    color: #333; /* Dunklere Schrift */
-}
-#location-search-input::placeholder { /* Placeholder Styling */
-    color: #999;
-    font-weight: 300;
-}
-
-/* *** GEÄNDERT: Stile für Geolocation Button (jetzt mit SVG) *** */
-#geolocation-button {
-    background-color: transparent; /* Kein eigener Hintergrund mehr */
-    border: none;
-    cursor: pointer;
-    width: 30px; /* Klickfläche beibehalten */
-    height: 30px;
-    border-radius: 0; /* Keine Kreisform mehr */
-    display: flex; /* SVG zentrieren */
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px; /* Abstand zum Input */
-    padding: 0; /* Kein Innenabstand */
-    /* Übergang für Hover-Effekt (optional, falls Button selbst Effekte hätte) */
-    /* transition: background-color 0.2s ease; */
-}
-
-/* *** NEU: Stile für das SVG im Geolocation Button *** */
-#geolocation-button svg {
-    width: 20px;  /* Größe des SVG Icons */
-    height: 20px; /* Größe des SVG Icons */
-    fill: #888; /* Standardfarbe des Icons (ähnlich dem Original-Grau) */
-    transition: fill 0.2s ease; /* Übergang für Hover-Effekt */
-}
-
-/* *** GEÄNDERT: Hover-Effekt für Geolocation Button (wirkt auf SVG) *** */
-#geolocation-button:hover svg {
-    fill: #333; /* Dunklere Farbe bei Hover */
-}
-/* Alte Hover-Regel entfernt/auskommentiert:
-#geolocation-button:hover {
-    background-color: #d0d0d0;
-    color: #333;
-}
-*/
-
-#location-suggestions {
-    display: none;
-    position: absolute;
-    top: calc(100% + 5px); /* Unter der Suchleiste mit Abstand */
-    left: 0;
-    right: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 8px; /* Abgerundete Ecken */
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-#location-suggestions div {
-    padding: 10px 15px; /* Mehr Padding */
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
-}
-#location-suggestions div:last-child {
-    border-bottom: none;
-}
-#location-suggestions div:hover {
-    background-color: #f5f5f5;
-}
-#location-suggestions div .suggestion-details {
-    font-size: 12px;
-    color: #777;
-    margin-left: 5px;
-}
-/* *** Ende Stile Ortssuche *** */
-
-
 nav ul {
-    margin: 0 20px 0 20px;
+    margin: 20px 20px 0 20px;
     list-style-type: none;
     padding: 0;
     display: flex;
@@ -163,7 +50,7 @@ nav li a:hover {
     color: #444;
 }
 nav li a.active {
-    color: #44f;
+    color: #44f; /* Farbe für aktiven Button, kann angepasst werden */
 }
 #card {
     box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.25);
@@ -182,7 +69,7 @@ nav li a.active {
     left: 0;
     right: 0;
     padding: 16px 20px;
-    color: #888;
+    color: #888; /* Standard Textfarbe */
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -190,25 +77,15 @@ nav li a.active {
     z-index: 10;
 }
 .thunder #card .details,
-.cloudy #card .details
+.cloudy #card .details /* Textfarbe für Gewitter und Bewölkt anpassen, falls nötig */
  {
-    color: #ddd;
+    color: #ddd; /* Hellerer Text auf dunklerem Hintergrund */
 }
 #card .details .right {
     text-align: right;
 }
-#card .details #location-name {
-    font-size: 14px;
-    font-weight: 300;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
-}
 #card .details #date {
     margin: 4px 0;
-    font-size: 12px;
 }
 #card .details #summary {
     font-weight: 600;
@@ -227,7 +104,7 @@ nav li a.active {
 
 /* Basis-Wetter-Stil */
 .weather {
-    background-color: #dae3fd;
+    background-color: #dae3fd; /* Standard (ähnlich wie Schnee?) */
     transition: background-color 2s ease;
 }
 
@@ -239,10 +116,11 @@ nav li a.active {
     background-color: #d8d8d8;
 }
 .sun .weather {
-    background-color: #ccf;
+    background-color: #ccf; /* Helleres Blau für Sonne */
 }
+/* *** NEU: Hintergrund für Bewölkt *** */
 .cloudy .weather {
-    background-color: #b0b8c9;
+    background-color: #b0b8c9; /* Gedecktes Grau-Blau */
 }
 
 .weather #inner {
@@ -258,7 +136,7 @@ nav li a.active {
     transition: fill 2s ease;
 }
 
-/* Standard Wolkenfarben */
+/* Standard Wolkenfarben (für Schnee, Wind, Regen - wenn nicht überschrieben) */
 .weather #cloud1 {
     fill: #efefef;
 }
@@ -280,9 +158,9 @@ nav li a.active {
     fill: #7b7988;
 }
 
-/* Dunklere Wolken für Bewölkt */
+/* *** NEU: Dunklere Wolken für Bewölkt (leicht anders als Gewitter) *** */
 .cloudy .weather #cloud1 {
-    fill: #a8b0bf;
+    fill: #a8b0bf; /* Etwas helleres Grau als Gewitter */
 }
 .cloudy .weather #cloud2 {
     fill: #98a0af;
