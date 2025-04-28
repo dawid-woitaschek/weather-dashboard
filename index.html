@@ -1,56 +1,32 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Open-Meteo Wetter</title>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open-Meteo Wetter</title> <!-- Titel angepasst -->
+
+    <!-- Favicon Link (SVG mit Inline Styles) -->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <!-- CSS Verlinkung -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Externe Schriften/Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300">
+    <!-- Weather Icons werden nicht mehr für Geolocation-Button benötigt, aber für andere Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css">
+
 </head>
 <body>
-  <div class="background">
-    <div class="container">
 
-      <!-- Titel -->
-      <h2 id="app-title">
-        <i class="wi wi-day-cloudy"></i> Open-Meteo Wetter
-      </h2>
-
-      <!-- Suchleiste -->
-      <div id="location-search-container">
-        <input type="text" id="location-search-input" placeholder="Standort suchen…">
-        <button id="geolocation-button" title="Aktuellen Standort verwenden">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="4 -1 24 33">
-            <path d="M 15.514 -0.501 c -6.165 0 -11.18 5.015 -11.18 11.18 c 0 1.715 0.378 3.36 1.13 4.901 c 1.034 2.075 4.06 7.191 7.264 12.608 l 1.56 2.64 c 0.256 0.433 0.722 0.7 1.226 0.7 s 0.97 -0.266 1.226 -0.7 l 1.559 -2.638 c 3.182 -5.379 6.189 -10.463 7.243 -12.565 c 0.01 -0.018 0.02 -0.037 0.028 -0.055 c 0.746 -1.531 1.123 -3.177 1.123 -4.89 C 26.694 4.515 21.678 -0.501 15.514 -0.501 z M 15.514 14.734 c -2.453 0 -4.448 -1.995 -4.448 -4.448 s 1.996 -4.448 4.448 -4.448 s 4.448 1.996 4.448 4.448 S 17.966 14.734 15.514 14.734 z"/>
-          </svg>
-        </button>
-        <div id="location-suggestions"></div>
-      </div>
-
-      <!-- Wetter-Typ-Nav -->
-      <nav>
-        <ul>
-          <li><a id="button-snow"><i class="wi wi-snow"></i></a></li>
-          <li><a id="button-wind"><i class="wi wi-strong-wind"></i></a></li>
-          <li><a id="button-rain"><i class="wi wi-rain"></i></a></li>
-          <li><a id="button-thunder"><i class="wi wi-lightning"></i></a></li>
-          <li><a id="button-sun"><i class="wi wi-day-sunny"></i></a></li>
-          <li><a id="button-cloudy"><i class="wi wi-cloudy"></i></a></li>
-        </ul>
-      </nav>
-
-      <!-- Wetter-Kachel -->
-      <div id="card" class="weather">
-        <!-- Hintergrund-SVG für Sunburst -->
-        <svg id="back">
-          <radialGradient id="sunburstGradient" cx="0" cy="0" r="320" gradientUnits="userSpaceOnUse">
-            <stop offset="0" style="stop-color:#FFDE17;stop-opacity:0.7"/>
-            <stop offset="1" style="stop-color:#FFF200;stop-opacity:0"/>
-          </radialGradient>
-          <path id="sunburst" fill="url(#sunburstGradient)" d="M0,319.7c-18.6,0-37.3-1.6-55.5-4.8L-7.8,41.4c5.1,0.9,10.6,0.9,15.7,0L56,314.8C37.6,318,18.8,319.7,0,319.7z
+    <div class="background">
+        <div class="container">
+            <svg id="back">
+                <radialGradient id="SVGID_1_" cx="0" cy="0" r="320.8304" gradientUnits="userSpaceOnUse">
+                    <stop  offset="0" style="stop-color:#FFDE17;stop-opacity:0.7"/>
+                    <stop  offset="1" style="stop-color:#FFF200;stop-opacity:0"/>
+                </radialGradient>
+                <path id="sunburst" style="fill:url(#SVGID_1_);" d="M0,319.7c-18.6,0-37.3-1.6-55.5-4.8L-7.8,41.4c5.1,0.9,10.6,0.9,15.7,0L56,314.8C37.6,318,18.8,319.7,0,319.7z
             M-160.8,276.6c-32.5-18.8-61.3-42.9-85.5-71.6L-34,26.2c3.4,4.1,7.4,7.4,12,10.1L-160.8,276.6z M161.3,276.4L22.1,36.2
             c4.5-2.6,8.6-6,12-10.1l212.6,178.5C222.5,233.4,193.8,257.6,161.3,276.4z M-302.5,108.3C-315.4,73-321.9,36-322-1.8l277.6-0.5
             c0,5.3,0.9,10.4,2.7,15.2L-302.5,108.3z M302.6,107.8L41.8,12.8c1.7-4.7,2.6-9.7,2.6-14.9c0-0.3,0-0.6,0-1H322l0-1.3l0,1.9
@@ -58,44 +34,70 @@
             M41.7-17.7c-1.8-4.8-4.4-9.3-7.8-13.3l212-179.2c24.3,28.8,43.3,61.3,56.3,96.6L41.7-17.7z M-22.2-40.8l-139.6-240
             c32.7-19,68.1-32,105.2-38.6L-8-46.1C-13-45.2-17.8-43.4-22.2-40.8z M22-40.9c-4.4-2.6-9.2-4.3-14.2-5.1l47.1-273.6
             c37.2,6.4,72.7,19.2,105.4,38L22-40.9z"/>
-        </svg>
+            </svg>
 
-        <!-- Innerer Content -->
-        <svg id="inner">
-          <defs>
-            <path id="leaf" d="M41.9,56.3l0.1-2.5c0,0,4.6-1.2,5.6-2.2c1-1,3.6-13,12-15.6c9.7-3.1,19.9-2,26.1-2.1c2.7,0-10,23.9-20.5,25
-              c-7.5,0.8-17.2-5.1-17.2-5.1L41.9,56.3z"/>
-          </defs>
-          <circle id="sun" cx="0" cy="0" r="50" fill="#F7ED47"/>
-          <g id="layer3"></g>
-          <g id="cloud3" class="cloud"></g>
-          <g id="layer2"></g>
-          <g id="cloud2" class="cloud"></g>
-          <g id="layer1"></g>
-          <g id="cloud1" class="cloud"></g>
-        </svg>
+            <!-- *** NEU: Überschrift *** -->
+            <h2 id="app-title">
+                <i class="wi wi-day-cloudy"></i> Open-Meteo Wetter
+            </h2>
 
-        <!-- Details -->
-        <div class="details">
-          <div class="temp">--<span>c</span></div>
-          <div class="right">
-            <div id="location-name">Dortmund</div>
-            <div id="date">Lädt…</div>
-            <div id="summary">Lädt…</div>
-          </div>
+            <!-- Ortssuche (Struktur bleibt, Styling ändert sich) -->
+            <div id="location-search-container">
+                <input type="text" id="location-search-input" placeholder="Standort suchen...">
+                <!-- Button für Geolocation mit SVG Icon -->
+                <button id="geolocation-button" title="Aktuellen Standort verwenden">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="4 0 24 32" fill="currentColor" aria-hidden="true" focusable="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="4 -1 24 33" fill="currentColor" aria-hidden="true" focusable="false">
+                            <path d="M 15.514 -0.501 c -6.165 0 -11.18 5.015 -11.18 11.18 c 0 1.715 0.378 3.36 1.13 4.901 c 1.034 2.075 4.06 7.191 7.264 12.608 l 1.56 2.64 c 0.256 0.433 0.722 0.7 1.226 0.7 s 0.97 -0.266 1.226 -0.7 l 1.559 -2.638 c 3.182 -5.379 6.189 -10.463 7.243 -12.565 c 0.01 -0.018 0.02 -0.037 0.028 -0.055 c 0.746 -1.531 1.123 -3.177 1.123 -4.89 C 26.694 4.515 21.678 -0.501 15.514 -0.501 z M 15.514 14.734 c -2.453 0 -4.448 -1.995 -4.448 -4.448 s 1.996 -4.448 4.448 -4.448 s 4.448 1.996 4.448 4.448 S 17.966 14.734 15.514 14.734 z"/>
+                          </svg>
+                    </svg>
+                </button>
+                <div id="location-suggestions"></div>
+            </div>
+
+            <nav>
+                <ul>
+                    <li><a id="button-snow"><i class="wi wi-snow"></i></a></li>
+                    <li><a id="button-wind"><i class="wi wi-strong-wind"></i></a></li>
+                    <li><a id="button-rain"><i class="wi wi-rain"></i></a></li>
+                    <li><a id="button-thunder"><i class="wi wi-lightning"></i></a></li>
+                    <li><a id="button-sun"><i class="wi wi-day-sunny"></i></a></li>
+                    <li><a id="button-cloudy"><i class="wi wi-cloudy"></i></a></li>
+                </ul>
+            </nav>
+            <div id="card" class="weather">
+                <svg id="inner">
+                    <defs>
+                        <path id="leaf" d="M41.9,56.3l0.1-2.5c0,0,4.6-1.2,5.6-2.2c1-1,3.6-13,12-15.6c9.7-3.1,19.9-2,26.1-2.1c2.7,0-10,23.9-20.5,25 c-7.5,0.8-17.2-5.1-17.2-5.1L41.9,56.3z"/>
+                    </defs>
+                    <circle id="sun" style="fill: #F7ED47" cx="0" cy="0" r="50"/>
+                    <g id="layer3"></g>
+                    <g id="cloud3" class="cloud"></g>
+                    <g id="layer2"></g>
+                    <g id="cloud2" class="cloud"></g>
+                    <g id="layer1"></g>
+                    <g id="cloud1" class="cloud"></g>
+                </svg>
+                <div class="details">
+                    <div class="temp">--<span>c</span></div>
+                    <div class="right">
+                        <div id="location-name">Dortmund</div>
+                        <div id="date">Lädt...</div>
+                        <div id="summary">Lädt...</div>
+                    </div>
+                </div>
+            </div>
+            <svg id="outer"></svg>
         </div>
-      </div>
-
-      <!-- Effekte außerhalb der Karte -->
-      <svg id="outer"></svg>
     </div>
-  </div>
 
-  <!-- Bibliotheken -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/MotionPathPlugin.min.js"></script>
-  <script src="script.js"></script>
+    <!-- Bibliotheken -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/MotionPathPlugin.min.js"></script>
+    <!-- Eigenes Skript -->
+    <script src="script.js"></script>
+
 </body>
 </html>
