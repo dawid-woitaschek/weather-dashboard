@@ -163,9 +163,10 @@ nav li a.active {
     display: none;
 }
 
+/* *** CARD FLIP STYLES START *** */
 #card {
     box-shadow: 9px 7px 40px -6px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
+    /* overflow: hidden; */ /* Wichtig: Für 3D-Effekt und Button ggf. entfernen/anpassen */
     width: 300px;
     padding: 0;
     height: 400px;
@@ -173,8 +174,83 @@ nav li a.active {
     margin: 20px; /* Originaler Margin */
     border-radius: 5px;
     position: relative;
+    background-color: transparent; /* Der Container selbst ist transparent */
+    perspective: 1000px; /* Wichtig für 3D-Effekt */
 }
-#card .details {
+
+#card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1); /* Flip-Animation */
+}
+
+#card-front,
+#card-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 5px; /* Radius von #card übernehmen */
+    overflow: hidden; /* Inhalt clippen */
+    /* Hintergrund wird durch .weather Klasse auf #card gesetzt */
+}
+
+#card-front {
+    /* Vorderseite ist standardmäßig sichtbar */
+    z-index: 2; /* Stellt sicher, dass die Vorderseite anfangs oben ist */
+    /* Der Inhalt (SVG, .details) ist bereits vorhanden */
+}
+
+#card-back {
+    transform: rotateY(180deg); /* Rückseite initial weggedreht */
+    z-index: 1;
+    background-color: #e8e8f0; /* Eigener Hintergrund für die Rückseite */
+    color: #333;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex; /* Beispiel: Inhalt zentrieren */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#card-inner.is-flipped {
+    transform: rotateY(180deg); /* Dreht den inneren Container */
+}
+
+#flip-button-forecast {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 20; /* Muss über #card-inner liegen */
+    background-color: rgba(255, 255, 255, 0.7); /* Leicht transparenter Hintergrund */
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px; /* Icon Größe */
+    color: #555;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#flip-button-forecast:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #000;
+}
+/* *** CARD FLIP STYLES END *** */
+
+
+#card .details { /* Bleibt gleich, wirkt auf Vorderseite */
     position: absolute;
     top: 0;
     left: 0;
@@ -185,8 +261,9 @@ nav li a.active {
     flex-direction: row;
     justify-content: space-between;
     transition: color 2s ease;
-    z-index: 10;
+    z-index: 10; /* Innerhalb der Vorderseite */
 }
+/* ... Restliche Stile für .details, .temp etc. bleiben unverändert ... */
 .thunder #card .details,
 .cloudy #card .details
  {
@@ -224,26 +301,23 @@ nav li a.active {
 }
 
 /* Basis-Wetter-Stil */
-.weather {
-    background-color: #dae3fd;
-    transition: background-color 2s ease;
+.weather { /* Wirkt jetzt auf #card */
+    /* background-color: #dae3fd; */ /* Wird durch #card-front/#card-back gesteuert */
+    transition: background-color 2s ease; /* Bleibt für die .weather Klassen relevant */
 }
 
 /* Spezifische Hintergrundfarben */
-.thunder .weather {
-    background-color: #9fa4ad;
-}
-.rain .weather {
-    background-color: #d8d8d8;
-}
-.sun .weather {
-    background-color: #ccf;
-}
-.cloudy .weather {
-    background-color: #b0b8c9;
-}
+/* Diese Klassen müssen jetzt auf #card angewendet werden,
+   und die Hintergrundfarbe wird idealerweise auf #card-front gesetzt */
+.thunder #card-front { background-color: #9fa4ad; }
+.rain #card-front { background-color: #d8d8d8; }
+.sun #card-front { background-color: #ccf; }
+.cloudy #card-front { background-color: #b0b8c9; }
+/* Standard-Hintergrund für #card-front */
+#card-front { background-color: #dae3fd; }
 
-.weather #inner {
+
+.weather #inner { /* Bleibt gleich, wirkt auf Vorderseite */
     background-color: rgba(255, 255, 255, 1);
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
     position: absolute;
@@ -252,45 +326,26 @@ nav li a.active {
     width: 100%;
     height: 100%;
 }
-.weather .cloud {
+.weather .cloud { /* Bleibt gleich, wirkt auf Vorderseite */
     transition: fill 2s ease;
 }
 
+/* Wolkenfarben etc. bleiben unverändert */
 /* Standard Wolkenfarben */
-.weather #cloud1 {
-    fill: #efefef;
-}
-.weather #cloud2 {
-    fill: #e6e6e6;
-}
-.weather #cloud3 {
-    fill: #d5d5d5;
-}
-
+.weather #cloud1 { fill: #efefef; }
+.weather #cloud2 { fill: #e6e6e6; }
+.weather #cloud3 { fill: #d5d5d5; }
 /* Dunklere Wolken für Gewitter */
-.thunder .weather #cloud1 {
-    fill: #9fa4ad;
-}
-.thunder .weather #cloud2 {
-    fill: #8b8e98;
-}
-.thunder .weather #cloud3 {
-    fill: #7b7988;
-}
-
+.thunder .weather #cloud1 { fill: #9fa4ad; }
+.thunder .weather #cloud2 { fill: #8b8e98; }
+.thunder .weather #cloud3 { fill: #7b7988; }
 /* Dunklere Wolken für Bewölkt */
-.cloudy .weather #cloud1 {
-    fill: #a8b0bf;
-}
-.cloudy .weather #cloud2 {
-    fill: #98a0af;
-}
-.cloudy .weather #cloud3 {
-    fill: #88909f;
-}
+.cloudy .weather #cloud1 { fill: #a8b0bf; }
+.cloudy .weather #cloud2 { fill: #98a0af; }
+.cloudy .weather #cloud3 { fill: #88909f; }
 
 
-#outer, #back {
+#outer, #back { /* Bleibt gleich */
     position: fixed;
     top: 0;
     left: 0;
@@ -298,15 +353,7 @@ nav li a.active {
     height: 100%;
     pointer-events: none;
 }
-#back {
-    z-index: -1;
-}
-#outer {
-    z-index: 5;
-}
-#card #inner {
-    z-index: 1;
-}
-#card .details .right div {
-    color: inherit;
-}
+#back { z-index: -1; }
+#outer { z-index: 5; }
+#card #inner { z-index: 1; } /* Innerhalb der Vorderseite */
+#card .details .right div { color: inherit; }

@@ -1,6 +1,8 @@
 // 📝 Fetch all DOM nodes in jQuery and Snap SVG
 var container = $('.container');
 var card = $('#card');
+var cardInner = $('#card-inner'); // *** NEU: Für Flip ***
+var flipButtonForecast = $('#flip-button-forecast'); // *** NEU: Für Flip ***
 var innerSVG = Snap('#inner');
 var outerSVG = Snap('#outer');
 var backSVG = Snap('#back');
@@ -8,11 +10,10 @@ var summary = $('#summary');
 var date = $('#date');
 var temp = $('.temp');
 var locationNameElement = $('#location-name'); // Referenz Ortsname
-var navElement = $('nav'); // *** NEU: Referenz für Navigationsleiste ***
+var navElement = $('nav');
 
 // *** NEU: Schalter zum Ein-/Ausblenden der Wetter-Buttons ***
-// Setze auf true, um die Buttons anzuzeigen, auf false, um sie auszublenden.
-const showWeatherButtons = false;
+const showWeatherButtons = true; // Oder false zum Ausblenden
 
 // *** NEU: Referenzen für Suche ***
 var searchContainer = $('#location-search-container');
@@ -24,13 +25,13 @@ var geolocationButton = $('#geolocation-button');
 var weatherContainer1 = Snap.select('#layer1');
 var weatherContainer2 = Snap.select('#layer2');
 var weatherContainer3 = Snap.select('#layer3');
-var innerRainHolder1 = weatherContainer1 ? weatherContainer1.group() : null; // Sicherstellen, dass Container existiert
+var innerRainHolder1 = weatherContainer1 ? weatherContainer1.group() : null;
 var innerRainHolder2 = weatherContainer2 ? weatherContainer2.group() : null;
 var innerRainHolder3 = weatherContainer3 ? weatherContainer3.group() : null;
 var innerLeafHolder = weatherContainer1 ? weatherContainer1.group() : null;
 var innerSnowHolder = weatherContainer1 ? weatherContainer1.group() : null;
-var innerLightningHolder = weatherContainer1 ? weatherContainer1.group() : null; // Wird für Blitz verwendet
-var leafMask = outerSVG ? outerSVG.rect() : null; // Sicherstellen, dass outerSVG existiert
+var innerLightningHolder = weatherContainer1 ? weatherContainer1.group() : null;
+var leafMask = outerSVG ? outerSVG.rect() : null;
 var leaf = Snap.select('#leaf');
 var sun = Snap.select('#sun');
 var sunburst = Snap.select('#sunburst');
@@ -39,207 +40,85 @@ var outerLeafHolder = outerSVG ? outerSVG.group() : null;
 var outerSnowHolder = outerSVG ? outerSVG.group() : null;
 
 var lightningTimeout;
-var geocodeTimeout; // Für Debounce der Suche
+var geocodeTimeout;
 
 // GSAP Plugin Registrierung
-if (window.gsap && window.MotionPathPlugin) {
-    try {
-        gsap.registerPlugin(MotionPathPlugin);
-        console.log("GSAP MotionPathPlugin registered.");
-    } catch (e) {
-        console.error("Error registering MotionPathPlugin:", e);
-    }
-} else {
-    console.error("GSAP or MotionPathPlugin is not loaded!");
-}
+if (window.gsap && window.MotionPathPlugin) { try { gsap.registerPlugin(MotionPathPlugin); console.log("GSAP MotionPathPlugin registered."); } catch (e) { console.error("Error registering MotionPathPlugin:", e); } } else { console.error("GSAP or MotionPathPlugin is not loaded!"); }
 
-// Set mask for leaf holder (aus Ur-Fassung, mit Check)
-if (outerLeafHolder && leafMask) {
-    outerLeafHolder.attr({
-    	'clip-path': leafMask
-    });
-} else {
-    console.error("outerLeafHolder or leafMask could not be initialized for clip-path.");
-}
+// Set mask for leaf holder
+if (outerLeafHolder && leafMask) { outerLeafHolder.attr({ 'clip-path': leafMask }); } else { console.error("outerLeafHolder or leafMask could not be initialized for clip-path."); }
 
-// create sizes object, we update this later (aus Ur-Fassung)
-var sizes = {
-	container: {width: 0, height: 0},
-	card: {width: 0, height: 0}
-}
+// create sizes object
+var sizes = { container: {width: 0, height: 0}, card: {width: 0, height: 0} }
 
-// grab cloud groups (aus Ur-Fassung)
-var clouds = [
-	{group: Snap.select('#cloud1'), offset: 0},
-	{group: Snap.select('#cloud2'), offset: 0},
-	{group: Snap.select('#cloud3'), offset: 0}
-]
+// grab cloud groups
+var clouds = [ {group: Snap.select('#cloud1'), offset: 0}, {group: Snap.select('#cloud2'), offset: 0}, {group: Snap.select('#cloud3'), offset: 0} ]
 
-// set weather types ☁️ 🌬 🌧 ⛈ ☀️ (aus Ur-Fassung)
-var weather = [
-	{ type: 'snow', name: 'Schnee'},
-	{ type: 'wind', name: 'Windig'},
-	{ type: 'rain', name: 'Regen'},
-	{ type: 'thunder', name: 'Gewitter'},
-	{ type: 'sun', name: 'Sonnig'},
-	{ type: 'cloudy', name: 'Bewölkt'}
-];
+// set weather types
+var weather = [ { type: 'snow', name: 'Schnee'}, { type: 'wind', name: 'Windig'}, { type: 'rain', name: 'Regen'}, { type: 'thunder', name: 'Gewitter'}, { type: 'sun', name: 'Sonnig'}, { type: 'cloudy', name: 'Bewölkt'} ];
 var currentWeather = null;
-var currentLat = 51.51; // Default Dortmund
-var currentLon = 7.46;  // Default Dortmund
-var currentLocationName = "Dortmund"; // Default Name
+var currentLat = 51.51; var currentLon = 7.46; var currentLocationName = "Dortmund";
 
-// 🛠 app settings (aus Ur-Fassung)
-var settings = {
-	windSpeed: 2, rainCount: 0, leafCount: 0, snowCount: 0,
-	cloudHeight: 100, cloudSpace: 30, cloudArch: 50,
-	renewCheck: 10, splashBounce: 80
-};
+// 🛠 app settings
+var settings = { windSpeed: 2, rainCount: 0, leafCount: 0, snowCount: 0, cloudHeight: 100, cloudSpace: 30, cloudArch: 50, renewCheck: 10, splashBounce: 80 };
 
 var tickCount = 0;
 var rain = []; var leafs = []; var snow = [];
 
-// --- Geocoding & Wetter API (Neue/Angepasste Logik) ---
+// --- Geocoding & Wetter API ---
 const GEOCODING_API_URL_BASE = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_API_URL_BASE = "https://api.open-meteo.com/v1/forecast";
 
-function fetchGeocodingData(query) {
-    const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=20&language=de&format=json`;
-    console.log("Requesting Geocoding URL:", url);
-    $.get(url)
-        .done(function(data) { displaySuggestions(data.results); })
-        .fail(function(jqXHR, textStatus, errorThrown) { console.error("Geocoding API Failed:", textStatus, errorThrown); suggestionsContainer.empty().hide(); });
-}
-
-function displaySuggestions(results) {
-    suggestionsContainer.empty().hide(); if (!results || results.length === 0) return;
-
-    // --- Erweiterte Sortierlogik (ANGEPASST) ---
-    const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE'];
-    const featureCodeBonus = {
-        'PPLC': 20000,  // Capital of a political entity (Bonus erhöht)
-        'PPLA': 10000,  // Seat of a first-order administrative division (Bonus erhöht)
-        'ADM1': 50000,  // *** NEU: Starker Bonus für Bundesstaaten/Regionen ***
-        // Weitere Codes könnten hinzugefügt werden
-    };
-
-    results.sort((a, b) => {
-        // 1. Geografischer Bonus berechnen (ANGEPASST: Höhere Boni)
-        let scoreA = 0;
-        let scoreB = 0;
-
-        if (a.country_code === 'DE') scoreA += 500000; // Stark erhöht
-        else if (europeanCountries.includes(a.country_code)) scoreA += 250000; // Erhöht
-        else if (a.country_code === 'US') scoreA += 200000; // Deutlich erhöht
-
-        if (b.country_code === 'DE') scoreB += 500000; // Stark erhöht
-        else if (europeanCountries.includes(b.country_code)) scoreB += 250000; // Erhöht
-        else if (b.country_code === 'US') scoreB += 200000; // Deutlich erhöht
-
-        // 2. Feature Code Bonus hinzufügen (mit neuem ADM1 Bonus)
-        scoreA += featureCodeBonus[a.feature_code] || 0;
-        scoreB += featureCodeBonus[b.feature_code] || 0;
-
-        // 3. Populations-Score hinzufügen (bleibt gleich)
-        scoreA += (a.population || 0);
-        scoreB += (b.population || 0);
-
-        // Absteigend sortieren (höchster Score zuerst)
-        return scoreB - scoreA;
-    });
-    // --- Ende der angepassten Sortierlogik ---
-
-    const uniqueLocations = []; const seenKeys = new Set();
-    results.forEach(location => { const latRounded = Math.round(location.latitude * 100); const lonRounded = Math.round(location.longitude * 100); const key = `${location.name.toLowerCase()}_${location.country_code}_${latRounded}_${lonRounded}`; if (!seenKeys.has(key)) { uniqueLocations.push(location); seenKeys.add(key); } });
-    const maxSuggestions = 10;
-    uniqueLocations.slice(0, maxSuggestions).forEach(location => { let details = []; if (location.admin1 && location.admin1 !== location.name) details.push(location.admin1); if (location.country) details.push(location.country); details = [...new Set(details)]; const suggestionHTML = `<div data-lat="${location.latitude}" data-lon="${location.longitude}" data-name="${location.name}">${location.name}${details.length > 0 ? `<span class="suggestion-details">(${details.join(', ')})</span>` : ''}</div>`; suggestionsContainer.append(suggestionHTML); });
-    if (uniqueLocations.length > 0) { $('#location-suggestions div').off('click').on('click', function() { const lat = $(this).data('lat'); const lon = $(this).data('lon'); const name = $(this).data('name'); console.log(`Suggestion selected: ${name} (${lat}, ${lon})`); currentLat = lat; currentLon = lon; currentLocationName = name; fetchWeatherData(lat, lon, name); searchInput.val(name); suggestionsContainer.empty().hide(); }); suggestionsContainer.show(); }
-}
-
-function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
-    console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl);
-    locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
-    $.get(weatherApiUrl)
-        .done(function(data) {
-            console.log("2. API Call Success. Data:", data);
-            if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
-                const current = data.current; const tempValue = Math.round(current.temperature_2m); const weatherCode = current.weather_code;
-                console.log("3. Weather data parsed. Temp:", tempValue, "Code:", weatherCode);
-                temp.html(tempValue + '<span>c</span>'); updateDate();
-                const weatherType = getWeatherTypeFromCode(weatherCode);
-                const targetWeather = weather.find(w => w.type === weatherType);
-                if (targetWeather) { console.log("4. Calling changeWeather with:", targetWeather); changeWeather(targetWeather); }
-                else { console.warn("Unbekannter Wettercode:", weatherCode); const fallbackWeather = weather.find(w => w.type === 'cloudy'); console.log("4b. Calling changeWeather with fallback:", fallbackWeather); changeWeather(fallbackWeather); }
-            } else { console.error("API response structure invalid."); handleApiError("Ungültige Wetter-API-Antwortstruktur."); }
-        })
-        .fail(function(jqXHR, textStatus, errorThrown) { console.error("5. API Call Failed:", textStatus, errorThrown); handleApiError(`Wetterdaten konnten nicht geladen werden (${textStatus})`); });
-}
-
+function fetchGeocodingData(query) { const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=20&language=de&format=json`; console.log("Requesting Geocoding URL:", url); $.get(url) .done(function(data) { displaySuggestions(data.results); }) .fail(function(jqXHR, textStatus, errorThrown) { console.error("Geocoding API Failed:", textStatus, errorThrown); suggestionsContainer.empty().hide(); }); }
+function displaySuggestions(results) { suggestionsContainer.empty().hide(); if (!results || results.length === 0) return; const europeanCountries = ['ES', 'FR', 'PT', 'IT', 'PL', 'FI', 'SE', 'NO', 'AT', 'CH', 'NL', 'BE', 'LU', 'DK', 'GB', 'IE']; const featureCodeBonus = { 'PPLC': 20000, 'PPLA': 10000, 'ADM1': 50000 }; results.sort((a, b) => { let scoreA = 0, scoreB = 0; if (a.country_code === 'DE') scoreA += 500000; else if (europeanCountries.includes(a.country_code)) scoreA += 250000; else if (a.country_code === 'US') scoreA += 200000; if (b.country_code === 'DE') scoreB += 500000; else if (europeanCountries.includes(b.country_code)) scoreB += 250000; else if (b.country_code === 'US') scoreB += 200000; scoreA += featureCodeBonus[a.feature_code] || 0; scoreB += featureCodeBonus[b.feature_code] || 0; scoreA += (a.population || 0); scoreB += (b.population || 0); return scoreB - scoreA; }); const uniqueLocations = []; const seenKeys = new Set(); results.forEach(location => { const latRounded = Math.round(location.latitude * 100); const lonRounded = Math.round(location.longitude * 100); const key = `${location.name.toLowerCase()}_${location.country_code}_${latRounded}_${lonRounded}`; if (!seenKeys.has(key)) { uniqueLocations.push(location); seenKeys.add(key); } }); const maxSuggestions = 10; uniqueLocations.slice(0, maxSuggestions).forEach(location => { let details = []; if (location.admin1 && location.admin1 !== location.name) details.push(location.admin1); if (location.country) details.push(location.country); details = [...new Set(details)]; const suggestionHTML = `<div data-lat="${location.latitude}" data-lon="${location.longitude}" data-name="${location.name}">${location.name}${details.length > 0 ? `<span class="suggestion-details">(${details.join(', ')})</span>` : ''}</div>`; suggestionsContainer.append(suggestionHTML); }); if (uniqueLocations.length > 0) { $('#location-suggestions div').off('click').on('click', function() { const lat = $(this).data('lat'); const lon = $(this).data('lon'); const name = $(this).data('name'); console.log(`Suggestion selected: ${name} (${lat}, ${lon})`); currentLat = lat; currentLon = lon; currentLocationName = name; fetchWeatherData(lat, lon, name); searchInput.val(name); suggestionsContainer.empty().hide(); }); suggestionsContainer.show(); } }
+function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") { const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`; console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl); locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>"); $.get(weatherApiUrl) .done(function(data) { console.log("2. API Call Success. Data:", data); if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) { const current = data.current; const tempValue = Math.round(current.temperature_2m); const weatherCode = current.weather_code; console.log("3. Weather data parsed. Temp:", tempValue, "Code:", weatherCode); temp.html(tempValue + '<span>c</span>'); updateDate(); const weatherType = getWeatherTypeFromCode(weatherCode); const targetWeather = weather.find(w => w.type === weatherType); if (targetWeather) { console.log("4. Calling changeWeather with:", targetWeather); changeWeather(targetWeather); } else { console.warn("Unbekannter Wettercode:", weatherCode); const fallbackWeather = weather.find(w => w.type === 'cloudy'); console.log("4b. Calling changeWeather with fallback:", fallbackWeather); changeWeather(fallbackWeather); } } else { console.error("API response structure invalid."); handleApiError("Ungültige Wetter-API-Antwortstruktur."); } }) .fail(function(jqXHR, textStatus, errorThrown) { console.error("5. API Call Failed:", textStatus, errorThrown); handleApiError(`Wetterdaten konnten nicht geladen werden (${textStatus})`); }); }
 function handleApiError(errorMsg) { console.error("Fehler:", errorMsg); temp.html("--<span>c</span>"); summary.text("Fehler"); date.text("Keine Daten"); locationNameElement.text("Ort unbekannt"); }
 function getWeatherTypeFromCode(code) { if ([0, 1].includes(code)) return 'sun'; if ([2, 3].includes(code)) return 'cloudy'; if ([45, 48].includes(code)) return 'wind'; if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; if ([71, 73, 75, 77].includes(code)) return 'snow'; if ([80, 81, 82].includes(code)) return 'rain'; if ([85, 86].includes(code)) return 'snow'; if ([95, 96, 99].includes(code)) return 'thunder'; console.warn("Unbekannter Wettercode:", code); return 'cloudy'; }
 function updateDate() { const now = new Date(); const options = { weekday: 'long', day: 'numeric', month: 'long' }; const formattedDate = now.toLocaleDateString('de-DE', options); date.text(formattedDate); }
 // --- Ende API / Suche Logik ---
 
-// ⚙ initialize app (aus Ur-Fassung, angepasst für fetchWeatherData)
+// ⚙ initialize app
 function init() {
     console.log("0. init() called");
-
-    // *** NEU: Wetter-Buttons ein-/ausblenden basierend auf Variable ***
-    if (navElement && navElement.length > 0) {
-        if (!showWeatherButtons) {
-            console.log("Hiding weather buttons.");
-            navElement.addClass('nav-hidden');
-        } else {
-            console.log("Showing weather buttons.");
-            navElement.removeClass('nav-hidden');
-        }
-    } else {
-        console.warn("Navigation element not found for hiding/showing.");
-    }
-
-    // *** GEÄNDERT: onResize() NACH dem Nav-Handling aufrufen ***
-    onResize();
-    console.log("0a. onResize finished.");
-
-    // Event Listener für Wetter-Buttons nur binden, wenn sie angezeigt werden sollen
-    if (showWeatherButtons) {
-        for(var i = 0; i < weather.length; i++) {
-            var w = weather[i]; var b = $('#button-' + w.type);
-            if (b.length === 0) { console.warn("Button not found for:", w.type); continue; }
-            w.button = b; b.unbind('click').bind('click', w, changeWeather); // Sicherstellen, dass Listener nicht mehrfach gebunden werden
-        }
-        console.log("0b. Weather buttons bound.");
-    } else {
-        console.log("0b. Weather buttons skipped (hidden).");
-    }
-
+    if (navElement && navElement.length > 0) { if (!showWeatherButtons) { console.log("Hiding weather buttons."); navElement.addClass('nav-hidden'); } else { console.log("Showing weather buttons."); navElement.removeClass('nav-hidden'); } } else { console.warn("Navigation element not found for hiding/showing."); }
+    onResize(); console.log("0a. onResize finished.");
+    if (showWeatherButtons) { for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.unbind('click').bind('click', w, changeWeather); } console.log("0b. Weather buttons bound."); } else { console.log("0b. Weather buttons skipped (hidden)."); }
     for(var i = 0; i < clouds.length; i++) { if (clouds[i] && clouds[i].group) { clouds[i].offset = Math.random() * sizes.card.width; drawCloud(clouds[i], i); gsap.set(clouds[i].group.node, { x: clouds[i].offset }); } else { console.warn("Cloud group missing for index:", i); } }
     console.log("0c. Clouds drawn.");
-    fetchWeatherData(currentLat, currentLon, currentLocationName); // Initiale Wetterdaten laden
-    console.log("0d. Initial fetchWeatherData called.");
-    requestAnimationFrame(tick);
-    console.log("0e. init() finished, first tick requested.");
+    fetchWeatherData(currentLat, currentLon, currentLocationName); console.log("0d. Initial fetchWeatherData called.");
+    requestAnimationFrame(tick); console.log("0e. init() finished, first tick requested.");
 }
 
-// 👁 watch for window resize (aus Ur-Fassung)
+// 👁 watch for window resize
 $(window).resize(onResize);
 
-// --- Event Listener für Suche & Geolocation (Neue Logik) ---
+// --- Event Listener ---
 $(document).ready(function() {
-    console.log("Document ready. Binding search listeners.");
+    console.log("Document ready. Binding listeners.");
+    // Suche & Geolocation Listener
     searchInput.on('input', function() { clearTimeout(geocodeTimeout); const query = $(this).val(); if (query.length >= 3) { geocodeTimeout = setTimeout(() => { fetchGeocodingData(query); }, 300); } else { suggestionsContainer.empty().hide(); } });
     searchInput.on('keydown', function(event) { if (event.key === 'Enter') { event.preventDefault(); const firstSuggestion = $('#location-suggestions div:first-child'); if (firstSuggestion.length > 0) { firstSuggestion.trigger('click'); } else { const query = $(this).val(); if (query.length >= 3) { fetchGeocodingData(query); } } } });
     geolocationButton.on('click', function() { if (navigator.geolocation) { console.log("Requesting geolocation..."); locationNameElement.text("Suche Standort..."); summary.text(""); temp.html("--<span>c</span>"); searchInput.val(''); suggestionsContainer.empty().hide(); navigator.geolocation.getCurrentPosition( (position) => { console.log("Geolocation success:", position.coords); const lat = position.coords.latitude; const lon = position.coords.longitude; currentLat = lat; currentLon = lon; currentLocationName = "Aktueller Standort"; fetchWeatherData(lat, lon, currentLocationName); }, (error) => { console.error("Geolocation error:", error); let errorMsg = "Standort konnte nicht ermittelt werden."; if (error.code === error.PERMISSION_DENIED) errorMsg = "Standortzugriff verweigert."; else if (error.code === error.POSITION_UNAVAILABLE) errorMsg = "Standortinformationen nicht verfügbar."; else if (error.code === error.TIMEOUT) errorMsg = "Standortabfrage Zeitüberschreitung."; handleApiError(errorMsg); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 } ); } else { console.error("Geolocation is not supported by this browser."); handleApiError("Geolocation wird nicht unterstützt."); } });
     $(document).on('click', function(event) { if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0 && !suggestionsContainer.is(event.target) && suggestionsContainer.has(event.target).length === 0) { suggestionsContainer.hide(); } });
+
+    // *** NEU: Flip Button Listener ***
+    if (flipButtonForecast.length && cardInner.length) {
+        flipButtonForecast.on('click', function() {
+            console.log("Flip button clicked!");
+            cardInner.toggleClass('is-flipped');
+        });
+        console.log("Flip button listener bound.");
+    } else {
+        console.warn("Flip button or card inner element not found.");
+    }
+
     init(); // Initialisierung starten
 });
 
-// --- Animationsfunktionen (aus Ur-Fassung, mit Checks) ---
+// --- Animationsfunktionen (Unverändert zur letzten funktionierenden Version) ---
 function onResize() {
 	sizes.container.width = container.width(); sizes.container.height = container.height();
 	sizes.card.width = card.width(); sizes.card.height = card.height();
-    // WICHTIG: Offset erst holen, wenn Breite/Höhe bekannt und > 0 sind
     if (sizes.card.width > 0 && sizes.card.height > 0) {
 	    sizes.card.offset = card.offset();
         console.log("onResize - Card Offset calculated:", sizes.card.offset);
