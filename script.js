@@ -1,5 +1,34 @@
 // script.js
-
+function onResize() {
+    sizes.container.width  = container.width();
+    sizes.container.height = container.height();
+    sizes.card.width       = card.width();
+    sizes.card.height      = card.height();
+    sizes.card.offset      = card.offset();
+  
+    if (innerSVG) innerSVG.attr({ width: sizes.card.width, height: sizes.card.height });
+    if (outerSVG) outerSVG.attr({ width: sizes.container.width, height: sizes.container.height });
+    if (backSVG)  backSVG.attr({ width: sizes.container.width, height: sizes.container.height });
+  
+    if (sunburst && sunburst.node) {
+      gsap.set(sunburst.node, {
+        transformOrigin: "50% 50%",
+        x: sizes.container.width / 2,
+        y: sizes.card.height/2 + sizes.card.offset.top
+      });
+      if (!gsap.isTweening(sunburst.node)) {
+        gsap.fromTo(sunburst.node, { rotation: 0 }, { rotation: 360, duration: 20, repeat: -1, ease: "none" });
+      }
+    }
+  
+    if (leafMask && sizes.card.offset) {
+      let maskX = sizes.card.offset.left + sizes.card.width;
+      let maskW = sizes.container.width - maskX;
+      if (maskW < 0) maskW = 0;
+      leafMask.attr({ x: maskX, y: 0, width: maskW, height: sizes.container.height });
+    }
+  }
+  
 // DOM-Referenzen
 const container = $('.container'),
       card      = $('#card'),
