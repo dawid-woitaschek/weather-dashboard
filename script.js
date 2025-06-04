@@ -14,6 +14,9 @@ var searchContainer = $('#location-search-container');
 var searchInput = $('#location-search-input');
 var suggestionsContainer = $('#location-suggestions');
 var geolocationButton = $('#geolocation-button');
+var flipButton = $('#flip-forecast');
+var forecastList = $('#forecast-list');
+var isFlipped = false;
 
 // Referenzen für Animationen (aus Ur-Fassung)
 var weatherContainer1 = Snap.select('#layer1');
@@ -152,6 +155,31 @@ function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standor
         });
 }
 
+function fetchForecastData(latitude, longitude) {
+    const forecastUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+    $.get(forecastUrl)
+        .done(function(data) {
+            if (data && data.daily && data.daily.time) {
+                forecastList.empty();
+                data.daily.time.forEach(function(dateStr, idx) {
+                    var code = data.daily.weathercode[idx];
+                    var maxT = Math.round(data.daily.temperature_2m_max[idx]);
+                    var minT = Math.round(data.daily.temperature_2m_min[idx]);
+                    var type = getWeatherTypeFromCode(code);
+                    var entry = weather.find(w => w.type === type);
+                    var label = entry ? entry.name : type;
+                    var dateLabel = new Date(dateStr).toLocaleDateString('de-DE', {weekday:'short', day:'numeric', month:'numeric'});
+                    forecastList.append(`<li>${dateLabel}: ${label} ${minT}°C - ${maxT}°C</li>`);
+                });
+            } else {
+                forecastList.html('<li>Keine Vorhersagedaten</li>');
+            }
+        })
+        .fail(function() {
+            forecastList.html('<li>Vorhersage konnte nicht geladen werden.</li>');
+        });
+}
+
 function handleApiError(errorMsg) { console.error("Fehler:", errorMsg); temp.html("--<span>c</span>"); summary.text("Fehler"); date.text("Keine Daten"); locationNameElement.text("Ort unbekannt"); }
 function getWeatherTypeFromCode(code) { /* ... (Mapping wie gehabt) ... */ if ([0, 1].includes(code)) return 'sun'; if ([2, 3].includes(code)) return 'cloudy'; if ([45, 48].includes(code)) return 'wind'; if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; if ([71, 73, 75, 77].includes(code)) return 'snow'; if ([80, 81, 82].includes(code)) return 'rain'; if ([85, 86].includes(code)) return 'snow'; if ([95, 96, 99].includes(code)) return 'thunder'; console.warn("Unbekannter Wettercode:", code); return 'cloudy'; }
 function updateDate() { const now = new Date(); const options = { weekday: 'long', day: 'numeric', month: 'long' }; const formattedDate = now.toLocaleDateString('de-DE', options); date.text(formattedDate); }
@@ -182,6 +210,14 @@ $(document).ready(function() {
     searchInput.on('input', function() { clearTimeout(geocodeTimeout); const query = $(this).val(); if (query.length >= 3) { geocodeTimeout = setTimeout(() => { fetchGeocodingData(query); }, 300); } else { suggestionsContainer.empty().hide(); } });
     searchInput.on('keydown', function(event) { if (event.key === 'Enter') { event.preventDefault(); const firstSuggestion = $('#location-suggestions div:first-child'); if (firstSuggestion.length > 0) { firstSuggestion.trigger('click'); } else { const query = $(this).val(); if (query.length >= 3) { fetchGeocodingData(query); } } } });
     geolocationButton.on('click', function() { if (navigator.geolocation) { console.log("Requesting geolocation..."); locationNameElement.text("Suche Standort..."); summary.text(""); temp.html("--<span>c</span>"); searchInput.val(''); suggestionsContainer.empty().hide(); navigator.geolocation.getCurrentPosition( (position) => { console.log("Geolocation success:", position.coords); const lat = position.coords.latitude; const lon = position.coords.longitude; currentLat = lat; currentLon = lon; currentLocationName = "Aktueller Standort"; fetchWeatherData(lat, lon, currentLocationName); }, (error) => { console.error("Geolocation error:", error); let errorMsg = "Standort konnte nicht ermittelt werden."; if (error.code === error.PERMISSION_DENIED) errorMsg = "Standortzugriff verweigert."; else if (error.code === error.POSITION_UNAVAILABLE) errorMsg = "Standortinformationen nicht verfügbar."; else if (error.code === error.TIMEOUT) errorMsg = "Standortabfrage Zeitüberschreitung."; handleApiError(errorMsg); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 } ); } else { console.error("Geolocation is not supported by this browser."); handleApiError("Geolocation wird nicht unterstützt."); } });
+
+    flipButton.on('click', function() {
+        if (!isFlipped) {
+            fetchForecastData(currentLat, currentLon);
+        }
+        card.toggleClass('flipped');
+        isFlipped = !isFlipped;
+    });
     $(document).on('click', function(event) { if (!searchContainer.is(event.target) && searchContainer.has(event.target).length === 0 && !suggestionsContainer.is(event.target) && suggestionsContainer.has(event.target).length === 0) { suggestionsContainer.hide(); } });
 });
 
