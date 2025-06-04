@@ -107,16 +107,27 @@ body {
 }
 
 /* Button zum Umschalten der Vorhersageansicht */
-#flip-forecast {
-    margin-top: 10px;
-    padding: 8px 12px;
+#card #flip-forecast {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     background-color: #4a90e2;
     color: #fff;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
 }
-#flip-forecast:hover {
+#card #flip-forecast i {
+    pointer-events: none;
+    font-size: 20px;
+}
+#card #flip-forecast:hover {
     background-color: #357abd;
 }
 /* Alte Hover-Regel entfernt/auskommentiert:
