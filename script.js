@@ -216,7 +216,7 @@ function makeSnow() { /* ... (Original-Logik) ... */ if (!currentWeather || !out
 function onSnowEnd(flake) { /* ... (Original-Logik) ... */ if (flake && flake.remove) { flake.remove(); } flake = null; snow = snow.filter(item => item !== null && item.paper); if(snow.length < settings.snowCount) { makeSnow(); } }
 
 function makeSplash(x, type) {
-    // Grundlegende Checks und Variablen (wie in deiner Version)
+    // Führe grundlegende Prüfungen durch und setze Basisvariablen
     if (!currentWeather || !outerSplashHolder || !sizes.card.offset) return;
     var splashLength = type == 'thunder' ? 30 : 20;
     var splashBounce = type == 'thunder' ? 120 : 100;
@@ -254,7 +254,7 @@ function makeSplash(x, type) {
 }
 
 function makeLeaf() {
-    // Grundlegende Checks und Variablen (wie in deiner Version)
+    // Grundlegende Prüfungen ausführen und Variablen vorbereiten
     if (!currentWeather || !outerLeafHolder || !innerLeafHolder || !leaf || !sizes.card.offset) return;
     var scale = 0.5 + (Math.random() * 0.5);
     var newLeaf;
