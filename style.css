@@ -312,3 +312,47 @@ nav li a.active {
 #card .details .right div {
     color: inherit;
 }
+
+/* Anpassungen für größere Displays */
+@media (min-width: 768px) {
+    /* Karte vergrößern */
+    #card {
+        width: 400px;
+        height: 500px;
+    }
+
+    /* Überschrift etwas größer */
+    #app-title {
+        font-size: 32px;
+    }
+    #app-title i {
+        font-size: 36px;
+    }
+
+    /* Suchleiste breiter und Schrift größer */
+    #location-search-container {
+        width: 400px;
+    }
+    #location-search-input {
+        font-size: 18px;
+    }
+
+    /* Schriftgrößen innerhalb der Karte */
+    #card .details #location-name {
+        font-size: 18px;
+    }
+    #card .details #date {
+        font-size: 14px;
+    }
+    #card .details #summary {
+        font-size: 26px;
+    }
+    #card .details .temp {
+        font-size: 80px;
+        line-height: 80px;
+    }
+    #card .details .temp span {
+        font-size: 24px;
+        line-height: 40px;
+    }
+}
