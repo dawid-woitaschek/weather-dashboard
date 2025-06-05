@@ -388,7 +388,37 @@ function updateSummaryText() { if (!currentWeather) return; console.log("updateS
 // Originale startLightningTimer Funktion
 function startLightningTimer() { if(lightningTimeout) clearTimeout(lightningTimeout); if(currentWeather && currentWeather.type == 'thunder') { console.log("Starting lightning timer"); lightningTimeout = setTimeout(lightning, Math.random()*6000); } }
 // Originale lightning Funktion (mit Bounce!)
-function lightning() { console.log("⚡ lightning triggered!"); if (!currentWeather || currentWeather.type !== 'thunder' || !innerLightningHolder) { console.warn("lightning aborted: wrong weather or holder missing"); return; } startLightningTimer(); gsap.fromTo(card, {y: -30}, {duration: 0.75, y:0, ease:"elastic.out"}); var pathX = 30 + Math.random() * (sizes.card.width - 60); var yOffset = 20; var steps = 20; var points = [pathX + ',0']; for(var i = 0; i < steps; i++) { var x = pathX + (Math.random() * yOffset - (yOffset / 2)); var y = (sizes.card.height / steps) * (i + 1); points.push(x + ',' + y); } var strike = innerLightningHolder.path('M' + points.join(' ')).attr({ fill: 'none', stroke: 'white', strokeWidth: 2 + Math.random() }); gsap.to(strike.node, {duration: 1, opacity: 0, ease:"power4.out", onComplete: function(){ if (strike && strike.remove) strike.remove(); strike = null}}); }
+function lightning() {
+    console.log("⚡ lightning triggered!");
+    if (!currentWeather || currentWeather.type !== 'thunder' || !innerLightningHolder) {
+        console.warn("lightning aborted: wrong weather or holder missing");
+        return;
+    }
+    startLightningTimer();
+    gsap.fromTo(card,
+        {y: -30, rotationY: isFlipped ? 180 : 0},
+        {duration: 0.75, y: 0, rotationY: isFlipped ? 180 : 0, ease: "elastic.out"}
+    );
+    var pathX = 30 + Math.random() * (sizes.card.width - 60);
+    var yOffset = 20;
+    var steps = 20;
+    var points = [pathX + ',0'];
+    for (var i = 0; i < steps; i++) {
+        var x = pathX + (Math.random() * yOffset - (yOffset / 2));
+        var y = (sizes.card.height / steps) * (i + 1);
+        points.push(x + ',' + y);
+    }
+    var strike = innerLightningHolder.path('M' + points.join(' ')).attr({ fill: 'none', stroke: 'white', strokeWidth: 2 + Math.random() });
+    gsap.to(strike.node, {
+        duration: 1,
+        opacity: 0,
+        ease: "power4.out",
+        onComplete: function () {
+            if (strike && strike.remove) strike.remove();
+            strike = null;
+        }
+    });
+}
 
 // Originale changeWeather Funktion
 function changeWeather(weatherData) {
