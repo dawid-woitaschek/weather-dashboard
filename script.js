@@ -79,6 +79,7 @@ var weather = [
 	{ type: 'sun', name: 'Sonnig'},
 	{ type: 'cloudy', name: 'Bewölkt'}
 ];
+var ENABLE_DEBUG_WEATHER_SWITCHER = false;
 var currentWeather = null;
 var currentLat = 51.51; // Default Dortmund
 var currentLon = 7.46;  // Default Dortmund
@@ -162,7 +163,10 @@ function init() {
     console.log("0. init() called"); // Log 0
     onResize();
     console.log("0a. onResize finished.");
-    for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
+    $('nav').toggle(ENABLE_DEBUG_WEATHER_SWITCHER);
+    if (ENABLE_DEBUG_WEATHER_SWITCHER) {
+        for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
+    }
     console.log("0b. Buttons bound.");
     for(var i = 0; i < clouds.length; i++) { if (clouds[i] && clouds[i].group) { clouds[i].offset = Math.random() * sizes.card.width; drawCloud(clouds[i], i); gsap.set(clouds[i].group.node, { x: clouds[i].offset }); } else { console.warn("Cloud group missing for index:", i); } }
     console.log("0c. Clouds drawn.");
