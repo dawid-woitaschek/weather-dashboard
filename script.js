@@ -14,6 +14,9 @@ var searchContainer = $('#location-search-container');
 var searchInput = $('#location-search-input');
 var suggestionsContainer = $('#location-suggestions');
 var geolocationButton = $('#geolocation-button');
+var flipCardButton = $('#flip-card-button');
+var forecastList = $('#forecast-list');
+var forecastLocation = $('#forecast-location');
 
 // Referenzen für Animationen (aus Ur-Fassung)
 var weatherContainer1 = Snap.select('#layer1');
@@ -79,6 +82,7 @@ var weather = [
 	{ type: 'sun', name: 'Sonnig'},
 	{ type: 'cloudy', name: 'Bewölkt'}
 ];
+var ENABLE_DEBUG_WEATHER_SWITCHER = false;
 var currentWeather = null;
 var currentLat = 51.51; // Default Dortmund
 var currentLon = 7.46;  // Default Dortmund
@@ -97,6 +101,46 @@ var rain = []; var leafs = []; var snow = [];
 // --- Geocoding & Wetter API (Neue/Angepasste Logik) ---
 const GEOCODING_API_URL_BASE = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_API_URL_BASE = "https://api.open-meteo.com/v1/forecast";
+
+function getForecastIconClass(code) {
+    if ([0, 1].includes(code)) return 'wi-day-sunny';
+    if ([2, 3].includes(code)) return 'wi-cloudy';
+    if ([45, 48].includes(code)) return 'wi-fog';
+    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'wi-rain';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'wi-snow';
+    if ([95, 96, 99].includes(code)) return 'wi-thunderstorm';
+    return 'wi-cloud';
+}
+
+function renderForecast(dailyData) {
+    forecastList.empty();
+    if (!dailyData || !dailyData.time || dailyData.time.length === 0) {
+        forecastList.append('<li class="forecast-item"><span class="forecast-day">Keine Vorhersage verfügbar</span></li>');
+        return;
+    }
+
+    const daysToShow = Math.min(5, dailyData.time.length);
+    for (let i = 0; i < daysToShow; i++) {
+        const dayDate = new Date(dailyData.time[i]);
+        const dayLabel = dayDate.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+        const weatherCode = dailyData.weather_code ? dailyData.weather_code[i] : 3;
+        const minTemp = dailyData.temperature_2m_min ? Math.round(dailyData.temperature_2m_min[i]) : '--';
+        const maxTemp = dailyData.temperature_2m_max ? Math.round(dailyData.temperature_2m_max[i]) : '--';
+        const precipitation = dailyData.precipitation_sum ? dailyData.precipitation_sum[i].toFixed(1) : '0.0';
+
+        const listItem = `
+            <li class="forecast-item">
+                <div class="forecast-day">${dayLabel}</div>
+                <div class="forecast-icon"><i class="wi ${getForecastIconClass(weatherCode)}"></i></div>
+                <div class="forecast-values">
+                    <div class="forecast-temp">${minTemp}° / ${maxTemp}°</div>
+                    <div>${precipitation} mm</div>
+                </div>
+            </li>
+        `;
+        forecastList.append(listItem);
+    }
+}
 
 function fetchGeocodingData(query) {
     const url = `${GEOCODING_API_URL_BASE}?name=${encodeURIComponent(query)}&count=20&language=de&format=json`;
@@ -119,13 +163,14 @@ function displaySuggestions(results) {
 }
 
 function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standort") {
-    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto&temperature_unit=celsius`;
+    const weatherApiUrl = `${WEATHER_API_URL_BASE}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&forecast_days=5&timezone=auto&temperature_unit=celsius`;
     console.log("1. fetchWeatherData called for:", locationName, weatherApiUrl); // Log 1 + URL
-    locationNameElement.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
+    locationNameElement.text(locationName); forecastLocation.text(locationName); summary.text("Lädt..."); temp.html("--<span>c</span>");
 
     $.get(weatherApiUrl)
         .done(function(data) {
             console.log("2. API Call Success. Data:", data); // Log 2
+            renderForecast(data ? data.daily : null);
             if (data && data.current && data.current.temperature_2m !== undefined && data.current.weather_code !== undefined) {
                 const current = data.current; const tempValue = Math.round(current.temperature_2m); const weatherCode = current.weather_code;
                 console.log("3. Weather data parsed. Temp:", tempValue, "Code:", weatherCode); // Log 3
@@ -152,7 +197,7 @@ function fetchWeatherData(latitude, longitude, locationName = "Aktueller Standor
         });
 }
 
-function handleApiError(errorMsg) { console.error("Fehler:", errorMsg); temp.html("--<span>c</span>"); summary.text("Fehler"); date.text("Keine Daten"); locationNameElement.text("Ort unbekannt"); }
+function handleApiError(errorMsg) { console.error("Fehler:", errorMsg); temp.html("--<span>c</span>"); summary.text("Fehler"); date.text("Keine Daten"); locationNameElement.text("Ort unbekannt"); forecastLocation.text("Ort unbekannt"); renderForecast(null); }
 function getWeatherTypeFromCode(code) { /* ... (Mapping wie gehabt) ... */ if ([0, 1].includes(code)) return 'sun'; if ([2, 3].includes(code)) return 'cloudy'; if ([45, 48].includes(code)) return 'wind'; if ([51, 53, 55, 56, 57].includes(code)) return 'rain'; if ([61, 63, 65, 66, 67].includes(code)) return 'rain'; if ([71, 73, 75, 77].includes(code)) return 'snow'; if ([80, 81, 82].includes(code)) return 'rain'; if ([85, 86].includes(code)) return 'snow'; if ([95, 96, 99].includes(code)) return 'thunder'; console.warn("Unbekannter Wettercode:", code); return 'cloudy'; }
 function updateDate() { const now = new Date(); const options = { weekday: 'long', day: 'numeric', month: 'long' }; const formattedDate = now.toLocaleDateString('de-DE', options); date.text(formattedDate); }
 // --- Ende API / Suche Logik ---
@@ -162,7 +207,11 @@ function init() {
     console.log("0. init() called"); // Log 0
     onResize();
     console.log("0a. onResize finished.");
-    for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
+    $('nav').toggle(ENABLE_DEBUG_WEATHER_SWITCHER);
+    if (ENABLE_DEBUG_WEATHER_SWITCHER) {
+        for(var i = 0; i < weather.length; i++) { var w = weather[i]; var b = $('#button-' + w.type); if (b.length === 0) { console.warn("Button not found for:", w.type); continue; } w.button = b; b.bind('click', w, changeWeather); }
+    }
+    flipCardButton.off('click').on('click', function() { card.toggleClass('is-flipped'); });
     console.log("0b. Buttons bound.");
     for(var i = 0; i < clouds.length; i++) { if (clouds[i] && clouds[i].group) { clouds[i].offset = Math.random() * sizes.card.width; drawCloud(clouds[i], i); gsap.set(clouds[i].group.node, { x: clouds[i].offset }); } else { console.warn("Cloud group missing for index:", i); } }
     console.log("0c. Clouds drawn.");
